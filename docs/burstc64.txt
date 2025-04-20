@@ -1,0 +1,87 @@
+TODO:
+- order 74HCT4520 / CD4520 part
+- decide on I/O address (16 bytes) for CIA, update GAL
+
+https://www.lemon64.com/forum/viewtopic.php?t=36751
+
+16/+4
+PAL: 886724 Hz
+NTSC: 894886 Hz
+
+
+
+const uint8_t PWM_pin  = 0; // PB0 (OC1A)
+const uint8_t MODE_pin = 3; // PB3 – zworka do GND = tryb programowy
+
+bool use_software_pwm;
+const uint8_t half_duty_ms = 10;
+
+void setup() {
+  pinMode(PWM_pin, OUTPUT);
+  pinMode(MODE_pin, INPUT_PULLUP);
+  delay(100);
+
+  use_software_pwm = (digitalRead(MODE_pin) == LOW);
+
+  if (!use_software_pwm) {
+    // Timer1: źródło zegara = MUX podany na T1 (PB1)
+    // Preskaler = 1 (CS10=1), tryb Fast PWM z TOP=ICR1
+    TCCR1 = 0;
+    GTCCR = 0;
+    TCCR1 |= (1 << PWM1A) | (1 << COM1A1);     // non-inverting PWM
+    TCCR1 |= (1 << CS10);                      // clock source: ext pin T1, no prescaler
+    ICR1  = 17734;
+    OCR1A = 8867;
+  }
+}
+
+void loop() {
+  if (use_software_pwm) {
+    digitalWrite(PWM_pin, HIGH);
+    delay(half_duty_ms);
+    digitalWrite(PWM_pin, LOW);
+    delay(half_duty_ms);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+https://a1bert.kapsi.fi/Dev/burst/
+
+Modification to c64
+To use burst fastloader with C64 we need to connect the CIA synchronous serial port to the synchronous serial lines of the Commodore peripheral serial bus. Two wires are needed: one to connect the serial bus data line to the syncronous serial port data line and one to connect the serial bus SRQ (the obsolete line for service request, now fast serial clock) to the synchronous serial port clock line. Select the right connections depending on whether you want to use CIA1 or CIA2.
+
+	1570/1,1581				C64
+
+Pin1	SRQ	Fast serial bus clk		CNT1/2	User port 4/6
+Pin5	DATA	Data - slow&fast bus		SP1/2	User port 5/7
+
+
+Top view - old c64, CIA1
+User port	Cass port	Serial connector
+
+||||||||||||	||||||		 HHHHH		behind:
+||||||||||||	||||||	       .-1 3 5-.
+       ||______________________|  2 4  |	  / \
+       |	CNT1		   6   |	 // \\
+       |_______________________________|	 |||||
+		SP1				1 264 5
+
+
+Top view - old c64, CIA2
+User port	Cass port	Serial connector
+
+||||||||||||	||||||		 HHHHH		behind:
+||||||||||||	||||||	       .-1 3 5-.
+     ||________________________|  2 4  |	  / \
+     |	CNT2			   6   |	 // \\
+     |_________________________________|	 |||||
+		SP2				1 264 5
