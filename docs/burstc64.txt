@@ -1,6 +1,96 @@
+https://github.com/mist64/cbmsrc/tree/master/KERNAL_TED_05
+
+https://github.com/mist64/cbmsrc/blob/master/BASIC_TED/keydefs.src
+	chgkey - programowanie klawisza $B7A7
+	doakey - $B7C2 ;enter with len in .a, addr in 'index', & key # (0-7) in 'keynum'=$76
+	keyins = $b840
+	indin1 (lda (index),y) -> $04b0 index = $22
+
+LDA #0 ; 0-7 (0=F1, 7=F8)
+STA $76 ; keynum
+LDA #<keydef
+STA $22 ; index
+LDA #>keydef
+STA $23 ; index+1
+LDA #keydefend-keydef
+JSR $B7C2 ; doakey -> or JSR $FF49
+
+https://github.com/mist64/cbmsrc/blob/master/KERNAL_C128_06/load.src
+	C128 burst load
+	fast serial detect ($0a1c bit 6)
+
+http://www.ffd2.com/fridge/chacking/c=hacking3.txt - fastload
+http://www.ffd2.com/fridge/chacking/c=hacking4.txt - burst lib
+http://www.ffd2.com/fridge/chacking/c=hacking19.txt - c64 fastload:
+
+   Both the drive and the computer must detect whether the other side can
+   handle fast serial transfers. This is accomplished by sending a byte
+   using the synchronous serial port while doing handshaking. The drive
+   sends a fast serial byte when the computer sends a secondary address
+   (SECOND, which is called by e.g. CHKOUT), the computer can in practice
+   send the fast serial byte anytime after the drive is reset and before
+   the drive would send fast serial bytes.
+
+tzn. gdybym wysylal komendę przez listen/second (jak w c=hacking 3/4) to powinno się wykryc burst
+po second w rejestrze statusu CIA? (nawet nie muszę! ROM tego nie wyczyści, nie jak w C64/128)
+Ojala: oldload gdy nazwa zaczyna się od ':', ale DLOAD zawsze dodaje '0:' do nazwy
+otwiera kanał #15, po ustawieniu na output już powinno być wiadomo czy to fast, czy slow device
+
+
++4 read ram
+.C:07d9  08          PHP
+.C:07da  78          SEI
+.C:07db  8D 3F FF    STA $FF3F
+.C:07de  B1 00       LDA ($00),Y
+.C:07e0  8D 3E FF    STA $FF3E
+.C:07e3  28          PLP
+.C:07e4  60          RTS
+.C:07e5  18          CLC
+
+trzeba robić toggle CLK out ($01 EOR #$01)
+https://ist.uwaterloo.ca/~schepers/MJK/7501.html
+P0	SERIAL DATA OUT.
+P1	SERIAL CLK output
+P2	SERIAL ATN output
+P3	Cassette motor.
+P4	Cassette read.
+P5	Not externally accessible.
+P6	SERIAL CLK input
+P7	SERIAL DATA input. If jumper J8 is closed, also for Cassette SENSE.
+
+C64:$ee85 - wszystkie ROMy mają clock hi najpierw, potem clocklo, datahi, datalo
+TED:$e2b8
+LE2B8   LDA   IO
+        AND   #$FD
+        STA   IO
+        RTS    
+clkhi
+       lda port        	;set clock line high (inverted)
+       and #%11111101
+       sta port
+       rts
+
+
+https://plus4world.powweb.com/software/Hypaload_1551
+- v4.7 do disasemblacji
+- ale ta stara (zepsuta) też działa
+
+ROM:
+- display welcome message
+- install F-key (tools) -> directory browser (tcbm2sd)
+- install LOAD vector
+	- if 'VERIFY' -> standard load
+	- if '$' -> standard load
+	- if 1571/81 (burst) -> burst (coś się pojawia na porcie serial przy otwarciu kanału)
+	- if tcbm2sd -> ~burst command / fastload tcbm2sd
+	- if 1541+parallel -> speeddos
+	- if 1541 -> jakiś inny fastloader
+	- if 1551 -> hypaload 4.7 (uwaga: nie działa na vice)
+- burst detect - c128?
+- 'DLOAD' adds '0:' always
+
 TODO:
-- order 74HCT4520 / CD4520 part
-- decide on I/O address (16 bytes) for CIA, update GAL
+- decide on I/O address (16 bytes) for CIA, update GAL -> FD90..FD9F CIA, FDA0-AF VIA?
 
 https://www.lemon64.com/forum/viewtopic.php?t=36751
 
