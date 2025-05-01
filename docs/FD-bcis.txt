@@ -1,0 +1,434 @@
+BURST COMMANDS
+--------------
+
+The FD Burst Command Instruction Set (FDBCIS) emulates the 1581 BCIS
+as closely as possible, although it was necessary to make some changes
+due to the extended capabilities of the FD. The required syntax is:
+
+PRINT#lf,"U0"+CHR$(Byte02)[+CHR$(Byte03)...]
+
+where: lf    = the logical file number used for the command channel
+
+Note: In each of the following burst commands, Byte 00 contains the
+ASCII value for the letter "U", while Byte 01 contains the ASCII value
+for "0" (hence, bytes 00 and 01 are the "U0" shown in the syntax
+above).
+
+Read
++--------------------------------------------------------+
+| BYTE    BIT7  BIT6  BIT5  BIT4  BIT3  BIT2  BIT1  BIT0 |
++--------------------------------------------------------+
+|  00      0     1     0     1     0     1     0     1   |
++--------------------------------------------------------+
+|  01      0     0     1     1     0     0     0     0   |
++--------------------------------------------------------+
+|  02      L     E     X     S     0     0     0     N   |
++--------------------------------------------------------+
+|  03                   DESTINATION TRACK                |
++--------------------------------------------------------+
+|  04                   DESTINATION SECTOR               |
++--------------------------------------------------------+
+|  05                   NUMBER OF SECTORS                |
++--------------------------------------------------------+
+|  06                 NEXT TRACK (optional)              |
++--------------------------------------------------------+
+
+RANGE:       Logical Format:   Dependent on partition type
+                               (see Appendix C)
+             Physical Format:  Dependent on type of disk format
+                               (see Appendix C)
+
+SWITCHES:    L  -  Logical Flag (0=physical/1=logical)
+             E  -  Ignore Error (1=ignore)
+             X  -  Don't Care
+             S  -  Side (0 or 1 if using physical format)
+             N  -  Partition Number (only 0 is supported)
+
+PROTOCOL:    Burst Handshake
+
+CONVENTIONS: Before READING from or WRITING to a disk, it must be
+             logged in using either the INQUIRE DISK or QUERY DISK
+             FORMAT commands.
+
+OUTPUT:      One burst status byte, followed by burst data, is sent
+             for each sector transferred. An error will prevent data
+             from being sent unless the IGNORE ERROR bit in byte 02 is
+             set to a value of 1.
+
+
+Write
++--------------------------------------------------------+
+| BYTE    BIT7  BIT6  BIT5  BIT4  BIT3  BIT2  BIT1  BIT0 |
++--------------------------------------------------------+
+|  00      0     1     0     1     0     1     0     1   |
++--------------------------------------------------------+
+|  01      0     0     1     1     0     0     0     0   |
++--------------------------------------------------------+
+|  02      L     E     X     S     0     0     1     N   |
++--------------------------------------------------------+
+|  03                   DESTINATION TRACK                |
++--------------------------------------------------------+
+|  04                   DESTINATION SECTOR               |
++--------------------------------------------------------+
+|  05                   NUMBER OF SECTORS                |
++--------------------------------------------------------+
+|  06                 NEXT TRACK (optional)              |
++--------------------------------------------------------+
+
+RANGE:       Logical Format:   Dependent on partition type
+                               (see Appendix C)
+             Physical Format:  Dependent on type of disk format
+                               (see Appendix C)
+
+SWITCHES:    L  -  Logical Flag (0=physical/1=logical)
+             E  -  Ignore Error (1=ignore)
+             X  -  Don't Care
+             S  -  Side (0 or 1 if using physical format)
+             N  -  Partition Number (only 0 is supported)
+
+PROTOCOL:    Output data, set fast serial in, pull clock low, wait for
+             status byte, release clock. Repeat for multiple sectors.
+
+CONVENTIONS: Before READING from or WRITING to a disk, it must be
+             logged in using either the INQUIRE DISK or QUERY DISK
+             FORMAT commands.
+
+INPUT:       Host must transfer burst data.
+
+OUTPUT:      One burst status byte, following each WRITE operation.
+
+
+Inquire Disk
++--------------------------------------------------------+
+| BYTE    BIT7  BIT6  BIT5  BIT4  BIT3  BIT2  BIT1  BIT0 |
++--------------------------------------------------------+
+|  00      0     1     0     1     0     1     0     1   |
++--------------------------------------------------------+
+|  01      0     0     1     1     0     0     0     0   |
++--------------------------------------------------------+
+|  02      X     X     X     S     0     1     0     N   |
++--------------------------------------------------------+
+
+SWITCHES:    X  -  Don't Care
+             S  -  Side (0 or 1 if using physical format)
+             N  -  Partition Number (only 0 is supported)
+
+PROTOCOL:    Burst handshake.
+
+OUTPUT:      One burst status byte following each INQUIRE DISK.
+
+
+Format
++--------------------------------------------------------+
+| BYTE    BIT7  BIT6  BIT5  BIT4  BIT3  BIT2  BIT1  BIT0 |
++--------------------------------------------------------+
+|  00      0     1     0     1     0     1     0     1   |
++--------------------------------------------------------+
+|  01      0     0     1     1     0     0     0     0   |
++--------------------------------------------------------+
+|  02      M     X     X     X     0     1     1     N   |
++--------------------------------------------------------+
+|  03      I     D     D     D     Z     Z     Z     Z   |
+|          FORMAT TYPE, DENSITY, SECTOR SIZE (optional)  |
++--------------------------------------------------------+
+|  04             LAST TRACK NUMBER (optional)           |
++--------------------------------------------------------+
+|  05             NUMBER OF SECTORS (optional)           |
++--------------------------------------------------------+
+|  06              STARTING TRACK (optional)             |
++--------------------------------------------------------+
+|  07                 FILL BYTE (optional)               |
++--------------------------------------------------------+
+|  08              STARTING SECTOR (optional)            |
++--------------------------------------------------------+
+|  09                FORMAT GAP (optional)               |
++--------------------------------------------------------+
+
+SWITCHES:    M  -  Mode (0=logical format with directory
+                   and BAM and 1=physical format using
+                   optional bytes 03-09)
+             X  -  Don't Care
+             N  -  Partition Number (only 0 is supported)
+
+OPTIONS:     Bytes 03-09 are optional and are only accepted when
+             physical formatting is specified (M=1). If you do not
+             specify values for these bytes, system default values
+             will be used. The following list shows the legal range
+             and default values for these bytes:
+
+Byte 3   Format Type Identifier, Density, and Sector Size
+   Usage:    I  -  Format ID    0 = ISO (default)
+                                1 = IBM
+             D  -  Density      000 = Double Density (default)
+                                001 = High Density
+                                010 = Enhanced Density
+             Z  -  Sector Size  0000 = 128 bytes (not used)
+                                0001 = 256 bytes
+                                0010 = 512 bytes (default)
+                                0011 = 1024 bytes
+                                0100 = 2048 bytes
+                                0101 = 4096 bytes
+                                0110 = 8192 bytes
+
+Byte 4   Last Track
+   Usage:    00 through 79 (default=79)
+
+Byte 5   Sectors/Track (default set according to sector size value
+         in byte 3)
+   Usage:    Double Density     16  (256 byte sector size)
+                                10  (512 byte sector size)
+                                 5  (1024 byte sector size)
+                                 2  (2048 byte sector size)
+                                 1  (4096 byte sector size)
+                                    (8192 byte sectors will not fit
+                                    on this format)
+             High Density       32  (256 byte sector size)
+                                20  (512 byte sector size)
+                                10  (1024 byte sector size)
+                                 5  (2048 byte sector size)
+                                 2  (4096 byte sector size)
+                                 1  (8192 byte sector size)
+             Enhanced Density   64  (256 byte sector size)
+                                40  (512 byte sector size)
+                                20  (1024 byte sector size)
+                                10  (2048 byte sector size)
+                                 5  (4096 byte sector size)
+                                 2  (8192 byte sector size)
+
+Byte 6   Starting Track
+   Usage:    0 through 79 (default=0)
+
+Byte 7   Fill Byte
+   Usage:    0 through 255 (defaults: ISO=$E5, IBM=$F6)
+
+Byte 8   Starting Sector
+   Usage:    1 through 63 (default=1)
+
+Byte 9   Format Gap
+   Usage:    0 through 255 (default set according to density and
+             format type in byte 3)
+             Double Density      35  (ISO)
+                                 80  (IBM)
+             High Density       100  (ISO)
+                                108  (IBM)
+             Enhanced Density   100  (ISO)
+                                108  (IBM)
+
+PROTOCOL:    Conventional.
+
+CONVENTIONS: This command must be followed by an INQUIRE DISK or QUERY
+             DISK FORMAT command to log in the partition.
+
+OUTPUT:      None.
+
+Note: The directory header written by this command (logical format)
+will contain the string 'CMD FD' for the disk name and '92' for the
+ID.
+
+
+Query Disk Format
++--------------------------------------------------------+
+| BYTE    BIT7  BIT6  BIT5  BIT4  BIT3  BIT2  BIT1  BIT0 |
++--------------------------------------------------------+
+|  00      0     1     0     1     0     1     0     1   |
++--------------------------------------------------------+
+|  01      0     0     1     1     0     0     0     0   |
++--------------------------------------------------------+
+|  02      F     X     T     S     1     0     1     N   |
++--------------------------------------------------------+
+|  03                OFFSET (optional - F=1)             |
++--------------------------------------------------------+
+
+SWITCHES:    F  -  Force (F=1 steps head with offset in byte 3)
+             X  -  Don't Care
+             T  -  Sector Table (T=1 sends sector table)
+             S  -  Side (0 or 1 if using physical format)
+             N  -  Partition Number (only 0 is supported)
+
+PROTOCOL:    Burst handshake.
+
+CONVENTIONS: Determines the physical disk format.
+
+OUTPUT:      Burst status byte after logging disk, burst status byte
+             after compiling MFM format information, number of
+             physical sectors per track, logical track number found in
+             header, lowest logical sector number, highest logical
+             sector number, interleave value, sector table (if T=1).
+
+Notes: The sector table is a series of bytes (1,2,3...) showing the
+sector numbers of the sectors found. Second status byte is from track
+offset 0 unless F=1, then status is from offset track in byte 03. No
+bytes follow either status byte if an error occurred.
+
+
+Inquire Status
++--------------------------------------------------------+
+| BYTE    BIT7  BIT6  BIT5  BIT4  BIT3  BIT2  BIT1  BIT0 |
++--------------------------------------------------------+
+|  00      0     1     0     1     0     1     0     1   |
++--------------------------------------------------------+
+|  01      0     0     1     1     0     0     0     0   |
++--------------------------------------------------------+
+|  02      W     C     M     0     1     1     0     N   |
++--------------------------------------------------------+
+|  03                   NEW STATUS (W=0)                 |
++--------------------------------------------------------+
+|  04                   NEW OR MASK (M=1)                |
++--------------------------------------------------------+
+|  05                  NEW AND MASK (M=1)                |
++--------------------------------------------------------+
+
+SWITCHES:    W  -  Returns current status only if W=1, regardless
+                   of the condition of the other flags.
+             C  -  Log in disk if C=1 and W=0.
+             M  -  Write new AND/OR masks if M=1 and W=0.
+             N  -  Partition Number (only 0 is supported)
+
+PROTOCOL:    Burst handshake if W=1, conventional if W=0.
+
+CONVENTIONS: This is a method of reading or writing the current
+             status, and changing the status mask values.
+
+OUTPUT:      None if W=0, burst status if W=1.
+
+
+CHGUTL Utility
++--------------------------------------------------------+
+| BYTE    BIT7  BIT6  BIT5  BIT4  BIT3  BIT2  BIT1  BIT0 |
++--------------------------------------------------------+
+|  00      0     1     0     1     0     1     0     1   |
++--------------------------------------------------------+
+|  01      0     0     1     1     0     0     0     0   |
++--------------------------------------------------------+
+|  02      X     X     X     1     1     1     1     0   |
++--------------------------------------------------------+
+|  03-??         UTILITY COMMANDS AND PARAMETERS         |
++--------------------------------------------------------+
+
+SWITCHES:    X  -  Don't Care
+
+COMMANDS:
+   CHR$(n)      -  Change Device Number
+                      n = new device number
+   Bn           -  Fast Serial Mode
+                      n = 0 - fast serial disabled
+                      n = 1 - fast serial enabled
+   Hn           -  Head Select (returns error)
+                      n = 0 - side 0
+                      n = 1 - side 1
+   I+CHR$(n)    -  Set Cache Dump Interval
+                      n = time in milliseconds/10
+   Mn           -  Mode Select (returns error)
+                      n = 0 - single-sided
+                      n = 1 - double-sided
+   MR+CHR$(a)+
+   CHR$(p)      -  Memory Read*
+                      a = high byte of starting address
+                      p = number of pages to read
+   R+CHR$(n)    -  DOS Retries
+                      n = retries before error is assumed
+   S+CHR$(n)    -  DOS Sector Interleave (ignored)
+                      n = sector interleave offset
+   T            -  Test ROM Checksum (ignored)
+   Vn           -  Write Verify Switch
+                      n = 1 - verify on
+                      n = 0 - verify off
+
+*Note: Burst MR and MW use standard burst protocol (without status
+byte).
+
+
+Dump Track Cache Buffer
++--------------------------------------------------------+
+| BYTE    BIT7  BIT6  BIT5  BIT4  BIT3  BIT2  BIT1  BIT0 |
++--------------------------------------------------------+
+|  00      0     1     0     1     0     1     0     1   |
++--------------------------------------------------------+
+|  01      0     0     1     1     0     0     0     0   |
++--------------------------------------------------------+
+|  02      F     S     X     1     1     1     0     1   |
++--------------------------------------------------------+
+|  03                 PHYSICAL TRACK NUMBER              |
++--------------------------------------------------------+
+|  04     PHYSICAL SECTOR NO. (optional - HD & ED only)  |
++--------------------------------------------------------+
+
+SWITCHES:    F  -  Write Always (F=1 write even if not 'dirty')
+             S  -  Side
+             X  -  Don't Care
+
+Note: Physical track and Side are used only if F=1. Also, if byte 4 is
+sent when using an HD or ED diskette, it is used to set the starting
+sector for the dump.
+
+
+Fastload Utility
++--------------------------------------------------------+
+| BYTE    BIT7  BIT6  BIT5  BIT4  BIT3  BIT2  BIT1  BIT0 |
++--------------------------------------------------------+
+|  00      0     1     0     1     0     1     0     1   |
++--------------------------------------------------------+
+|  01      0     0     1     1     0     0     0     0   |
++--------------------------------------------------------+
+|  02      P     X     X     1     1     1     1     1   |
++--------------------------------------------------------+
+|  03-??                    FILENAME                     |
++--------------------------------------------------------+
+
+SWITCHES:    P  -  Non-program File Flag (P=0 - program file/
+                   P=1 - non-program file)
+             X  -  Don't Care
+
+PROTOCOL:    Burst handshake.
+
+OUTPUT:      Burst status byte preceding each sector transferred. In a
+             program file, the load address should be handled in the
+             normal manner.
+
+STATUS:      0000000X  =  OK
+             00000010  =  FILE NOT FOUND
+             00011111  =  EOI (last sector)
+
+             Status values from 3 through 15 should be considered a
+             file read error. The byte after the EOI indicates the
+             number of data bytes remaining in the file.
+
+
+Burst Status Byte
++--------------------------------------------------------+
+|         BIT7  BIT6  BIT5  BIT4  BIT3  BIT2  BIT1  BIT0 |
++--------------------------------------------------------+
+|          M     N     Z     Z     C     C     C     C   |
++--------------------------------------------------------+
+
+BIT DEFINITIONS:
+   M  -  Mode:  0  Normal format (1581 disk with directory and BAM
+                   or CMD-formatted 800k, 1.6M, 3.2M)
+                1  Foreign Disk Format (non-default physical format
+                   or default physical format without directory and
+                   BAM information)
+
+   N  -  Partition Number (only 0 is supported)
+
+   Z  -  Sector Size:  00  128 or 2048 byte sector size
+                       01  256 or 4096 byte sector size
+                       10  512 or 8192 byte sector size
+                       11  1024 byte sector size
+
+   C  -  Controller Status:  0000  OK
+                             0001  OK
+                             0010  Header Not Found
+                             0011  No Data Address Mark
+                             0100  Data Block Not Found
+                             0101  Data CRC Error
+                             0110  Format Error
+                             0111  Write-Verify Error
+                             1000  Write Protect On
+                             1001  Header CRC Error
+                             1010  Illegal Logical Block
+                             1011  Disk Change
+                             1100  Invalid Format
+                             1101  FDC Hardware Error
+                             1110  Burst Syntax Error or Illegal Job
+                             1111  No Drive Present
+

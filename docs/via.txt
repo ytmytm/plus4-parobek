@@ -1,0 +1,17 @@
+
+niby rozwiązanie, ale w jednym kierunku:
+http://forum.6502.org/viewtopic.php?t=40
+
+To remedy it, put the external clock signal into the D input of a 74HC74 flip-flop, run the flip-flop's Q output to the 6522's CB1 pin, and clock the flip-flop with phase 0 or phase 2. I have used this to send data from one 6502 computer to another using CA2 for an extra handshake line.
+
+implementacja tutaj + przełączanie kierunku software to 1x7474 + 7404 + 74126
+(użyte 2 bufory z 4 na chipie, pozostałę 2 mogłyby buforować linię data - izolacja VIA)
+(tylko 1 inwerter użyty: NPN (2N3904) + pullup 10K + baza 1K = 3 elementy)
+
+http://forum.6502.org/viewtopic.php?f=4&t=2175
+
+http://forum.6502.org/viewtopic.php?p=2310#p2310
+
+fachat chciał też serial port z via
+http://forum.6502.org/viewtopic.php?f=4&t=7937
+(2 linki do youtube)
