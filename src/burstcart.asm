@@ -165,8 +165,8 @@ myload_cont:
 	bit ciabase+13		; clear interrupt register
 	lda #8			; data to be sent and interrupt mask (following BIT)
 	sta ciabase+12		; (we wake up the other end so that it believes we can do burst transfers, actual data doesnt matter)
--	bit ciabase+13
-	beq -			; wait until data sent XXX this will lockup if there is no CIA
+-	bit ciabase+13		; (but 8 is special because it's a mask for this bit instruction)
+	beq -			; wait until data sent XXX this will lockup if there is no CIA --> add timeout via Y register
 
 	lda #$81
 	sta ciabase+14		; start timer A, serial IN, TOD 50Hz
