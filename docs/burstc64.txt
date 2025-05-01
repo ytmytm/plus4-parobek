@@ -24,14 +24,14 @@
 
 Zmiany do v1.1 na schemacie i płytce
 - sieć +5V połączona z VCC
-- /CIA i ROM_A15 zamienione miejscami (19 <-> 22)
+- /CIA i ROM_A15 zamienione miejscami (19 <-> 22), teraz /CIA na 19
 - jumper od CD4520 domyślnie połączony 3-2
 - info, że R/C można nie montować
 - jumper od zegara z Phi2 albo CD4520 (slow/fast vs slow)
 - oznaczyć że GAL to 22V10
 - SP i CNT potrzebują pullup 3.3K do VCC
-? usunąć połączenie MUX z attiny?
-? info o zworce: zwarta=software clock,rozwarta=hw clock
+- usunąć połączenie MUX z attiny?
+- info o zworce: zwarta=software clock,rozwarta=hw clock
 
 
 https://plus4world.powweb.com/pubs/compute_mit/sa_1988-05/compute_mit_sa_1988_5.pdf (str 54)
