@@ -1,3 +1,42 @@
+~ próbować z innym CIA? (czy działa na fastclock z wyłączonym ekranem?)
+
+[20250501]
+- SP/CNT są open drain (trzeba czytać datasheet!) i potrzebują 3.3K pullup (tak jak w C128)
+- loader działa, ale tylko gdy ekran jest wyłączony (nie lubi wolnego zegara czy zmian prędkości?)
+- TOD sprawdzony, rozwarty używa sprzętowego dzielnika (50.8Hz), zwarty software (49.6Hz)
+- na zegarze z CD4520 nie działa dobrze, dostęp do rejestrów nie jest reliable
+- potwierdzona logika ROM C1/C2 - C1 dolna połówka, C2 górna - jak tcbm2sd
+
+[20250430]
+- logika GAL na /CIA była odwrócona
+- ale żeby zrobić prawidłowo trzeba /CIA przenieść na pin 19, więc zamienić /CIA (22) z ROM_A15 (19)
+- reset CD4520 połączony (jumper 3-2)
+- timing z CD4520 działa tylko gdy kondensator jest rozłączony, a rezystor zastąpiony zworką
+- ale Phi2 jako CIACLK działa zdecydowanie lepiej - nie ma losowych błędów odczytu - tak zostawiam
+- ROM C1 działa
+- ROM C2 chyba działa (bo to BASIC7, który wiesza się z jiffydos, sprawdzić kiedyś na innym)
+- na ROM burst bez urządzenia LOAD wiesza się z komunikatem 'SEARCHING' - false positive?
+
+[20250429]
+- nie działało, bo sieć +5V nie była połączona z siecią VCC; po połączeniu działa zegar/licznik
+- bez CIA pod FD90 widać to samo - losowe liczby
+- z CIA komputer się nie uruchamia, czasem zdąży
+
+Zmiany do v1.1 na schemacie i płytce
+- sieć +5V połączona z VCC
+- /CIA i ROM_A15 zamienione miejscami (19 <-> 22)
+- jumper od CD4520 domyślnie połączony 3-2
+- info, że R/C można nie montować
+- jumper od zegara z Phi2 albo CD4520 (slow/fast vs slow)
+- oznaczyć że GAL to 22V10
+- SP i CNT potrzebują pullup 3.3K do VCC
+? usunąć połączenie MUX z attiny?
+? info o zworce: zwarta=software clock,rozwarta=hw clock
+
+
+https://plus4world.powweb.com/pubs/compute_mit/sa_1988-05/compute_mit_sa_1988_5.pdf (str 54)
+- tu jest VIA podłączone do r/w, phi2, reset, irq, d0-7, a0-3 i tylko /CS skąd innąd
+
 https://github.com/mist64/cbmsrc/tree/master/KERNAL_TED_05
 
 https://github.com/mist64/cbmsrc/blob/master/BASIC_TED/keydefs.src
@@ -47,7 +86,7 @@ otwiera kanał #15, po ustawieniu na output już powinno być wiadomo czy to fas
 .C:07e4  60          RTS
 .C:07e5  18          CLC
 
-trzeba robić toggle CLK out ($01 EOR #$01)
+trzeba robić toggle CLK out ($01 EOR #$02)
 https://ist.uwaterloo.ca/~schepers/MJK/7501.html
 P0	SERIAL DATA OUT.
 P1	SERIAL CLK output
