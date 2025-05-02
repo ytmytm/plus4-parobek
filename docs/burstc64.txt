@@ -1,10 +1,25 @@
-~ próbować z innym CIA? (czy działa na fastclock z wyłączonym ekranem?)
+~ potwierdzić teorię używając IRQ
+? co dalej: napisać na forum, zrobić wersję na VIA a może wersję na CPLD?
+
+[20250502]
+- próby z innymi CIA - wszystkie fail, nieważne czy Phi2, Phi0 czy zegar CD5420
+  zegar TOD nie działa -> prawdopodobnie chodzi o zapis do rejestrów
+  frustrujące, przypadkowo jedyny dobry to pierwszy którego spróbowałem
+- ten jeden który działa w dodatku działa też na Phi0, tak samo dobrze i to nie jest 6526A, drugi uszkodzony jest z tego samego roku i nie działa
+- ROM ma błędy:
+  - file not found raportowane jako device not found (gdy burst działa)
+  - flaga od adresu ładowania jest odwrotnie (to ,8,1 ładuje w BASIC zamiast loadaddress z pliku)
 
 [20250501]
 - SP/CNT są open drain (trzeba czytać datasheet!) i potrzebują 3.3K pullup (tak jak w C128)
 - loader działa, ale tylko gdy ekran jest wyłączony (nie lubi wolnego zegara czy zmian prędkości?)
+	- skoro zawiesza się w losowych miejscach tzn. gubi potwierdzenie odbioru bajtu
+          tzn. CIA rejestruje odczyt i kasuje status w $0D, ale CPU nadal widzi tam 0 zamiast 8
+	- można sprawdzić ustawiając IRQ i testować flagę z IRQ zamiast rejestr bezpośrednio
+	- no chyba, że CIA faktycznie nie rejestruje odczytu, ale w to wątpię
 - TOD sprawdzony, rozwarty używa sprzętowego dzielnika (50.8Hz), zwarty software (49.6Hz)
 - na zegarze z CD4520 nie działa dobrze, dostęp do rejestrów nie jest reliable
+- na Phi2 działa z wyłączonym ekranem
 - potwierdzona logika ROM C1/C2 - C1 dolna połówka, C2 górna - jak tcbm2sd
 
 [20250430]
@@ -33,6 +48,11 @@ Zmiany do v1.1 na schemacie i płytce
 - usunąć połączenie MUX z attiny?
 - info o zworce: zwarta=software clock,rozwarta=hw clock
 
+CPLD:
+- $04 timer A low
+- $0C serial port we/wy
+- $0D status - bit 3 (wyszło/weszło)
+- $0E kontrola: 2 bity: timer start, port in/out
 
 https://plus4world.powweb.com/pubs/compute_mit/sa_1988-05/compute_mit_sa_1988_5.pdf (str 54)
 - tu jest VIA podłączone do r/w, phi2, reset, irq, d0-7, a0-3 i tylko /CS skąd innąd
