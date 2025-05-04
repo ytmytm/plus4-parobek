@@ -4,6 +4,7 @@
 - force slow clock podczas dostępu do CIA (zgodnie z sugestią z forum), nadal nie działa
 - tamta płytka nie działa, zlutuję drugą z minimalnymi poprawkami, może znowu będzie działać
   (wszystko zepsuło się gdy rozciąłem ścieżkę phi2 przy porcie i zastąpiłem przewodem)
+- druga zlutowana działa w porządku, to bardzo subtelny efekt!
 
 [20250503]
 - żadna z tych opcji nie działa dobrze do zapisu, wszystkie działają dobrze do odczytu (było też phi0 zamiast phi2)
