@@ -1,13 +1,13 @@
 ? co dalej: zrobić wersję na VIA a może wersję na CPLD?
 
-[20250504]
+[20250504] ("działa" == da się zapisać coś do rejestrów CIA)
 - force slow clock podczas dostępu do CIA (zgodnie z sugestią z forum), nadal nie działa
 - tamta płytka nie działa, zlutuję drugą z minimalnymi poprawkami, może znowu będzie działać
   (wszystko zepsuło się gdy rozciąłem ścieżkę phi2 przy porcie i zastąpiłem przewodem)
 
 [20250503]
 - żadna z tych opcji nie działa dobrze do zapisu, wszystkie działają dobrze do odczytu (było też phi0 zamiast phi2)
-- wersja z tcbm2sd zadziałała raz(!)
+- wersja z tcbm2sd zadziałała raz(!) (MUX zamiast wyjścia RESET, RW zamiast wejścia nRESET)
 	CIA = ( cia_range );
 	CIA = ( cia_range & ( (RW & !MUX) # (!RW & PHI2 ) ) ); // w tcbm2sd jest Phi0
 	CIA = ( cia_range & ( (RW & !MUX) # (!RW & PHI2 & !MUX ) ) );
