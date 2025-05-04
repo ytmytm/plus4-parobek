@@ -1,5 +1,30 @@
-~ potwierdzić teorię używając IRQ
-? co dalej: napisać na forum, zrobić wersję na VIA a może wersję na CPLD?
+? co dalej: zrobić wersję na VIA a może wersję na CPLD?
+
+$ff13         Bit 0     : A sign to having control about memory paging. This
+                          bit always sets to 1 when ROM is active over $8000.
+                          Else, it will be 0. READ ONLY.
+              Bit 1     : Force single clock mode. Then, TED will disable to
+                          generate twiee clock.
+
+[20250503]
+- żadna z tych opcji nie działa dobrze do zapisu, wszystkie działają dobrze do odczytu (było też phi0 zamiast phi2)
+- wersja z tcbm2sd zadziałała raz(!)
+	CIA = ( cia_range );
+	CIA = ( cia_range & ( (RW & !MUX) # (!RW & PHI2 ) ) ); // w tcbm2sd jest Phi0
+	CIA = ( cia_range & ( (RW & !MUX) # (!RW & PHI2 & !MUX ) ) );
+	CIA = ( cia_range & ( (RW & !MUX) # (!RW ) ) );
+	CIA = ( cia_range & ( (RW & !MUX) # PHI2 ) );
+- po tych eksperymentach przestała działać (zapis!) też podstawowa wersja
+- tcbm2sd:
+	drivedataout: adres+<READ> + !pla[10] (odczyt z chipa) MUX==0
+	drivedatain : adres+<WRITE>+negedge pla[6](zapis do rejestru) (zapis: opadające phi0)
+- forum: https://plus4world.powweb.com/forum/45705#45744
+	drivedataout: adres+<READ> + mux==0 lub adres+<READ>+opóźnione phi2
+	drivedatain : adres+<WRITE>+ phi2==1
+	+'read from exp.bus'(write register) -> BA==1
+- to może jednak CPLD?
+	- https://github.com/niklasekstrom/cia-verilog/blob/master/cia.v
+	- obcięte do 4 rejestrów: $04, $0C, $0D, $0E spokojnie się mieści w XC95144XL-10TQ100C
 
 [20250502]
 - próby z innymi CIA - wszystkie fail, nieważne czy Phi2, Phi0 czy zegar CD5420
@@ -53,6 +78,7 @@ CPLD:
 - $0C serial port we/wy
 - $0D status - bit 3 (wyszło/weszło)
 - $0E kontrola: 2 bity: timer start, port in/out
+https://raw.githubusercontent.com/niklasekstrom/cia-verilog/refs/heads/master/cia.v
 
 https://plus4world.powweb.com/pubs/compute_mit/sa_1988-05/compute_mit_sa_1988_5.pdf (str 54)
 - tu jest VIA podłączone do r/w, phi2, reset, irq, d0-7, a0-3 i tylko /CS skąd innąd
