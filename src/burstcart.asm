@@ -38,6 +38,7 @@ ROM_CLRCHN	= $FFCC
 ROM_CHROUT	= $FFD2
 
 eFF06		= $FF06
+eFF13		= $FF13
 
 ciabase		= $FD90
 
@@ -94,6 +95,10 @@ warmstart:
 	sta RAM_ILOAD+1
 
         ; setup TOD
+	lda eFF13
+	tax
+	ora #%00000010			; force slow clock before CIA access
+	sta eFF13
 	lda #$80                       ; TOD 50Hz, serial IN, timer A stop
 	sta ciabase+14
 	lda #0
@@ -102,6 +107,7 @@ warmstart:
 	sta ciabase+9
 	sta ciabase+8
 	lda ciabase+8                  ; load 10ths to start clock
+	stx eFF13			; restore fast/slow clock
 
 	; welcome message
 +	ldx #0
@@ -130,6 +136,8 @@ myloadlow:
 	lda RAM_CURBNK		; caller bank (current)
 	ldx buf_ourbank		; target bank (our ROM)
 	jsr ROM_ILNGJMP
+	lda bufFF13		; restore slow/fast clock
+	sta eFF13
 	lda load_status		; did we load or not?
 	bne +			; no, continue in original (Kernal) code
 	ldx FETXRG		; restore state and return
@@ -143,6 +151,8 @@ loadrom:
 	jmp $F04C		; -> F04C
 bufFF06:
         !byte 0
+bufFF13:
+	!byte 0
 	} ; pseudopc
 
 lowmem_trampoline_end:
@@ -175,6 +185,10 @@ myload:
 
 	; our loading code
 myload_cont:
+	lda eFF13
+	sta bufFF13
+	ora #%00000010		; force slow clock before CIA access
+	sta eFF13
 	ldy #4
 	sty ciabase+4		; set clock rate to the fastest possible
 	ldy #0
@@ -226,8 +240,10 @@ CIAFound:
 	ldx #CMD_CHANNEL
 	jsr ROM_CHKOUT		; command channel as output
 	sta ErrNo+1
-	bcs NoDev		; "device not present" or other errors
-
+;	bcs NoDev		; "device not present" or other errors
+	bcc +
+	jmp NoDev
++
 	ldy #3
 -	lda BCMD-1,y
 	jsr ROM_CHROUT
@@ -251,9 +267,12 @@ CIAFound:
 	sei			; loader starts here
 	lda eFF06
 	sta bufFF06		; blank screen
+lda $0c00
+cmp #$20			; XXX debug: blank control: don't blank if HOME position <> ' '
+bne +
 	lda #0
 	sta eFF06
-	jsr eE2B8		; serial clock on == clk line low
++	jsr eE2B8		; serial clock on == clk line low
 	bit ciabase+13		; clear interrupt register
 	jsr ToggleClk		; toggle clock
 
@@ -338,7 +357,7 @@ inc $ff19 ; XXX flash border
 	rts
 
 GetByte:
-	lda #8
+	lda #8			; mask for BIT
 -
 	bit ciabase+13		; wait for a byte
 	beq -

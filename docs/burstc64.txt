@@ -1,10 +1,9 @@
 ? co dalej: zrobić wersję na VIA a może wersję na CPLD?
 
-$ff13         Bit 0     : A sign to having control about memory paging. This
-                          bit always sets to 1 when ROM is active over $8000.
-                          Else, it will be 0. READ ONLY.
-              Bit 1     : Force single clock mode. Then, TED will disable to
-                          generate twiee clock.
+[20250504]
+- force slow clock podczas dostępu do CIA (zgodnie z sugestią z forum), nadal nie działa
+- tamta płytka nie działa, zlutuję drugą z minimalnymi poprawkami, może znowu będzie działać
+  (wszystko zepsuło się gdy rozciąłem ścieżkę phi2 przy porcie i zastąpiłem przewodem)
 
 [20250503]
 - żadna z tych opcji nie działa dobrze do zapisu, wszystkie działają dobrze do odczytu (było też phi0 zamiast phi2)
