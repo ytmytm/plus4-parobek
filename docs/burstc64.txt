@@ -34,6 +34,9 @@ LEDA9 -> check if curdevice ($AE) is parallel (C=0) or not (C=1)
 	+'read from exp.bus'(write register) -> BA==1
 - to może jednak CPLD?
 	- https://github.com/niklasekstrom/cia-verilog/blob/master/cia.v
+	- https://github.com/mist-devel/c64/blob/master/rtl/mos6526.v
+	- jeden z trybów SPI: https://sbc.rictor.org/65spi1.html (9572 - 44 pin)
+	- jeden z trybów SPI: https://sbc.rictor.org/65spi2.html (ATF...)
 	- obcięte do 4 rejestrów: $04, $0C, $0D, $0E spokojnie się mieści w XC95144XL-10TQ100C
 
 [20250502]
