@@ -7,6 +7,9 @@ LEDA9 -> check if curdevice ($AE) is parallel (C=0) or not (C=1)
 		-> if not use warp1551
 	-> if not, continue with IEC, check for burst
 
+[20250506]
+- wersja z VIA
+
 [20250504] ("działa" == da się zapisać coś do rejestrów CIA)
 - force slow clock podczas dostępu do CIA (zgodnie z sugestią z forum), nadal nie działa
 - tamta płytka nie działa, zlutuję drugą z minimalnymi poprawkami, może znowu będzie działać

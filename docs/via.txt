@@ -15,3 +15,14 @@ http://forum.6502.org/viewtopic.php?p=2310#p2310
 fachat chciał też serial port z via
 http://forum.6502.org/viewtopic.php?f=4&t=7937
 (2 linki do youtube)
+
+
+VIA serial mode 011 (3) - serial input - main interest
+VIA serial mode 111 (3) - serial output (clocked by CNT) - won't be used
+
+burst CA1/CA2
+
+https://coronax.wordpress.com/2013/07/03/retrochallenge-6522-parallel-communications/
+
+
+kiedy jest 0 na danych?
