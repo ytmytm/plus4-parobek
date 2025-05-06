@@ -1,4 +1,7 @@
 ? co dalej: zrobić wersję na VIA a może wersję na CPLD?
+? na samym dole jest kod dla 50Hz z MUX - to działa? jeśli tak, to przywrócić MUX na PB1 (i płytkę)
+? przynajmniej ten ROM warto dokończyć dla tcbm2sd/burst/fallback on Kernal + dirbrowser on key
+? jeszcze próba z płytką #1: GAL na phi0, ale CIA na phi2
 
 [rom]
 LEDA9 -> check if curdevice ($AE) is parallel (C=0) or not (C=1)
