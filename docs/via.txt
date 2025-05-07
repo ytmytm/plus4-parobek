@@ -25,4 +25,4 @@ burst CA1/CA2
 https://coronax.wordpress.com/2013/07/03/retrochallenge-6522-parallel-communications/
 
 
-kiedy jest 0 na danych?
+Phi0 is for GAL, Phi2 for VIA (Sukkopera)
