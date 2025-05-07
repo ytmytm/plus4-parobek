@@ -1,0 +1,331 @@
+<Begin of eText>
+
+Rainer Ellinger
+
+COMMODORE 1571 &1570
+Das große  Floppybuch
+
+ISBN 3-89011-124-6
+2. überarbeitete und erweiterte Auflage,
+
+Copyright © 1986   DATA BECKER GmbH
+                   Merowingerstraße 30
+                   4000 Düsseldorf
+
+
+188                                        Das große Floppybuch zur C1570/71
+
+6.1     Der C64 und die C1570/71 - kein Problem
+
+
+6.1.1   1570/71-Bus für den C64 selbstgebastelt
+
+Sicherlich sind Sie als C64 Besitzer auf all die C128 Anwender
+neidisch, weil diese die C1570/71 mit dem schnellen Busmodus
+nützen können, der beim C64 nicht vorhanden ist. Wenn es sich
+lediglich um ein Softwareproblem handeln würde, wäre es keine
+Schwierigkeit das System zu implementieren. Doch der neue Bus
+benötigt auch noch einige zusätzliche Hardware-Einrichtungen.
+
+Der Clou ist allerdings, daß die Voraussetzungen für den
+schnellen Busmodus bereits im C64 vorhanden sind. Das ist ein
+serielles Ein-/Ausgaberegister und die dazugehörige Taktleitung.
+Diese beiden Anschlüsse sind am USER-Port des C64 heraus-
+geführt. Dabei sind diese Datenleitungen sowohl für CIA1 als
+auch CIA2 vorhanden.
+
+Es ist am besten, den seriellen Port des CIA1, das die Basis-
+adresse $D000 hat, zu verwenden. Somit ist die Ansteuerung des
+seriellen Registers genauso vorzunehmen wie beim C128. Um
+nun dieselbe Hardware, wie am C128, zu erhalten, muß man nur
+die zwei Leitungen SRQ und DATA mit den Pins 4 und 5 des
+USER-Ports zu verbinden. Schon haben Sie einen seriellen Bus,
+der den C128 Schnellmodus bedienen kann - eine Bastellösung
+für ein paar Mark.
+
+
+6.1.2   Turbo-Betriebssystem für den C64
+
+Das nachfolgende Programm ist eine Schnell-Lade-Routine, mit
+der Programme auf dem C64 genauso schnell geladen werden,
+wie mit dem C128. Dabei wird dieses Programm in das Be-
+triebssystem des C64 eingebaut, wobei die Kassettenroutinen
+überschrieben werden und somit nicht mehr benutzt werden
+können. Das disassemblierte Listing zeigt die Funktion des Bus.
+Dabei muß das Flag für den schnellen Busmodus in $033C ge-
+setzt werden. Dies kann "von Hand" geschehen, wenn Sie immer
+eine C1570/71 angeschlossen haben. Ist allerdings auch noch eine
+
+
+C1570/71-Praxis                                                          189
+
+1541-Floppy vorhanden, dann muß dieses Flag durch ein Pro-
+gramm gesetzt werden, das feststellt, ob das angesprochene
+Laufwerk im Schnellmodus laden kann. Einen derartigen Pro-
+grammteil enthält beipielsweise das C128 Kernal an der Stelle
+$E387.
+
+Der BASIC-Loader des Programms erstellt nach dem Start mit
+RUN eine spezielle Betriebssystem-Version im RAM des C64,
+das die Fast-Load-Funktion enthält. Dafür ist der Kassettenbe-
+trieb abgeschaltet.
+
+Fast Load für C64 (Kernal-Routine)
+
+F72C	85 93		STA $93		Load-/Verify-Flag setzen
+F72E	A9 00		LDA #$00	Statusbyte
+F730	85 90		STA $90		löschen
+F732	A5 BA		LDA $BA		Geräteadresse holen und auf
+F734	C9 04		CMP #$04	IEC-Bus Adresse testen
+F736	B0 03		BCS $F73B	ist IEC-Gerät angesprochen?
+F738	4C A7 F4	JMP $F4A7	nein, zurück zum normalen Load
+ ---------------------------------------------------------------------------
+Fast-Load vorbereiten
+F73B	A4 B7		LDY $B7		Länge des Dateinamens holen
+F73D	B1 BB		LDA ($BB),Y	Zeichen aus Dateinamen holen
+F73F	C9 24		CMP #$24	mit "$" vergleichen
+F741	F0 05		BEQ $F748	soll Directory geladen werden?
+F743	88		DEY		nein, nächstes Zeichen anwählen
+F744	10 F7		BPL $F73D	schon ganzer Name überprüft?
+F746	30 03		BMI $F74B	ja, immer Sprung nach $F74B
+F748	4C B8 F4	JMP $F4B8	zurück zur normalen Load-Routine
+F74B	A4 B7		LDY $B7		Länge des Dateinamens holen
+F74D	D0 03		BNE $F752	ist Name angegeben?
+F74F	4C 10 F7	JMP $F710	nein, "Missing Filename" ausgeben
+F752	A5 BA		LDA $BA		Geräteadresse holen
+F754	20 0C ED	JSR $ED0C	und LISTEN senden
+F757	A9 6F		LDA #$6F	Sekundäradresse für Befehlskanal
+F759	20 B9 ED	JSR $EDB9	Sekundäradresse senden
+F75C	A5 90		LDA $90		Busstatus holen
+F75E	10 06		BPL $F766	ist Floppy angeschlossen?
+F760	20 2A F8	JSR $F82A	nein, Kanal wieder schließen
+F763	4C 07 F7	JMP $F707	DEVICE NOT PRESENT ausgeben
+F766	A0 05		LDY #$05	Länge des Befehls für 1571-Modus
+F768	B9 7E F8	LDA $F87E,Y	Zeichen aus Befehls-String holen
+F76B	20 DD ED	JSR $EDDD	auf IEC-Bus ausgeben
+F76E	88		DEY		nächstes Zeichen anwählen
+F76F	D0 F7		BNE $F768	schon ganzer Befehl übertragen?
+F771	20 54 F6	JSR $F654	ja, UNLISTEN senden
+F774	A5 BA		LDA $BA		Geräteadresse der Floppy holen
+F776	20 0C ED	JSR $ED0C	und LISTEN senden
+
+
+190                                        Das große Floppybuch zur C1570/71
+
+
+F779	A9 6F		LDA #$6F	Sekundäradresse für Befehlskanal
+F77B	20 B9 ED	JSR $EDB9	Sekundäradresse an Floppy senden
+F77E	A0 03		LDY #$03	Länge des Fast-Load Befehls
+F780	B9 7B F8	LDA $F87B,Y	Zeichen aus Befehls-String holen
+F783	20 DD ED	JSR $EDDD	und auf IEC-Bus ausgeben
+F786	88		DEY		Zeiger auf nächstes Zeichen richten
+F787	D0 F7		BNE $F780	schon ganzer Befehl gesendet?
+F789	B1 BB		LDA ($BB),Y	ja, Zeichen aus Dateiname holen
+F78B	20 DD ED	JSR $EDDD	und auf IEC-Bus ausgeben
+F78E	C8		INY		Zeiger auf nächstes Zeichen setzen
+F78F	C4 B7		CPY $B7		auf Länge des Dateinamens prüfen
+F791	D0 F6		BNE $F789	schon ganzer Name übertragen?
+F793	20 54 F6	JSR $F654	ja, UNLISTEN senden
+F796	2C 3C 03	BIT $033C	Flag für "Fast-Bus Modus" testen
+F799	10 06		BPL $F7A1	ist Fast-Bus möglich?
+F79B	20 2A F8	JSR $F82A	nein, Kanal schließen
+F79E	4C A7 F4	JMP $F4A7	Programm normal laden
+ ---------------------------------------------------------------------------
+C64 Fast-Load Routine		
+F7A1	78		SEI		Interruptroutine abschalten
+F7A2	20 85 EE	JSR $EE85	CLOCK-Ausgang auf HIGH setzen
+F7A5	A9 88		LDA #$88	Flag für "serielles Register voll"
+F7A7	8D 0D DC	STA $DC0D	initialisieren
+F7AA	AD 0E DC	LDA $DC0E	Kontrollregister holen
+F7AD	29 80		AND #$80	Taktfrequenz für Echtzeituhr holen
+F7AF	09 08		ORA #$08	Timer für Baudrate
+F7B1	8D 0E DC	STA $DC0E	initialisieren
+F7B4	2C 0D DC	BIT $DC0D	Flag für "SP voll" zurücksetzen
+F7B7	20 68 F8	JSR $F868	CLOCK-Ausgang umschalten
+F7BA	20 71 F8	JSR $F871	Byte von 1571-Bus holen
+F7BD	C9 02		CMP #$02	auf Code für 'File Not Found' prüfen
+F7BF	D0 06		BNE $F7C7	identisch?
+F7C1	20 2A F8	JSR $F82A	ja, Kanal schließen
+F7C4	4C 04 F7	JMP $F704	FILE NOT FOUND ausgeben
+F7C7	48		PHA		Status-Code merken
+F7C8	C9 1F		CMP #$1F	mit "letzter Block" vergleichen
+F7CA	D0 0B		BNE $F7D7	hat Datei nur einen Block?
+F7CC	20 68 F8	JSR $F868	ja, CLOCK-Ausgang umschalten
+F7CF	20 71 F8	JSR $F871	Byte vom 1571-Bus holen
+F7D2	AA		TAX		Zahl der Datenbytes merken
+F7D3	EA		NOP		2 Taktzyklen Verzögerung
+F7D4	4C E4 F7	JMP $F7E4	Block laden
+F7D7	C9 02		CMP #$02	Rückmeldung der Floppy prüfen
+F7D9	90 09		BCC $F7E4	ist ein Fehler aufgetreten?
+F7DB	68		PLA		ja, Stack wieder herstellen
+F7DC	20 2A F8	JSR $F82A	Kanal schließen
+F7DF	A0 00		LDY #$00	Nummer für 1/0 Error
+F7E1	4C 2B F1	JMP $F12B	Fehlermeldung ausgeben
+F7E4	20 68 F8	JSR $F868	CLOCK-Ausgang umschalten
+F7E7	20 71 F8	JSR $F871	Byte von 1571-Bus holen
+F7EA	85 AE		STA $AE		LOW-Byte der Startadresse setzen
+F7EC	20 68 F8	JSR $F868	CLOCK-Ausgang umschalten
+F7EF	20 71 F8	JSR $F871	Byte von 1571-Bus holen
+
+
+C1570/71-Praxis                                                          191
+
+F7F2	85 AF		STA $AF		HIGH-Byte der Startadresse setzen
+F7F4	A5 B9		LDA $B9		Sekundärangabe holen
+F7F6	D0 08		BNE $F800	Programm relativ laden?
+F7F8	A5 C3		LDA $C3		ja, LOW-Byte des BASIC-Speicher-
+F7FA	85 AE		STA $AE		Beginns übernehmen
+F7FC	A5 C4		LDA $C4		HIGH-Byte des Speicherbeginns
+F7FE	85 AF		STA $AF		setzen
+F800	68		PLA		letzte Floppy-Rückmeldung holen
+F801	C9 1F		CMP #$1F	auf "letzter Sektor" prüfen
+F803	F0 1D		BEQ $F822	war das der letzte Block?
+F805	A2 FC		LDX #$FC	Zahl der Datenbytes setzen
+F807	20 45 F8	JSR $F845	Block Laden
+F80A	20 71 F8	JSR $F871	Byte von 1571-Bus holen
+F80D	C9 02		CMP #$02	Rückmeldung der Floppy prüfen
+F80F	90 06		BCC $F817	ist Fehler aufgetreten?
+F811	C9 1F		CMP #$1F	nein, auf "letzter Block" prüfen
+F813	F0 06		BEQ $F81B	folgt nun letzter Block?
+F815	D0 C5		BNE $F7DC	nein, immer Sprung nach $F7DC
+F817	A2 FE		LDX #$FE	Zahl der Datenbytes setzen
+F819	D0 EC		BNE $F807	immer Sprung nach $F807
+F81B	20 68 F8	JSR $F868	CLOCK-Ausgang umschalten
+F81E	20 71 F8	JSR $F871	Byte von 1571-Bus holen
+F821	AA		TAX		und als Anzahl der Datenbytes setzen
+F822	20 45 F8	JSR $F845	Block Laden
+F825	A9 40		LDA #$40	Wert für EOF
+F827	20 1C FE	JSR $FE1C	Flag in Statusbyte setzen
+F82A	20 85 EE	JSR $EE85	CLOCK-Ausgang auf HIGH schalten
+F82D	A9 81		LDA #$81	Interruptregister wieder
+F82F	8D 0D DC	STA $DC0D	einrichten
+F832	AD 0E DC	LDA $DC0E	Steuerregister holen
+F835	29 80		AND #$80	Frequenz der Echtzeituhr holen
+F837	09 11		ORA #$11	Timer für Interrupt
+F839	8D 0E DC	STA $DC0E	setzen
+F83C	58		CLI		Interrupt wieder einschalten
+F83D	A5 B8		LDA $B8		Logische Kanalnummer
+F83F	20 54 F6	JSR  F654	Kanal schließen
+F842	4C A9 F5	JMP  F5A9	Load beenden
+F845	20 68 F8	JSR $F868	CLOCK-Ausgang umschalten
+F848	A0 00		LDY #$00	Zeiger Löschen
+F84A	A9 08		LDA #$08	Flag für "SP voll" auswählen
+F84C	2C 0D DC	BIT $DC0D	Flag testen
+F84F	F0 FB		BEQ $F84C	ist serielles Register voll?
+F851	AD 00 DD	LDA $DD00	ja, Bussteuerregister holen
+F854	49 10		EOR #$10	und CLOCK-Ausgang
+F856	8D 00 DD	STA $DD00	umschalten
+F859	AD 0C DC	LDA $DC0C	Wert aus seriellem Register holen
+F85C	91 AE		STA ($AE),Y	und in Speicher schreiben
+F85E	E6 AE		INC $AE		Zeiger auf nächste Speicheradresse
+F860	D0 02		BNE $F864	ist ein übertrag entstanden?
+F862	E6 AF		INC $AF		ja, HIGH-Byte korregieren
+F864	CA		DEX		Zahl der Datenbytes
+F865	D0 E3		BNE $F84A	schon ganzer Block übertragen
+F867	60		RTS		ja, zurück zur aufrufenden Routine
+
+
+192                                        Das große Floppybuch zur C1570/71
+
+ ---------------------------------------------------------------------------
+Signal am CLOCK-Ausgang umschalten
+F868	AD 00 DD	LDA $DD00	Bussteuerregister holen
+F86B	49 10		EOR #$10	und CLOCK-Ausgang
+F86D	8D 00 DD	STA $DD00	umschalten
+F870	60		RTS		zurück zur aufrufenden Routine
+ ---------------------------------------------------------------------------
+Byte vom 1571-Bus holen
+F871	AD 0D DC	LDA $DC0D	Interruptregister holen
+F874	29 08		AND #$08	und Flag für "SP voll" testen
+F876	F0 F9		BEQ $F871	ist Byte übertragen?
+F878	AD 0C DC	LDA $DC0C	ja, Byte von Bus lesen
+F87B	60		RTS		zurück zur aufrufenden Routine
+
+
+C1570/71-Praxis                                                          193
+
+BASIC-Starter des Fast-Loads für C64:
+
+Das folgende Listing ergibt ein Programm, das mit RUN
+gestartet werden kann und dabei die Fast-Load Routinen im
+Betriebssystem des C64 installiert. Das Listing müssen Sie mit
+Hilfe eines Maschinensprachemonitors ab Adresse $0800
+eingeben.
+
+0800 00 0B 08 00 00 9E 32 30 36 31 00 00 00 78 A2 A0
+0810 86 AF A0 00 84 AE B1 AE 91 AE C8 D0 F9 E8 86 AF
+0820 E0 C0 D0 F2 A2 E0 86 AF B1 AE 91 AE C8 D0 F9 E8
+0830 86 AF D0 F4 A9 08 8D 87 F3 A9 F7 8D B7 F4 8D F8
+0840 F5 A9 7B 8D 5C 08 A9 08 8D 5D 08 A2 F7 8E 4D FD
+0850 8E 60 08 A9 2C 8D 4C FD 8D 5F 08 B9 00 00 99 00
+0860 00 C8 D0 F7 EE 5D 08 E8 8E 60 08 E0 F9 D0 EC A9
+0870 05 85 01 8D D6 FD 20 15 FD 58 60 85 93 A9 00 85
+0880 90 A5 BA C9 04 B0 03 4C A7 F4 A4 B7 B1 BB C9 24
+0890 F0 05 88 10 F7 30 03 4C B8 F4 A4 B7 D0 03 4C 10
+08A0 F7 A5 BA 20 0C ED A9 6F 20 B9 ED A5 90 10 06 20
+08B0 2A F8 4C 07 F7 A0 05 B9 7E F8 20 DD ED 88 D0 F7
+08C0 20 54 F6 A5 BA 20 0C ED A9 6F 20 B9 ED A0 03 B9
+08D0 7B F8 20 DD ED 88 D0 F7 B1 BB 20 DD ED C8 C4 B7
+08E0 D0 F6 20 54 F6 2C 3C 03 10 06 20 2A F8 4C A7 F4
+08F0 78 20 85 EE A9 88 8D 0D DC AD 0E DC 29 80 09 08
+0900 8D 0E DC 2C 0D DC 20 68 F8 20 71 F8 C9 02 D0 06
+0910 20 2A F8 4C 04 F7 48 C9 1F D0 0B 20 68 F8 20 71
+0920 F8 85 A5 4C E4 F7 C9 02 90 09 68 20 2A F8 A0 00
+0930 4C 2B F1 20 68 F8 20 71 F8 85 AE 20 68 F8 20 71
+0940 F8 85 AF A5 B9 D0 08 A5 C3 85 AE A5 C4 85 AF 68
+0950 C9 1F F0 1D A2 FC 20 45 F8 20 71 F8 C9 02 90 06
+0960 C9 1F F0 06 D0 C5 A2 FE D0 EC 20 68 F8 20 71 F8
+0970 AA 20 45 F8 A9 40 20 1C FE 20 85 EE A9 81 8D 0D
+0980 DC AD 0E DC 29 80 09 11 8D 0E DC 58 A5 B8 20 54
+0990 F6 4C A9 F5 20 68 F8 A0 00 A9 08 2C 0D DC F0 FB
+09A0 AD 00 DD 49 10 8D 00 DD AD 0C DC 91 AE E6 AE D0
+09B0 02 E6 AF CA D0 E3 60 AD 00 DD 49 10 8D 00 DD 60
+09C0 AD 0D DC 29 08 F0 F9 AD 0C DC 60 9F 30 55 31 4D
+09D0 9E 30 55 00 00 00 00 00 00 00 00 00 00 00 00 00
+
+<End of eText>
+
+Annotations from proof reading:
+
+1.  The following lines are missing the "$"-sign before the operand
+    addresses:
+	F83F	20 54 F6	JSR  F654	Kanal schließen
+	F842	4C A9 F5	JMP  F5A9	Load beenden
+
+    For consistency they need to be corrected to:
+	F83F	20 54 F6	JSR $F654	Kanal schließen
+	F842	4C A9 F5	JMP $F5A9	Load beenden
+
+2.  There is a difference between the Kernal code routines shown here and
+    the one created by the patch routine. While this book describes the
+    following as:
+	F7D2	AA		TAX		Zahl der Datenbytes merken
+	F7D3	EA		NOP		2 Taktzyklen Verzögerung
+
+    the patch routine creates a Kernal like this:
+	F7D2	85 A5		STA $A5
+
+    Also check out address 0x0921 and 0x0922 of the binary dump, you will
+    find the values 0x85 and 0xA5 there.
+
+3.  ATTENTION!!! The patch program also modifies the Kernal ROM address
+    location 0xFDD6 from 0xE7 to 0x05, so that the patched Kernal does work,
+    when copied to RAM.
+	FDD2	8D 02 DD	STA $DD02
+	FDD5	A9 05		LDA #$5		; always switch to RAM,
+	FDD7	85 01		STA $1		; never use the ROM again
+	FDD9	A9 2F		LDA #$2F
+	FDDB	85 00		STA $0
+
+    But this also prevents, that the generated Kernal can be burned into an
+    EPROM, which replaces the standard CBM ROM. You first will have to redo
+    this patch at address 0xFDD6 back to the value 0xE7.
+	FDD2	8D 02 DD	STA $DD02
+	FDD5	A9 E7		LDA #$E7	; incorporate standard
+	FDD7	85 01		STA $1		; RAM and ROM mapping
+	FDD9	A9 2F		LDA #$2F
+	FDDB	85 00		STA $0
+
+
+4.  The book didn't mention, which CBM Kernal ROM version should be used,
+    therefore it can happen, that the resulting Kernal ROM may not work.
