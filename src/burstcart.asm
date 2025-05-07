@@ -29,6 +29,7 @@ a07DF		= $07DF ; zp address of vector for RLUDES
 
 ROM_ILNGJMP	= $FCFA ; jumptable to LONGJMP ($FC89)
 eE2B8		= $E2B8 ; clk hi (inverted)
+eEDA9		= $EDA9 ; check if device 8/9 (RAM_FA) is parallel (TCBM), C=0 --> yes
 eF160		= $F160	; print 'SEARCHING'
 eF189		= $F189 ; print 'LOADING'
 ROM_OPEN	= $FFC0
@@ -174,6 +175,8 @@ myload:
 	lda RAM_FA		;FA      Current device number
 	cmp #4
 	bcc +			;less than 4 - tape
+	jsr eEDA9		;check if this is 8/9 TCBM device
+	bcc +			;yes, fall back on ROM (in the future: fastloader for 1551/tcbm2sd)
 	lda #RAM_FNADR		;filename at ($AF/$B0)?
 	sta a07DF
 	ldy #0
