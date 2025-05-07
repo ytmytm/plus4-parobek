@@ -6,6 +6,15 @@
 
 ; (c) 2025 by Maciej 'YTM/Elysium' Witkowiak
 
+; note: this version forces slow clock during CIA access (make it optional)
+; note: this version uses HOME position to blank/nonblank screen (needed for debug only)
+; note: this version flashes border during load, original colour is not restored (needed for debug only)
+
+; todo: with listen/second/acptr/unlisten we don't care about filename/channels and preserving zp values
+; todo: if TCBM detected check for 1551 or TCBM2SD and apply correct fastloader
+; todo: register function key (according to ROM bank number) and run DIRECTORY BROWSER (TCBM2SD) when hit
+; todo: inline GetByte in GetAndStore to save some cycles
+
 RAM_ZPVEC1	= $03	; (2) temp
 
 RAM_VERFCK	= $93	; 0=load, 1=verify
