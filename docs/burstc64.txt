@@ -1,7 +1,5 @@
-? co dalej: zrobić wersję na VIA a może wersję na CPLD?
-? na samym dole jest kod dla 50Hz z MUX - to działa? jeśli tak, to przywrócić MUX na PB1 (i płytkę)
 ? przynajmniej ten ROM warto dokończyć dla tcbm2sd/burst/fallback on Kernal + dirbrowser on key
-? jeszcze próba z płytką #1: GAL na phi0, ale CIA na phi2
+? attiny hw z MUX (jak niżej)
 
 [rom]
 LEDA9 -> check if curdevice ($AE) is parallel (C=0) or not (C=1)
@@ -9,6 +7,16 @@ LEDA9 -> check if curdevice ($AE) is parallel (C=0) or not (C=1)
 		-> if yes use tcbm2sd quasi burstloader
 		-> if not use warp1551
 	-> if not, continue with IEC, check for burst
+
+[20250507]
+- wersje VIA i CPLD (VQ44) gotowe
+- wersja CIA z CIA na Phi2 ale GAL na Phi0 i jumper do przełączania GAL z Phi0 na Phi2
+- kod poniżej powinien działać na PB1=MUX ale przy prawidłowych parametrach (bo myślałem że będzie 886kHz):
+    ICR1  = 35468;  // Podwojona wartość (17734 * 2) // uwaga: Gemini mówi że dokładne to 35469
+    OCR1A = 17734;  // Podwojona wartość (8867 * 2)
+
+[20250506]
+- wersja z VIA
 
 [20250504] ("działa" == da się zapisać coś do rejestrów CIA)
 - force slow clock podczas dostępu do CIA (zgodnie z sugestią z forum), nadal nie działa
@@ -34,6 +42,9 @@ LEDA9 -> check if curdevice ($AE) is parallel (C=0) or not (C=1)
 	+'read from exp.bus'(write register) -> BA==1
 - to może jednak CPLD?
 	- https://github.com/niklasekstrom/cia-verilog/blob/master/cia.v
+	- https://github.com/mist-devel/c64/blob/master/rtl/mos6526.v
+	- jeden z trybów SPI: https://sbc.rictor.org/65spi1.html (9572 - 44 pin)
+	- jeden z trybów SPI: https://sbc.rictor.org/65spi2.html (ATF...)
 	- obcięte do 4 rejestrów: $04, $0C, $0D, $0E spokojnie się mieści w XC95144XL-10TQ100C
 
 [20250502]
