@@ -26,3 +26,5 @@ https://coronax.wordpress.com/2013/07/03/retrochallenge-6522-parallel-communicat
 
 
 Phi0 is for GAL, Phi2 for VIA (Sukkopera)
+
+project for 1541: https://www.ythiee.com/2021/06/06/6522-fast-serial-driver/

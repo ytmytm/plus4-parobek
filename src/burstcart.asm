@@ -1,15 +1,15 @@
 !to "bin/burstcart.bin",plain
 
 ; 1=CIA, 2=VIA, 3=CPLD
-!set burst=1
+!set burst=2
 
 !if burst=1 {
 	ciabase		= $FD90
 	!source "burst-cia.asm"
 }
 !if burst=2 {
-	!warn "VIA not implemented"
-	!eof
+	viabase		= $FDA0
+	!source "burst-via.asm"
 }
 !if burst=3 {
 	cpldbase	= $FD90
