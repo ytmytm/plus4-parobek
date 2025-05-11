@@ -8,6 +8,10 @@ LEDA9 -> check if curdevice ($AE) is parallel (C=0) or not (C=1)
 		-> if not use warp1551
 	-> if not, continue with IEC, check for burst
 
+[20250511]
+- test CIA (Phi2) + GAL (Phi0) z podłączonym serialem, nie działa, ale to *może* być wina zepsutego
+  CIA (ma ciągle zapalony bit 4) -> test na CIA wyjętym z C128
+
 [20250507]
 - wersje VIA i CPLD (VQ44) gotowe
 - wersja CIA z CIA na Phi2 ale GAL na Phi0 i jumper do przełączania GAL z Phi0 na Phi2
