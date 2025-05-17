@@ -79,6 +79,8 @@ CIAFound:
 	sta RAM_LA		; logical file number (15 might be in use)
 	jsr ROM_OPEN
 	sta ErrNo+1
+    lda RAM_ZPVEC1	; restore secondary address
+    sta RAM_SA
 	pla
 	sta RAM_FNLEN		; restore filename length
 ;	bcs ErrNo		; "device not present", "too many open files", "file already open"
