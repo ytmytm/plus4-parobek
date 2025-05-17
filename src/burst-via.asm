@@ -58,9 +58,10 @@ via_ier		= viabase+14
 	sta via_acr
 
 	lda #%00000100		; bitmask
+	sta via_sr		; trigger transmission
 -       iny
 	bmi NotVIA              ; timeout, VIA not present or not working
-	bit via_ifr		; (but A=8 is special because it's a mask for this bit instruction)
+	bit via_ifr		; (but A=4 is special because it's a mask for this bit instruction)
 	bne VIAFound
 	beq -			; wait until data sent
 
@@ -73,9 +74,9 @@ NotVIA:
 VIAFound:
 	lda #%00000001
 	sta via_portb		; PB0=1 -> SR input
+	lda via_sr			; reset sr
 	lda #%00001100		; shift in under CB2
 	sta via_acr
-	lda via_sr			; reset sr
 
 	jsr eF160		;print "SEARCHING" ; XXX too early - will show "SEARCHING" twice if device is not burst capable
 
