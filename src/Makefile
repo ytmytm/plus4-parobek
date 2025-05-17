@@ -2,7 +2,7 @@
 
 all:	bin/burstcart.bin
 
-bin/burstcart.bin: burstcart.asm burst-cia.asm burst-cpld.asm burst-via.asm
+bin/burstcart.bin: burstcart.asm burst-cia.asm burst-cpld.asm burst-via.asm t2s-detect.asm
 	acme burstcart.asm
 
 run:	bin/burstcart.bin

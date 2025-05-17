@@ -25,12 +25,17 @@
 
 ; (c) 2025 by Maciej 'YTM/Elysium' Witkowiak
 
+; BUG: status is saved to ErrNo, but that's in ROM now(!)
+
 ; todo: with listen/second/acptr/unlisten we don't care about filename/channels and preserving zp values
 ; todo: if TCBM detected check for 1551 or TCBM2SD and apply correct fastloader
 ; todo: register function key (according to ROM bank number) and run DIRECTORY BROWSER (TCBM2SD) when hit
 ; todo: inline GetByte in GetAndStore to save some cycles
+; todo: tcbm2sd fastloader fixed to device 8
 
-RAM_ZPVEC1	= $03	; (2) temp
+RAM_ZPVEC1	= $03	; (2) temp	; TCBM2SD fastloader target vector
+
+tgt = $9D                   ; // (2)
 
 RAM_VERFCK	= $93	; 0=load, 1=verify
 RAM_FNLEN	= $AB	; filename length
@@ -56,25 +61,42 @@ eE2B8		= $E2B8 ; clk hi (inverted)
 eEDA9		= $EDA9 ; check if device 8/9 (RAM_FA) is parallel (TCBM), C=0 --> yes
 eF160		= $F160	; print 'SEARCHING'
 eF189		= $F189 ; print 'LOADING'
+
+TCBM_DEV8       = $FEF0	; ;// portA
+TCBM_DEV8_1     = $FEF1	; ;// portB 1/0
+TCBM_DEV8_2     = $FEF2 ; ;// portC 7/6
+TCBM_DEV8_3     = $FEF3 ; ;// portA DDR
+
+
+ROM_RESTOR	= $FF8A
 ROM_OPEN	= $FFC0
 ROM_CLOSE	= $FFC3
+ROM_CHKIN	= $FFC6
 ROM_CHKOUT	= $FFC9
 ROM_CLRCHN	= $FFCC
 ROM_CHROUT	= $FFD2
 
-eFF06		= $FF06
+ROM_READST	= $FFB7
+ROM_SETLFS	= $FFBA
+ROM_SETNAM	= $FFBD
+ROM_CHRIN	= $FFCF
+
+eFF06		= $FF06	; ;// like $d011 for screen blank
 eFF13		= $FF13
+
+ROM_SELECT	= $FF3E
+RAM_SELECT	= $FF3F
 
 CMD_CHANNEL = 239 ; command channel for burst command
 
 ; ?detect if 1551 as #9 or #8 first (ROM sets flag?)
 ; +detect if CIA is present at CIABASE
 ; install LOAD wedge
-; ?detect which drive has burst
+; +detect which drive has burst
 ; ?1551warp for 1551?
 ; ?speeddos for 1541+parallel?
 ; ?anyfastload for 1541?
-; ?quasiburst for tcbm2sd?
+; +quasiburst for tcbm2sd?
 ; ?embedded directory browser (one for tcbm2sd)
 	; ?setup TOD clock (50Hz)
 	; ?display clock in top right in directory browser?
@@ -84,7 +106,7 @@ lowmem_code 	= $0610	; our bank number and trampoline into ROM
 		*=$8000
 ; header
 		jmp coldstart	; coldstart, install
-		jmp warmstart	; warmstart, run from basic
+		jmp warmstart	; warmstart, run from basic (F-key)
 !by $09			; module-nr, $00=empty, $01=autostart
 !by $43,$42,$4d		; module-nr., "CBM"
 
@@ -95,8 +117,9 @@ coldstart:
 	sta RAM_CURBNK
 	sta buf_ourbank
 	sta $fdd0,x
+	jsr ROM_RESTOR	; restore default vectors (in case some hooks were installed: e.g. TURBO PLUS), needed?
 
-warmstart:
+warmstart:			; XXX not that, warmstart runs the BASIC code after SYS
 	; install trampoline
 	ldx #2			; skip over buffers
 -	lda lowmem_trampoline,x
@@ -178,25 +201,64 @@ myload:
 	sta load_status 	; will be 0 for load, not 0 for verify
 	cmp #0			; load or verify?
 	beq +
-	rts			; pass back to ROM code
+	inc load_status		; pass back t ROM code
+	rts
 +	stx RAM_MEMUSS		; load addr
 	sty RAM_MEMUSS+1
-	lda RAM_FA		;FA      Current device number
+
+	lda eFF13			; clock register buffer
+	sta bufFF13
+
+	lda RAM_FA			;FA      Current device number
 	cmp #4
-	bcc +			;less than 4 - tape
-	jsr eEDA9		;check if this is 8/9 TCBM device
-	bcc +			;yes, fall back on ROM (in the future: fastloader for 1551/tcbm2sd)
-	lda #RAM_FNADR		;filename at ($AF/$B0)?
+	bcc load_rom		;less than 4 - tape
+
+	lda #RAM_FNADR		;filename at ($AF/$B0)
 	sta a07DF
 	ldy #0
 	jsr RAM_RLUDES		;RLUDES  Indirect routine downloaded
-	cmp #'$'		;if '$' then ROM load
-	bne myload_cont
-+	inc load_status		; pass back to ROM code
+	cmp #'$'			;if '$' then ROM load
+	beq load_rom
+
+	jsr eEDA9			;check if this is 8/9 TCBM device
+	bcs +				;no, it's IEC, try using burst
+	jmp tcbm_load		;yes, fastloader for 1551/tcbm2sd
++	jmp iecburst_load	;no, it's IEC, try using burst
+
+load_rom:
+	inc load_status		; pass back to ROM code
 	rts
 
-myload_cont:
+iecburst_load:
 	+LoadBurst
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+!source "t2s-detect.asm"
+
+tcbm_load:
+	jsr t2sd_detect
+	bcc +				; not tcbm2sd, must be 1551 - pass back to ROM code
+	jmp hypa_load
+	; TCBM2SD fastloader here
++	lda #<tcbm2sd_fastload_txt
+	ldy #>tcbm2sd_fastload_txt
+	jsr print_msg
+
+!source "t2s-loader.asm"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+hypa_load:
+	inc load_status
+	lda #<tcbm_1551_txt
+	ldy #>tcbm_1551_txt
+	jmp print_msg		; HYPALOAD would start here
+
+tcbm2sd_fastload_txt:
+	!text "TCBM2SD DETECTED",13,0
+tcbm_1551_txt:
+	!text "TCBM DEVICE, 1551 HYPALOAD",13,0
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
