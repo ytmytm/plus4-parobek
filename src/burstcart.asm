@@ -35,8 +35,6 @@
 
 RAM_ZPVEC1	= $03	; (2) temp	; TCBM2SD fastloader target vector
 
-tgt = $9D                   ; // (2)
-
 RAM_VERFCK	= $93	; 0=load, 1=verify
 RAM_FNLEN	= $AB	; filename length
 RAM_LA		= $AC	; logical address
