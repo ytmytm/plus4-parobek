@@ -8,6 +8,22 @@ LEDA9 -> check if curdevice ($AE) is parallel (C=0) or not (C=1)
 		-> if not use warp1551
 	-> if not, continue with IEC, check for burst
 
+[20250526]
+? zanim to ogłoszę na forum - spróbować pozostałych chipów VIA (w tym ten, który musi mieć wzmocnione nóżki; z CIA rezygnuję)
+! NA SCHEMACIE VIA trzeba zmienić footprint na JP4 (zegar GAL) - ma być 3-2 = Phi0
+- nowy ROM VIA działa (co więcej: ładowanie przez VIA działa z włączonym i wyłączonym ekranem) - reliable więc nie ma się co dalej bawić z CIA
+- nowy ROM CIA działa tylko z wyłączonym ekranem
+? a jak CIA z C128 ? (bo zepsuty CIA ma zapalony bit 4)
+- CPLD polutowane ale w rejestrach I/O widać tylko 0, a pod $FD91 powinno przechowywać bit 6 (kierunek)
+
+[20250522]
+- nowe płytki w końcu dotarły
+- CIA (phi2) + GAL (phi0) na działającym CIA *nie ładuje* przy włączonym ekranie
+? a jak CIA z C128 ? (bo zepsuty CIA ma zapalony bit 4)
+- VIA (phi2) + GAL (phi0) widać rejestry w monitorze
+? a jak nowy ROM CIA
+? a jak nowy ROM VIA
+
 [20250511]
 - test CIA (Phi2) + GAL (Phi0) z podłączonym serialem, nie działa, ale to *może* być wina zepsutego
   CIA (ma ciągle zapalony bit 4) -> test na CIA wyjętym z C128
