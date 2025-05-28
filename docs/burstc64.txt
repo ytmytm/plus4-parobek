@@ -8,13 +8,19 @@ LEDA9 -> check if curdevice ($AE) is parallel (C=0) or not (C=1)
 		-> if not use warp1551
 	-> if not, continue with IEC, check for burst
 
+[20250529]
+- CPLD też działa, rejestry i shift out (na oscyloskopie) (100ms na 8 bitów)
+! ale shift_complete się nie zapala (bo zależy od ta_underflow które jest aktywne tylko 1 cykl)
+! nie widzę jak shift_complete miałoby być skasowane pod odczycie jak flaga ICR
+  (musi zachować wartość do odczytu rejestru) -> wrócić do CIA.v
+
 [20250526]
-? zanim to ogłoszę na forum - spróbować pozostałych chipów VIA (w tym ten, który musi mieć wzmocnione nóżki; z CIA rezygnuję)
 ! NA SCHEMACIE VIA trzeba zmienić footprint na JP4 (zegar GAL) - ma być 3-2 = Phi0
 - nowy ROM VIA działa (co więcej: ładowanie przez VIA działa z włączonym i wyłączonym ekranem) - reliable więc nie ma się co dalej bawić z CIA
 - nowy ROM CIA działa tylko z wyłączonym ekranem
 ? a jak CIA z C128 ? (bo zepsuty CIA ma zapalony bit 4)
 - CPLD polutowane ale w rejestrach I/O widać tylko 0, a pod $FD91 powinno przechowywać bit 6 (kierunek)
+- pozostałe 3 VIA też działały
 
 [20250522]
 - nowe płytki w końcu dotarły
