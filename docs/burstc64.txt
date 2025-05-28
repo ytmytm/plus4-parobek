@@ -8,6 +8,9 @@ LEDA9 -> check if curdevice ($AE) is parallel (C=0) or not (C=1)
 		-> if not use warp1551
 	-> if not, continue with IEC, check for burst
 
+cpld-shift_complete-flag
+! NOT tested - should retain shift_out complete flag until register read
+
 [20250529]
 - CPLD też działa, rejestry i shift out (na oscyloskopie) (100ms na 8 bitów)
 ! ale shift_complete się nie zapala (bo zależy od ta_underflow które jest aktywne tylko 1 cykl)
