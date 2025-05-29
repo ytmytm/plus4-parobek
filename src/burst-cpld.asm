@@ -11,7 +11,7 @@
 !macro InitBurst {
         ; setup CPLD
 	lda #0
-	sta cpldbase+1		; serial IN
+	sta cpldbase+1		; serial IN; clear flag
 }
 
 !macro LoadBurst {
@@ -20,16 +20,16 @@
 	lda cpldbase+1
 	cmp cpldbase+1
 	bne NotCPLD
-	lda #%01000000		; serial OUT
+	lda #%01000000		; serial OUT; clear flag
 	sta cpldbase+1
 	cmp cpldbase+1
 	bne NotCPLD
-	lda #8			; data to be sent and interrupt mask (following BIT)
+	lda #8			; data to be sent and flag mask (for the following BIT)
 	sta cpldbase		; (we wake up the other end so that it believes we can do burst transfers, actual data doesnt matter)
 	ldy #0
 
 -       iny
-	bmi NotCPLD              ; timeout, CIA not present or not working
+	bmi NotCPLD             ; timeout, CPLD not present or not working
 	bit cpldbase+1		; (but A=8 is special because it's a mask for this bit instruction)
 	bne CPLDFound
 	beq -			; wait until data sent
@@ -42,7 +42,7 @@ NotCPLD:
 
 CPLDFound:
 	lda #0
-	sta cpldbase+1		; serial IN
+	sta cpldbase+1		; serial IN; clear flag
 
 	jsr eF160		;print "SEARCHING" ; XXX too early - will show "SEARCHING" twice if device is not burst capable
 
@@ -102,7 +102,7 @@ bne +
 	lda #0
 	sta eFF06
 +	jsr eE2B8		; serial clock on == clk line low
-	bit cpldbase+1		; clear interrupt register
+	lda cpldbase		; clear flag
 	jsr ToggleClk		; toggle clock
 
 	jsr HandleStat		; get initial status
@@ -191,11 +191,11 @@ GetByte:
 	bit cpldbase+1		; wait for a byte
 	beq -
 ToggleClk:
-        ldy cpldbase          ; get the latched byte from serial port
+        ldy cpldbase            ; get the latched byte from serial port, clear flag
 	lda $01
 	eor #%00000010		; toggle the old serial clock (send Ack)
 	sta $01			; disk drive will start sending the next byte
-	;lda cpldbase		; get the latched byte from serial port
+	;lda cpldbase		; get the latched byte from serial port, clear flag
         tya
 	rts
 
