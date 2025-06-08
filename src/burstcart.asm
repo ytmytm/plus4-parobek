@@ -1,17 +1,19 @@
-!to "bin/burstcart.bin",plain
 
 ; 1=CIA, 2=VIA, 3=CPLD
 !set burst=2
 
 !if burst=1 {
+	!to "bin/burstcart-cia.bin",plain
 	ciabase		= $FD90
 	!source "burst-cia.asm"
 }
 !if burst=2 {
+	!to "bin/burstcart-via.bin",plain
 	viabase		= $FDA0
 	!source "burst-via.asm"
 }
 !if burst=3 {
+	!to "bin/burstcart-cpld.bin",plain
 	cpldbase	= $FD90
 	!source "burst-cpld.asm"
 }
