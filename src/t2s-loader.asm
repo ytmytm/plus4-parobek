@@ -56,10 +56,6 @@ LOADFAIL:
         ; // adapted from Warpload 1551 with ACK after each data read
 
 +       sei
-        lda eFF06                                   ;// ;preserve FF06 (like $D011, before blank)
-        sta bufFF06
-        lda #0
-        sta eFF06                                   ;// ;like $D011, blank screen
 
 -       bit TCBM_DEV8_2                                   ;// ;wait for ACK high
         bpl -
@@ -115,8 +111,6 @@ inc $FF19
 LOADEND:
         lda #$40                                    ;// ;$40 = ACK (bit 6) to 1
         sta TCBM_DEV8_2
-        lda bufFF06
-        sta eFF06                                   ;// ;restore FF06 (like $D011), turn off blank
         cli
 
         tya                                         ;// adjust end address (Y was already increased so just take care about low byte)

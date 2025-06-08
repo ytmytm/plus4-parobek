@@ -130,14 +130,7 @@ VIAFound:
 +
 	jsr eF189		; print LOADING, uses CHROUT will CLI again
 	sei			; loader starts here
-	lda eFF06
-	sta bufFF06		; blank screen
-lda $0c00
-cmp #$20			; XXX debug: blank control: don't blank if HOME position <> ' '
-bne +
-	lda #0
-	sta eFF06
-+	jsr eE2B8		; serial clock on == clk line low
+	jsr eE2B8		; serial clock on == clk line low
 	bit via_ifr		; clear interrupt register
 	jsr ToggleClk		; toggle clock
 
@@ -178,9 +171,8 @@ NoDev:	lda #CMD_CHANNEL
 	jsr ROM_CLOSE		; Close the command channel
 ErrNo:	lda #5			; Device not present
 	sec			; carry set -> error indicator
-End:	ldx bufFF06
-        stx eFF06
-        ldx RAM_MEMUSS		; Loader returns the end address,
+End:
+    ldx RAM_MEMUSS		; Loader returns the end address,
 	ldy RAM_MEMUSS+1	;  so get it into regs..
 	cli
 	rts			; Return from the loader

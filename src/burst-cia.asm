@@ -16,10 +16,6 @@
 
 !macro InitBurst {
         ; setup TOD
-	lda eFF13
-	tax
-	ora #%00000010			; force slow clock before CIA access
-	sta eFF13
 	lda #$80                       ; TOD 50Hz, serial IN, timer A stop
 	sta ciabase+14
 	lda #0
@@ -28,16 +24,11 @@
 	sta ciabase+9
 	sta ciabase+8
 	lda ciabase+8                  ; load 10ths to start clock
-	stx eFF13			; restore fast/slow clock
 }
 
 !macro LoadBurst {
 	; our loading code
 ;myload_cont:
-	lda eFF13
-	sta bufFF13
-	ora #%00000010		; force slow clock before CIA access
-	sta eFF13
 	ldy #4
 	sty ciabase+4		; set clock rate to the fastest possible
 	ldy #0
@@ -116,14 +107,7 @@ CIAFound:
 +
 	jsr eF189		; print LOADING, uses CHROUT will CLI again
 	sei			; loader starts here
-	lda eFF06
-	sta bufFF06		; blank screen
-lda $0c00
-cmp #$20			; XXX debug: blank control: don't blank if HOME position <> ' '
-bne +
-	lda #0
-	sta eFF06
-+	jsr eE2B8		; serial clock on == clk line low
+	jsr eE2B8		; serial clock on == clk line low
 	bit ciabase+13		; clear interrupt register
 	jsr ToggleClk		; toggle clock
 
@@ -164,9 +148,8 @@ NoDev:	lda #CMD_CHANNEL
 	jsr ROM_CLOSE		; Close the command channel
 ErrNo:	lda #5			; Device not present
 	sec			; carry set -> error indicator
-End:	ldx bufFF06
-        stx eFF06
-        ldx RAM_MEMUSS		; Loader returns the end address,
+End:
+    ldx RAM_MEMUSS		; Loader returns the end address,
 	ldy RAM_MEMUSS+1	;  so get it into regs..
 	cli
 	rts			; Return from the loader

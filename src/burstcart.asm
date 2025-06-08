@@ -79,9 +79,6 @@ ROM_SETLFS	= $FFBA
 ROM_SETNAM	= $FFBD
 ROM_CHRIN	= $FFCF
 
-eFF06		= $FF06	; ;// like $d011 for screen blank
-eFF13		= $FF13
-
 ROM_SELECT	= $FF3E
 RAM_SELECT	= $FF3F
 
@@ -167,8 +164,6 @@ myloadlow:
 	lda RAM_CURBNK		; caller bank (current)
 	ldx buf_ourbank		; target bank (our ROM)
 	jsr ROM_ILNGJMP
-	lda bufFF13		; restore slow/fast clock
-	sta eFF13
 	lda load_status		; did we load or not?
 	bne +			; no, continue in original (Kernal) code
 	ldx FETXRG		; restore state and return
@@ -180,10 +175,6 @@ myloadlow:
 +	lda RAM_VERFCK		; stored A
 loadrom:
 	jmp $F04C		; -> F04C
-bufFF06:
-        !byte 0
-bufFF13:
-	!byte 0
 	} ; pseudopc
 
 lowmem_trampoline_end:
@@ -203,9 +194,6 @@ myload:
 	rts
 +	stx RAM_MEMUSS		; load addr
 	sty RAM_MEMUSS+1
-
-	lda eFF13			; clock register buffer
-	sta bufFF13
 
 	lda RAM_FA			;FA      Current device number
 	cmp #4
