@@ -8,6 +8,10 @@ LEDA9 -> check if curdevice ($AE) is parallel (C=0) or not (C=1)
 		-> if not use warp1551
 	-> if not, continue with IEC, check for burst
 
+[20250530]
+- polutowane do końca - LOAD się zawiesza (screen on/off bez różnicy), co gorsza wczytuje błędne bajty
+  (ale load address chyba dobrze (?))
+
 [20250529]
 - teraz shift_complete jako zatrzask, chyba będzie działać ale trzeba przetestować - polutować do końca
 
