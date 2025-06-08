@@ -65,6 +65,7 @@ TCBM_DEV8_1     = $FEF1	; ;// portB 1/0
 TCBM_DEV8_2     = $FEF2 ; ;// portC 7/6
 TCBM_DEV8_3     = $FEF3 ; ;// portA DDR
 
+TED_BORDER      = $FF19
 
 ROM_RESTOR	= $FF8A
 ROM_OPEN	= $FFC0
@@ -235,10 +236,14 @@ tcbm_load:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 hypa_load:
-	inc load_status
+	;inc load_status
 	lda #<tcbm_1551_txt
 	ldy #>tcbm_1551_txt
-	jmp print_msg		; HYPALOAD would start here
+	jsr print_msg		; HYPALOAD would start here
+
+!source "hypaload-v4.7.asm"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 tcbm2sd_fastload_txt:
 	!text "TCBM2SD DETECTED",13,0
@@ -266,6 +271,10 @@ print_msg:
 		iny
 		bne -
 +               rts
+
+; we must fit within 16k, below $C000
+!if * > $C000 { !error "EXECUTABLE CODE ABOVE $C000 *=", * }
+
 
 !fill ($10000-*), $ff
 
