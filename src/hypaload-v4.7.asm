@@ -16,12 +16,6 @@ EF265           = $F265
 
 TED_FF06        = $FF06
 
-ROM_SECOND      = $FF93
-ROM_CIOUT       = $FFA8
-ROM_UNLISTEN    = $FFAE
-ROM_LISTEN      = $FFB1
-
-
         ldx     #<E0633
         ldy     #>E0633
         stx     RAM_ISTOP

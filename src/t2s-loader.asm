@@ -2,37 +2,39 @@
 t2sd_fastload:
         !zone TCBM2SD_Fastload {
 
-	lda RAM_FNLEN		; preserve the filename length
-	pha
-	lda RAM_SA		; same with secondary address
-	sta RAM_ZPVEC1		; temp
-
 	lda #0
-	sta RAM_FNLEN		; no filename for command channel
-	lda #15
-	sta RAM_SA		; secondary address 15 == command channel
-	lda #CMD_CHANNEL
-	sta RAM_LA		; logical file number (15 might be in use)
-	jsr ROM_OPEN
-	sta ErrNo+1
-        lda RAM_ZPVEC1
-        sta RAM_SA
-	pla
-	sta RAM_FNLEN		; restore filename length
-        bcs LOADFAIL            ; error
-	ldx #CMD_CHANNEL
-	jsr ROM_CHKOUT		; command channel as output
-	sta ErrNo+1
-	bcs LOADFAIL            ; error
+	sta RAM_STATUS
 
+	lda RAM_FA
+	jsr ROM_LISTEN
+	jsr ROM_READST          ; in fact that can't fail, since we reach here only if we have already detected T2SD
+	and #%10000000          ; device not present?
+	beq +
+	jsr ROM_UNLISTEN
+	lda #<tcbm2sd_load_error_txt
+	ldy #>tcbm2sd_load_error_txt
+	jsr print_msg
+        jmp LOADFAIL   ; XXX
+
++       lda #$6F
+        jsr ROM_SECOND
         lda #'U'                ; utility command
-        jsr ROM_CHROUT
+        jsr ROM_CIOUT
         lda #'0'
-        jsr ROM_CHROUT
+        jsr ROM_CIOUT
         lda #%00011111          ; fastload
-        jsr ROM_CHROUT
+        jsr ROM_CIOUT
 
-        jsr ROM_CLRCHN
+	lda #RAM_FNADR		;filename at ($AF/$B0)
+	sta a07DF
+	ldy #0
+-	jsr RAM_RLUDES		;RLUDES  Indirect routine
+        jsr ROM_CIOUT
+        iny
+        cpy RAM_FNLEN
+        bne -
+
+        jsr ROM_UNLISTEN
 
         lda #0
         sta TCBM_DEV8_3                                   ;// ;port A DDR = input first
@@ -79,7 +81,7 @@ LOADSTART:
 LOADLOOP:
         lda TCBM_DEV8_2                                   ;// ;wait for ACK low
         bmi *-3
-inc $FF19
+inc TED_BORDER
         lda TCBM_DEV8
         sta (RAM_MEMUSS),y
         iny
@@ -92,7 +94,7 @@ inc $FF19
 
         lda TCBM_DEV8_2                                   ;// ;wait for DAV high
         bpl *-3
-inc $FF19
+inc TED_BORDER
         lda TCBM_DEV8                                   ;// XXX need to flip ACK after this
         sta (RAM_MEMUSS),y
         iny
@@ -128,5 +130,8 @@ LOADRET:
         ldy RAM_MEMUSS+1                                   ;// ;return end address+1 and C=0=no error
         clc                                         ;// no error
         rts
+
+tcbm2sd_load_error_txt:
+	!text "TCBM2SD LOAD ERROR",13,0
 
 }

@@ -26,16 +26,21 @@
 ; (c) 2025 by Maciej 'YTM/Elysium' Witkowiak
 
 ; BUG: status is saved to ErrNo, but that's in ROM now(!)
+; BUG: with file not found (1551 hypaload) we return with wrong CPU status register (SEI?)
 
-; todo: with listen/second/acptr/unlisten we don't care about filename/channels and preserving zp values
-; todo: if TCBM detected check for 1551 or TCBM2SD and apply correct fastloader
 ; todo: register function key (according to ROM bank number) and run DIRECTORY BROWSER (TCBM2SD) when hit
 ; todo: inline GetByte in GetAndStore to save some cycles
 ; todo: tcbm2sd fastloader fixed to device 8
+; todo: hypaload fastloader fixed to device 8
+; todo: both tcbm2sd and hypaload fastloader should be duplicated for device 9 (space is not a problem in ROM)
+; todo: tcbm2sd is problematic - DLOAD"*" will always try to load the first file (even disk image) instead of booter
+;       with embedded directory browser maybe that fastloader doesn't make sense
 
 RAM_ZPVEC1	= $03	; (2) temp	; TCBM2SD fastloader target vector
 
+RAM_STATUS  = $90	; status
 RAM_VERFCK	= $93	; 0=load, 1=verify
+RAM_MSGFLG  = $9A   ; $80=direct mode (print messages), $00=program mode (silent)
 RAM_FNLEN	= $AB	; filename length
 RAM_LA		= $AC	; logical address
 RAM_SA		= $AD	; secondary address
@@ -67,6 +72,15 @@ TCBM_DEV8_3     = $FEF3 ; ;// portA DDR
 
 TED_BORDER      = $FF19
 
+ROM_SECOND      = $FF93
+ROM_CIOUT       = $FFA8
+ROM_UNLISTEN    = $FFAE
+ROM_LISTEN      = $FFB1
+ROM_TALK        = $FFB4
+ROM_TKSA        = $FF96
+ROM_UNTLK       = $FFAB
+ROM_ACPTR       = $FFA5
+
 ROM_RESTOR	= $FF8A
 ROM_OPEN	= $FFC0
 ROM_CLOSE	= $FFC3
@@ -85,17 +99,9 @@ RAM_SELECT	= $FF3F
 
 CMD_CHANNEL = 239 ; command channel for burst command
 
-; ?detect if 1551 as #9 or #8 first (ROM sets flag?)
-; +detect if CIA is present at CIABASE
-; install LOAD wedge
-; +detect which drive has burst
-; ?1551warp for 1551?
 ; ?speeddos for 1541+parallel?
 ; ?anyfastload for 1541?
-; +quasiburst for tcbm2sd?
 ; ?embedded directory browser (one for tcbm2sd)
-	; ?setup TOD clock (50Hz)
-	; ?display clock in top right in directory browser?
 
 lowmem_code 	= $0610	; our bank number and trampoline into ROM
 
@@ -223,6 +229,9 @@ iecburst_load:
 !source "t2s-detect.asm"
 
 tcbm_load:
+	lda #<tcbm2sd_detect_txt
+	ldy #>tcbm2sd_detect_txt
+	jsr print_msg
 	jsr t2sd_detect
 	bcc +				; not tcbm2sd, must be 1551 - pass back to ROM code
 	jmp hypa_load
@@ -245,6 +254,8 @@ hypa_load:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+tcbm2sd_detect_txt:
+	!text "TCBM2SD DETECTING...",13,0
 tcbm2sd_fastload_txt:
 	!text "TCBM2SD DETECTED",13,0
 tcbm_1551_txt:
@@ -261,16 +272,19 @@ startup_txt:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 print_msg:
+		bit RAM_MSGFLG
+		bmi +
+		rts
 
-                sta RAM_ZPVEC1
++		sta RAM_ZPVEC1
 		sty RAM_ZPVEC1+1
 		ldy #0
--               lda (RAM_ZPVEC1),y
-                beq +
+-		lda (RAM_ZPVEC1),y
+		beq +
 		jsr ROM_CHROUT
 		iny
 		bne -
-+               rts
++		rts
 
 ; we must fit within 16k, below $C000
 !if * > $C000 { !error "EXECUTABLE CODE ABOVE $C000 *=", * }
