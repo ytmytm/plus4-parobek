@@ -70,6 +70,10 @@ TCBM_DEV8_1     = $FEF1	; ;// portB 1/0
 TCBM_DEV8_2     = $FEF2 ; ;// portC 7/6
 TCBM_DEV8_3     = $FEF3 ; ;// portA DDR
 
+TED_BACK        = $FF15
+TED_COL1        = $FF16
+TED_COL2        = $FF17
+TED_COL3        = $FF18
 TED_BORDER      = $FF19
 
 ROM_SECOND      = $FF93
@@ -81,6 +85,8 @@ ROM_TKSA        = $FF96
 ROM_UNTLK       = $FFAB
 ROM_ACPTR       = $FFA5
 
+ROM_CINT	= $FF81
+ROM_IOINIT	= $FF84
 ROM_RESTOR	= $FF8A
 ROM_OPEN	= $FFC0
 ROM_CLOSE	= $FFC3
@@ -93,6 +99,7 @@ ROM_READST	= $FFB7
 ROM_SETLFS	= $FFBA
 ROM_SETNAM	= $FFBD
 ROM_CHRIN	= $FFCF
+ROM_GETIN	= $FFE4
 
 ROM_SELECT	= $FF3E
 RAM_SELECT	= $FF3F
@@ -112,6 +119,8 @@ lowmem_code 	= $0610	; our bank number and trampoline into ROM
 !by $09			; module-nr, $00=empty, $01=autostart
 !by $43,$42,$4d		; module-nr., "CBM"
 
+!source "startup.asm"
+
 coldstart:
 	lda RAM_CURBNK
 	and #$03		; enable kernal in top half so we don't care about IRQ
@@ -121,7 +130,25 @@ coldstart:
 	sta $fdd0,x
 	jsr ROM_RESTOR	; restore default vectors (in case some hooks were installed: e.g. TURBO PLUS), needed?
 
+	lda RAM_FA		; device number
+	bne +
+	lda #8			; default to 8
+	sta RAM_FA
++
+
+	jsr startup_screen
+	;; come back with result in A: 1=normal, 2=browser, 3=fastload
+	cmp #1
+	beq normal_reset
+	cmp #2
+	;beq run_browser ; XXX not ready yet
+	cmp #3
+	beq install_fastload
+normal_reset:
+	rts				; normal reset, back to BASIC
+
 warmstart:			; XXX not that, warmstart runs the BASIC code after SYS
+install_fastload:
 	; install trampoline
 	ldx #2			; skip over buffers
 -	lda lowmem_trampoline,x
@@ -141,17 +168,14 @@ warmstart:			; XXX not that, warmstart runs the BASIC code after SYS
 	sta RAM_ILOAD
 	lda #>myloadlow
 	sta RAM_ILOAD+1
-
++
 	+InitBurst
 
 	; welcome message
-+	ldx #0
--	lda startup_txt,x
-	beq +
-	jsr ROM_CHROUT
-	inx
-	bne -
-+	rts
+	lda #<startup_txt
+	ldy #>startup_txt
+	jsr print_msg_always
+	rts
 
 lowmem_trampoline:
 	!pseudopc lowmem_code {
@@ -275,7 +299,7 @@ print_msg:
 		bit RAM_MSGFLG
 		bmi +
 		rts
-
+print_msg_always:
 +		sta RAM_ZPVEC1
 		sty RAM_ZPVEC1+1
 		ldy #0
