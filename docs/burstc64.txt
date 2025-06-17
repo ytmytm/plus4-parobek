@@ -8,6 +8,12 @@ LEDA9 -> check if curdevice ($AE) is parallel (C=0) or not (C=1)
 		-> if not use warp1551
 	-> if not, continue with IEC, check for burst
 
+[20250618]
+- chyba poprawiony bug po load error - odwtorzenie rejestru stanu CPU
+
+[20250617]
+- startup screen jak z Action Replay
+
 [20250530]
 - polutowane do końca - LOAD się zawiesza (screen on/off bez różnicy), co gorsza wczytuje błędne bajty
   (ale load address chyba dobrze (?))

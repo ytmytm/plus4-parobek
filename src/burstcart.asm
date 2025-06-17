@@ -26,7 +26,6 @@
 ; (c) 2025 by Maciej 'YTM/Elysium' Witkowiak
 
 ; BUG: status is saved to ErrNo, but that's in ROM now(!)
-; BUG: with file not found (1551 hypaload) we return with wrong CPU status register (SEI?)
 
 ; todo: register function key (according to ROM bank number) and run DIRECTORY BROWSER (TCBM2SD) when hit
 ; todo: inline GetByte in GetAndStore to save some cycles
@@ -180,11 +179,15 @@ install_fastload:
 lowmem_trampoline:
 	!pseudopc lowmem_code {
 buf_ourbank:	!byte 0		; our bank number: internal/external1/external2
+buf_sr:         !byte 0		; status register
 load_status:	!byte 0		; 0 = go to ROM routine for load, !=0 = return
 
 myloadlow:
 	sta RAM_VERFCK		; remember A
 	sta FETARG
+	php
+	pla
+	sta buf_sr
 	stx FETXRG
 	lda #%00000100		; status reg: C=0, I=1
 	sta FETSRG
@@ -198,12 +201,16 @@ myloadlow:
 	lda load_status		; did we load or not?
 	bne +			; no, continue in original (Kernal) code
 	ldx FETXRG		; restore state and return
-	lda FETSRG
+	lda buf_sr
 	pha
 	lda FETARG
 	plp
 	rts
-+	lda RAM_VERFCK		; stored A
++
+	lda buf_sr		; restore status register
+	pha
+	lda RAM_VERFCK		; stored A
+	plp
 loadrom:
 	jmp $F04C		; -> F04C
 	} ; pseudopc
@@ -223,7 +230,7 @@ myload:
 	beq +
 	inc load_status		; pass back t ROM code
 	rts
-+	stx RAM_MEMUSS		; load addr
++	stx RAM_MEMUSS		; load addr (actually X/Y is stored here before ILOAD vector is called)
 	sty RAM_MEMUSS+1
 
 	lda RAM_FA			;FA      Current device number
