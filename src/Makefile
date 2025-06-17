@@ -1,4 +1,4 @@
-
+.PHONY: all run clean
 
 all:	bin/burstcart.bin
 

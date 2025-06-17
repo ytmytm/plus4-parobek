@@ -1,15 +1,13 @@
-? przynajmniej ten ROM warto dokończyć dla tcbm2sd/burst/fallback on Kernal + dirbrowser on key
 ? attiny hw z MUX (jak niżej)
 
-[rom]
-LEDA9 -> check if curdevice ($AE) is parallel (C=0) or not (C=1)
-	-> if yes, check for tcbm2sd (docs + dirbrowser)
-		-> if yes use tcbm2sd quasi burstloader
-		-> if not use warp1551
-	-> if not, continue with IEC, check for burst
+
+TODO:
+! NA SCHEMACIE VIA trzeba zmienić footprint na JP4 (zegar GAL) - ma być 3-2 = Phi0
+! normal reset/install fastload -> F-key for directory browser
 
 [20250618]
 - chyba poprawiony bug po load error - odwtorzenie rejestru stanu CPU
+- directory browser from startup
 
 [20250617]
 - startup screen jak z Action Replay

@@ -69,6 +69,7 @@ TCBM_DEV8_1     = $FEF1	; ;// portB 1/0
 TCBM_DEV8_2     = $FEF2 ; ;// portC 7/6
 TCBM_DEV8_3     = $FEF3 ; ;// portA DDR
 
+TED_FF06        = $FF06
 TED_BACK        = $FF15
 TED_COL1        = $FF16
 TED_COL2        = $FF17
@@ -140,11 +141,13 @@ coldstart:
 	cmp #1
 	beq normal_reset
 	cmp #2
-	;beq run_browser ; XXX not ready yet
+	beq run_browser
 	cmp #3
 	beq install_fastload
 normal_reset:
 	rts				; normal reset, back to BASIC
+run_browser:
+	jmp dirbrowser_loadrun
 
 warmstart:			; XXX not that, warmstart runs the BASIC code after SYS
 install_fastload:
@@ -298,8 +301,6 @@ tcbm_1551_txt:
 startup_txt:
 	!text " VEC INSTALLED",13,0
 
-	; anything above $C000 comes from KERNAL (see coldstart)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 print_msg:
@@ -317,9 +318,17 @@ print_msg_always:
 		bne -
 +		rts
 
-; we must fit within 16k, below $C000
+
+; anything above $C000 comes from KERNAL (see coldstart memory config)
+; so we must fit executable code within 16k, below $C000
 !if * > $C000 { !error "EXECUTABLE CODE ABOVE $C000 *=", * }
 
+!fill ($C000-*), $ff
+		;* = $C000
+		; TCBM2SD directory browser (2024-11-30)
+dirbrowser:
+!bin "boot.t2sd",,2
+dirbrowserend:
 
 !fill ($10000-*), $ff
 
