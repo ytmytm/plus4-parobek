@@ -26,9 +26,9 @@
 ; (c) 2025 by Maciej 'YTM/Elysium' Witkowiak
 
 ; BUG: status is saved to ErrNo, but that's in ROM now(!)
+; BUG: ?DS$ after load error (file not found) drops to MONITOR (BRK) (only hypaload?)
 
-; todo: register function key (according to ROM bank number) and run DIRECTORY BROWSER (TCBM2SD) when hit
-; todo: inline GetByte in GetAndStore to save some cycles
+; todo: burst: inline GetByte in GetAndStore to save some cycles
 ; todo: tcbm2sd fastloader fixed to device 8
 ; todo: hypaload fastloader fixed to device 8
 ; todo: both tcbm2sd and hypaload fastloader should be duplicated for device 9 (space is not a problem in ROM)
@@ -110,7 +110,7 @@ CMD_CHANNEL = 239 ; command channel for burst command
 ; ?anyfastload for 1541?
 ; ?embedded directory browser (one for tcbm2sd)
 
-lowmem_code 	= $0610	; our bank number and trampoline into ROM
+lowmem_code 	= $0640	; our bank number and trampoline into ROM (must be above basic key trampoline)
 
 		*=$8000
 ; header
@@ -135,7 +135,9 @@ coldstart:
 	lda #8			; default to 8
 	sta RAM_FA
 +
-
+	; install function key
+	jsr key_install
+	; show startup screen
 	jsr startup_screen
 	;; come back with result in A: 1=normal, 2=browser, 3=fastload
 	cmp #1
@@ -145,11 +147,11 @@ coldstart:
 	cmp #3
 	beq install_fastload
 normal_reset:
-	rts				; normal reset, back to BASIC
+	jmp print_welcome		; normal reset, back to BASIC
 run_browser:
+warmstart:					; warmstart runs the BASIC code after SYS
 	jmp dirbrowser_loadrun
 
-warmstart:			; XXX not that, warmstart runs the BASIC code after SYS
 install_fastload:
 	; install trampoline
 	ldx #2			; skip over buffers
@@ -173,10 +175,16 @@ install_fastload:
 +
 	+InitBurst
 
+print_welcome:
 	; welcome message
 	lda #<startup_txt
 	ldy #>startup_txt
 	jsr print_msg_always
+	lda RAM_CURBNK
+	ora #'0'
+	jsr ROM_CHROUT
+	lda #13
+	jsr ROM_CHROUT
 	rts
 
 lowmem_trampoline:
@@ -299,7 +307,7 @@ tcbm_1551_txt:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 startup_txt:
-	!text " VEC INSTALLED",13,0
+	!text " BURSTCART ON KEY F",0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -323,7 +331,7 @@ print_msg_always:
 ; so we must fit executable code within 16k, below $C000
 !if * > $C000 { !error "EXECUTABLE CODE ABOVE $C000 *=", * }
 
-!fill ($C000-*), $ff
+;!fill ($C000-*), $ff
 		;* = $C000
 		; TCBM2SD directory browser (2024-11-30)
 dirbrowser:

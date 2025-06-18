@@ -1,10 +1,97 @@
 
+ROM_DOAKEY = $FF49	; $B7C2
+
 tapebuf = $0340 ; tape buffer
 
 s_lo         = $9f
 s_hi         = $a0
 t_lo         = $a1
 t_hi         = $a2
+
+; F1=1525, F2=1578, F3=1546
+; 21
+; $35
+
+key_install:
+		ldy #0
+-		lda basicsys,y
+		sta tapebuf,y
+		iny
+		cpy #basicsysend-basicsys
+		bne -
+
+		; correct SYS address
+		ldx RAM_CURBNK	; 0=BASIC, 1=function (F1), 2=C1 (F2), 3=C2 (F3)
+		lda basissysaddr1-1,x
+		sta tapebuf+5
+		lda basissysaddr2-1,x
+		sta tapebuf+6
+
+		; install warmstart trampoline code
+		lda basic_trampoline_offs-1,x
+		pha
+		tay
+		ldx #0
+-		lda basic_trampoline,x
+		sta $05f5,y
+		inx
+		iny
+		cpx #(basic_trampoline_end-basic_trampoline)
+		bne -
+		pla
+		tay
+		iny
+		ldx RAM_CURBNK
+		txa
+		sta $05f5,y
+
+		; install function key definition
+		ldx RAM_CURBNK
+		dex
+		stx $76 			; keynum 0-7 (0=F1, 7=F8)
+		lda #<tapebuf
+		sta $22 			; index
+		lda #>tapebuf
+		sta $23 			; index+1
+		lda #(basicsysend-basicsys)
+		sta FETARG			; A register argument
+		lda #<ROM_DOAKEY
+		sta LNGJMP
+		lda #>ROM_DOAKEY
+		sta LNGJMP+1
+		lda #%00000011		; status reg
+		sta FETSRG
+		lda RAM_CURBNK		; caller bank (current)
+		ldx #0				; target bank (ROM)
+		jsr ROM_ILNGJMP
+		rts
+
+basic_trampoline:
+		ldx #$01			; 0=BASIC, 1=function (F1), 2=C1 (F2), 3=C2 (F3)
+		lda #<$8003
+		sta LNGJMP
+		lda #>$8003
+		sta LNGJMP+1
+		sta FETSRG
+		lda RAM_CURBNK
+		jmp ROM_ILNGJMP
+basic_trampoline_end:
+
+basicsys:
+		!text "SYS1525:"
+		!text " BURSTCART"
+basicsysend:
+
+; F1=1525, F2=1578, F3=1546
+basissysaddr1:
+		!byte '2', '7', '4'
+basissysaddr2:
+		!byte '5', '8', '6'
+
+basic_trampoline_offs:
+		!byte 0, (1578-1525), (1546-1525)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 startup_screen:
 		jsr ROM_CINT		; initialize screen editor
@@ -56,6 +143,8 @@ startup_screen_txt:
 		!text "         2. DIRECTORY BROWSER",13,13
 		!text "         3. INSTALL FASTLOAD",13
 		!byte 0
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; tool load handler
 

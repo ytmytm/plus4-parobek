@@ -3,7 +3,10 @@
 
 TODO:
 ! NA SCHEMACIE VIA trzeba zmienić footprint na JP4 (zegar GAL) - ma być 3-2 = Phi0
-! normal reset/install fastload -> F-key for directory browser
+! BUG after filenotfound (1551), ? tak samo na t2sd ? a na burst ?
+
+[20250619]
+- dodane function key definition z prawidłowym wykrywaniem banku
 
 [20250618]
 - chyba poprawiony bug po load error - odwtorzenie rejestru stanu CPU
