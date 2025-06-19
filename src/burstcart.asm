@@ -48,6 +48,7 @@ RAM_FNADR	= $AF	; vector to filename
 RAM_MEMUSS	= $B4	; load RAM base ($AE/AF on C64)
 RAM_CURBNK	= $FB	; current ROM bank
 
+RAM_ICRNCH  = $0304 ; Indirect Crunch (Tokenization Routine) 
 RAM_ILOAD	= $032E	; LOAD vector
 
 LNGJMP		= $05F0	; Long jump address
@@ -121,6 +122,8 @@ lowmem_code 	= $0640	; our bank number and trampoline into ROM (must be above ba
 
 !source "startup.asm"
 
+!source "dos-wedge.asm"
+
 coldstart:
 	lda RAM_CURBNK
 	and #$03		; enable kernal in top half so we don't care about IRQ
@@ -173,6 +176,21 @@ install_fastload:
 	lda #>myloadlow
 	sta RAM_ILOAD+1
 +
+
+	; install wedge
+	lda RAM_ICRNCH
+	cmp #<mywedgelow
+	beq +			; already installed
+	sta wedgerom+1
+	lda RAM_ICRNCH+1
+	sta wedgerom+2
+	lda #<mywedgelow
+	sta RAM_ICRNCH
+	lda #>mywedgelow
+	sta RAM_ICRNCH+1
++
+
+
 	+InitBurst
 
 print_welcome:
@@ -230,6 +248,26 @@ myloadrom:
 	plp
 loadrom:
 	jmp $F04C			; -> F04C
+
+mywedgelow:
+	lda #<doswedge_parse
+	sta LNGJMP
+	lda #>doswedge_parse
+	sta LNGJMP+1
+	lda RAM_CURBNK		; caller bank (current)
+	ldx buf_ourbank		; target bank (our ROM)
+	jsr ROM_ILNGJMP
+	lda FETARG
+	bmi wedge_run_rom
+	bne wedgerom
+	rts
+wedge_run_rom:
+	jmp (cmd_vec)		; execute ROM command in BASIC bank
+wedgerom:
+	jmp $8956
+
+!if * > $06EB { !error "TRAMPOLINE CODE ABOVE $06EB *=", * }
+
 	} ; pseudopc
 
 lowmem_trampoline_end:

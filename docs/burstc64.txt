@@ -5,6 +5,10 @@
 ? DOS5.1 https://www.c64-wiki.com/wiki/DOS_Wedge (+moje FD DD-001)
 	? przechwytywanie wektora GONE nie dziala, raczej przejac procedure CHRGET (0473) / CHRGOT (0479) (GET - zwieksza $3b/c, GOT - tylko czyta)
 	? raczej tokenizer 0304 (8956)
+	? break 8c60 -> odkrycie wbudowanych funkcji
+		DIR = C8BC
+		DLOAD = ?
+		DSAVE = ?
 
 TODO:
 ! NA SCHEMACIE VIA trzeba zmienić footprint na JP4 (zegar GAL) - ma być 3-2 = Phi0
@@ -15,6 +19,7 @@ TODO:
 - dodane function key definition z prawidłowym wykrywaniem banku
 - poprawione zwracanie statusu i błędu
 - directory browser patchowany żeby nie wołał RESTOR, ale to nie działa
+- początki DOS wedge (@,$)
 
 [20250618]
 - chyba poprawiony bug po load error - odwtorzenie rejestru stanu CPU
