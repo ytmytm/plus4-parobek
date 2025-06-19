@@ -5,7 +5,6 @@
 
 ; (c) 2025 by Maciej 'YTM/Elysium' Witkowiak
 
-; note: this version uses HOME position to blank/nonblank screen (needed for debug only)
 ; note: this version flashes border during load, original colour is not restored (needed for debug only)
 
 !macro InitBurst {
@@ -169,7 +168,7 @@ HandleStat:
 
 GetAndStore:
 	jsr GetByte		; Get a byte & toggle clk
-inc $ff19 ; XXX flash border
+inc TED_BORDER ; XXX flash border
 	ldy #0
 	sta (RAM_MEMUSS),y	; Store the byte
 	inc RAM_MEMUSS

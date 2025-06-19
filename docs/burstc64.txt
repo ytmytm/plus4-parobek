@@ -1,9 +1,26 @@
 ? attiny hw z MUX (jak niżej)
 
+? basic wedge https://jimlawless.net/blog/posts/basic-wedge/
+? z tokenami https://github.com/barryw/CustomBasicCommands
+? DOS5.1 https://www.c64-wiki.com/wiki/DOS_Wedge (+moje FD DD-001)
 
 TODO:
 ! NA SCHEMACIE VIA trzeba zmienić footprint na JP4 (zegar GAL) - ma być 3-2 = Phi0
-! BUG after filenotfound (1551), ? tak samo na t2sd ? a na burst ?
+! BUGs after filenotfound (1551)
+! 	load burst, t2sd OK - ale wychodzi do ?BREAK (bo A=$FF? (LOADRET))
+!	fnf 1551(hypa) - wpada w monitor
+!  	fnf t2sd - wiesza się (czeka na transmisję?)
+! 	fnf burst - device not present
+! 	- jesli po tym odczyta sie DS$ z spróbuje ponownie to jest ok
+! 	- ale jesli nie, to za drugim razem ma 'not burst capable'+'device not present', robi fallback na system load (znowu searchinng...) i prawidłowo pokazuje file not found; ale już do resetu pozostanie jako 'not burst capable'
+!		- device not present to z powodu Errno+1 w ROM zamiast RAM
+!		- a moze powinno resetowac RAM_STATUS zawsze?
+! load_status<>0 traktowany jako fallback na LOAD, ale do ROM idziemy tylko gdy reszta zawiodła, tzn.
+!		- nie TCBM
+!		- brak VIA
+!		- IEC not burst capable
+!	w pozostałych wiadomo że był błąd
+! Directory Browser robi przeładowanie wektorów - więc fastload nie działa (oprócz wbudowanego tcbm2sd)
 
 [20250619]
 - dodane function key definition z prawidłowym wykrywaniem banku
@@ -16,7 +33,7 @@ TODO:
 - startup screen jak z Action Replay
 
 [20250530]
-- polutowane do końca - LOAD się zawiesza (screen on/off bez różnicy), co gorsza wczytuje błędne bajty
+- CPLD polutowane do końca - LOAD się zawiesza (screen on/off bez różnicy), co gorsza wczytuje błędne bajty
   (ale load address chyba dobrze (?))
 
 [20250529]

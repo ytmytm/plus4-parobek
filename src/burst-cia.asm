@@ -6,12 +6,9 @@
 ; (c) 2025 by Maciej 'YTM/Elysium' Witkowiak
 
 ; note: this version forces slow clock during CIA access (make it optional)
-; note: this version uses HOME position to blank/nonblank screen (needed for debug only)
 ; note: this version flashes border during load, original colour is not restored (needed for debug only)
 
 ; todo: with listen/second/acptr/unlisten we don't care about filename/channels and preserving zp values
-; todo: if TCBM detected check for 1551 or TCBM2SD and apply correct fastloader
-; todo: register function key (according to ROM bank number) and run DIRECTORY BROWSER (TCBM2SD) when hit
 ; todo: inline GetByte in GetAndStore to save some cycles
 
 !macro InitBurst {
@@ -180,7 +177,7 @@ HandleStat:
 
 GetAndStore:
 	jsr GetByte		; Get a byte & toggle clk
-inc $ff19 ; XXX flash border
+inc TED_BORDER ; XXX flash border
 	ldy #0
 	sta (RAM_MEMUSS),y	; Store the byte
 	inc RAM_MEMUSS
