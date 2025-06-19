@@ -6,27 +6,46 @@
 ; NOTE: can be optimized and cleaned up
 ; NOTE: commands go to current device (RAM_FA), but I/O fixed to #8 (TCBM_DEV8_x)
 
-RAM_ISTOP       = $0326
-
 LEF3B           = $EF3B
-LF06B           = $F06B
 LF211           = $F211
 EF265           = $F265
 
 TED_FF06        = $FF06
 
-        ldx     #<E0633
-        ldy     #>E0633
-        stx     RAM_ISTOP
-        sty     RAM_ISTOP+1
-        jmp     LF06B
+; copy of ROM code between F06B (load from serial) and F0A5 (where JSR FFE1 is called - test for STOP)
+        LDX   RAM_SA
+        JSR   $F160
+        LDA   #$60
+        STA   RAM_SA
+        JSR   $F005
+        LDA   RAM_FA
+        JSR   $EDFA
+        LDA   RAM_SA
+        JSR   $EE1A
+        JSR   $EC8B
+        STA   $9D
+        LDA   RAM_STATUS
+        LSR
+        LSR
+        BCS   LF0E8
+        JSR   $EC8B
+        STA   $9E
+        TXA
+        BNE   LF09C
+        LDA   RAM_MEMUSS
+        STA   $9D
+        LDA   RAM_MEMUSS+1
+        STA   $9E
+LF09C   JSR   $F189
+LF09F   LDA   #$FD
+        AND   RAM_STATUS
+        STA   RAM_STATUS
+        jmp   L077C                     ; continue our code
 
-E0633:  pla                     ; XXX entrypoint
-        pla
-        ldx     #<EF265
-        ldy     #>EF265
-        stx     RAM_ISTOP
-        sty     RAM_ISTOP+1
+LF0E8   ; JMP   LF27C                   ; print "I/O ERROR #4" 
+        lda #4
+        sta load_status
+        rts
 
 ; JSR L077C inline
 L077C:  jsr     LEF3B

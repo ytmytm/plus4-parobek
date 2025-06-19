@@ -14,7 +14,7 @@ t2sd_fastload:
 	lda #<tcbm2sd_load_error_txt
 	ldy #>tcbm2sd_load_error_txt
 	jsr print_msg
-        jmp LOADFAIL   ; XXX
+        jmp LOADFAIL
 
 +       lda #$6F
         jsr ROM_SECOND
@@ -52,7 +52,8 @@ t2sd_fastload:
         and #%00000011
         beq +
 LOADFAIL:
-	inc load_status		; return and pass to ROM load
+        lda #4                  ; file not found (not realy, but we should not pass to ROM load)
+	sta load_status		; return and don't pass to ROM load
         rts
 
         ; // adapted from Warpload 1551 with ACK after each data read

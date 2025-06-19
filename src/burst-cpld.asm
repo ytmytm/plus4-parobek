@@ -7,6 +7,8 @@
 
 ; note: this version flashes border during load, original colour is not restored (needed for debug only)
 
+; TODO: redo error reporting (Errno, load_status, etc.) like VIA version
+
 !macro InitBurst {
         ; setup CPLD
 	lda #0

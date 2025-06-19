@@ -195,6 +195,8 @@ load_status:	!byte 0		; 0 = go to ROM routine for load, !=0 = return
 
 myloadlow:
 	sta RAM_VERFCK		; remember A
+	lda RAM_VERFCK		; just want to test if it's 0 (load) or 1 (verify)
+	bne loadrom			; verify, continue in original (Kernal) code
 	sta FETARG
 	php
 	pla
@@ -209,21 +211,25 @@ myloadlow:
 	lda RAM_CURBNK		; caller bank (current)
 	ldx buf_ourbank		; target bank (our ROM)
 	jsr ROM_ILNGJMP
-	lda load_status		; did we load or not?
-	bne +			; no, continue in original (Kernal) code
-	ldx FETXRG		; restore state and return
+	lda load_status		; did we load or not? (0=OK, C=0, $80=to ROM, else C=1)
+	bmi myloadrom		; no, continue in original (Kernal) code
+	ldx FETXRG			; restore state and return
 	lda buf_sr
 	pha
-	lda FETARG
 	plp
-	rts
-+
-	lda buf_sr		; restore status register
+	clc
+	lda load_status
+	beq +
+	sec					; error
++	rts
+
+myloadrom:
+	lda buf_sr			; restore status register
 	pha
 	lda RAM_VERFCK		; stored A
 	plp
 loadrom:
-	jmp $F04C		; -> F04C
+	jmp $F04C			; -> F04C
 	} ; pseudopc
 
 lowmem_trampoline_end:
@@ -232,16 +238,12 @@ lowmem_trampoline_end:
 ; load_status = 0 - loaded, then:
 ; A=error code (if C=1) or C=0
 ; X/Y last byte loaded
-; load_status = 1 - not loaded, pass back to ROM
 ;
 myload:
-	lda RAM_VERFCK		;VERFCK  Flag:  0 = load,  1 = verify
-	sta load_status 	; will be 0 for load, not 0 for verify
-	cmp #0			; load or verify?
-	beq +
-	inc load_status		; pass back t ROM code
-	rts
-+	stx RAM_MEMUSS		; load addr (actually X/Y is stored here before ILOAD vector is called)
+	lda #0
+	sta load_status
+	sta RAM_STATUS
+	stx RAM_MEMUSS		; load addr (actually X/Y is already stored here before ILOAD vector is called)
 	sty RAM_MEMUSS+1
 
 	lda RAM_FA			;FA      Current device number
@@ -261,7 +263,8 @@ myload:
 +	jmp iecburst_load	;no, it's IEC, try using burst
 
 load_rom:
-	inc load_status		; pass back to ROM code
+	lda #$80
+	sta load_status		; pass back to ROM code
 	rts
 
 iecburst_load:
@@ -275,8 +278,9 @@ tcbm_load:
 	ldy #>tcbm2sd_detect_txt
 	jsr print_msg
 	jsr t2sd_detect
-	bcc +				; not tcbm2sd, must be 1551 - pass back to ROM code
+	bcc +				; not tcbm2sd, must be 1551 - pass to hypaload
 	jmp hypa_load
+
 	; TCBM2SD fastloader here
 +	lda #<tcbm2sd_fastload_txt
 	ldy #>tcbm2sd_fastload_txt
@@ -287,7 +291,6 @@ tcbm_load:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 hypa_load:
-	;inc load_status
 	lda #<tcbm_1551_txt
 	ldy #>tcbm_1551_txt
 	jsr print_msg		; HYPALOAD would start here

@@ -189,6 +189,20 @@ dirbrowser_loadrun:
 	cpx #(1 + (>dirbrowserend-dirbrowser))
 	bne -
 
+	; patch Directory Browser to not call ROM_RESTOR, so that our fastloader is used
+	lda $101b
+	cmp #$20
+	bne +
+	lda $101c
+	cmp #<ROM_RESTOR
+	bne +
+	lda $101d
+	cmp #>ROM_RESTOR
+	bne +
+	lda #$2c			; BIT opcode
+	sta $101b
++
+
 	ldx RAM_CURBNK
 	sta $fdd0,x 		; cart1/2 lo, kernal
 

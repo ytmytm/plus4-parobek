@@ -8,6 +8,8 @@
 ; note: this version forces slow clock during CIA access (make it optional)
 ; note: this version flashes border during load, original colour is not restored (needed for debug only)
 
+; TODO: redo error reporting (Errno, load_status, etc.) like VIA version
+
 ; todo: with listen/second/acptr/unlisten we don't care about filename/channels and preserving zp values
 ; todo: inline GetByte in GetAndStore to save some cycles
 

@@ -63,7 +63,8 @@ via_ier		= viabase+14
 	beq -			; wait until data sent
 
 NotVIA:
-        inc load_status
+        lda #$80
+		sta load_status
 	lda #<via_not_present
 	ldy #>via_not_present
 	jmp print_msg
@@ -74,8 +75,6 @@ VIAFound:
 	lda via_sr			; reset sr
 	lda #%00001100		; shift in under CB2
 	sta via_acr
-
-	jsr eF160		;print "SEARCHING" ; XXX too early - will show "SEARCHING" twice if device is not burst capable
 
 	lda RAM_FNLEN		; preserve the filename length
 	pha
@@ -89,7 +88,7 @@ VIAFound:
 	lda #CMD_CHANNEL
 	sta RAM_LA		; logical file number (15 might be in use)
 	jsr ROM_OPEN
-	sta ErrNo+1
+	sta load_status
     lda RAM_ZPVEC1	; restore secondary address
     sta RAM_SA
 	pla
@@ -101,7 +100,7 @@ VIAFound:
 	; Send burst command for Fastload
 	ldx #CMD_CHANNEL
 	jsr ROM_CHKOUT		; command channel as output
-	sta ErrNo+1
+	sta load_status
 ;	bcs NoDev		; "device not present" or other errors
 	bcc +
 	jmp NoDev
@@ -125,7 +124,8 @@ VIAFound:
 	bne +
 	jmp NotFast		; device doesn't handle burst
 +
-	jsr eF189		; print LOADING, uses CHROUT will CLI again
+	jsr eF160		; print "SEARCHING"
+	jsr eF189		; print "LOADING", uses CHROUT will CLI again
 	sei			; loader starts here
 	jsr eE2B8		; serial clock on == clk line low
 	bit via_ifr		; clear interrupt register
@@ -155,18 +155,26 @@ Last:	tax			; Otherwise it is bytes left. Do the last..
 	jsr eE2B8		; Serial clock on (the normal value)
 	lda #CMD_CHANNEL
 	jsr ROM_CLOSE		; Close the command channel
+	lda #0
+	sta load_status
 	clc			; carry clear -> no error indicator
 	bcc End
 
 FileNotFound:
-	pla			; Pop the return address
+	pla			; Pop the return address (from HandleStat)
 	pla
 	jsr eE2B8		; Serial clock on (the normal value)
 	lda #4			; File not found
-	sta ErrNo+1
-NoDev:	lda #CMD_CHANNEL
+	sta load_status
+	bne NoDevClose
+NoDev:
+	lda #5			; Device not present
+	sta load_status
+NoDevClose:
+	lda #CMD_CHANNEL
 	jsr ROM_CLOSE		; Close the command channel
-ErrNo:	lda #5			; Device not present
+ErrNo:
+	lda load_status
 	sec			; carry set -> error indicator
 End:
     ldx RAM_MEMUSS		; Loader returns the end address,
@@ -179,7 +187,8 @@ NotFast:			; device doesn't handle burst
 	lda #CMD_CHANNEL
 	jsr ROM_CLOSE
 	jsr ROM_CLRCHN		; close file
-	inc load_status		; return and pass to ROM load
+	lda #$80
+	sta load_status		; return and pass to ROM load
 	lda #<not_burst
 	ldy #>not_burst
 	jmp print_msg

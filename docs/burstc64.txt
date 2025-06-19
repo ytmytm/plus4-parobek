@@ -4,27 +4,17 @@
 ? z tokenami https://github.com/barryw/CustomBasicCommands
 ? DOS5.1 https://www.c64-wiki.com/wiki/DOS_Wedge (+moje FD DD-001)
 	? przechwytywanie wektora GONE nie dziala, raczej przejac procedure CHRGET (0473) / CHRGOT (0479) (GET - zwieksza $3b/c, GOT - tylko czyta)
+	? raczej tokenizer 0304 (8956)
 
 TODO:
 ! NA SCHEMACIE VIA trzeba zmienić footprint na JP4 (zegar GAL) - ma być 3-2 = Phi0
 ! BUGs after filenotfound (1551)
-! 	load burst, t2sd OK - ale wychodzi do ?BREAK (bo A=$FF? (LOADRET))
-!	fnf 1551(hypa) - wraca z prawidłowym błędem, ale wpada w monitor po jakiejkolwiek komendzie BASIC (jeden bajt nie zdjęty ze stosu)
-!  	fnf t2sd - wiesza się (czeka na transmisję?)
-! 	fnf burst - device not present
-! 	- jesli po tym odczyta sie DS$ z spróbuje ponownie to jest ok
-! 	- ale jesli nie, to za drugim razem ma 'not burst capable'+'device not present', robi fallback na system load (znowu searchinng...) i prawidłowo pokazuje file not found; ale już do resetu pozostanie jako 'not burst capable'
-!		- device not present to z powodu Errno+1 w ROM zamiast RAM
-!		- a moze powinno resetowac RAM_STATUS zawsze?
-! load_status<>0 traktowany jako fallback na LOAD, ale do ROM idziemy tylko gdy reszta zawiodła, tzn.
-!		- nie TCBM
-!		- brak VIA
-!		- IEC not burst capable
-!	w pozostałych wiadomo że był błąd
-! Directory Browser robi przeładowanie wektorów - więc fastload nie działa (oprócz wbudowanego tcbm2sd)
+!  	fnf t2sd - wiesza się (czeka na transmisję?) - chyba inaczej się nie da
 
 [20250619]
 - dodane function key definition z prawidłowym wykrywaniem banku
+- poprawione zwracanie statusu i błędu
+- directory browser patchowany żeby nie wołał RESTOR, ale to nie działa
 
 [20250618]
 - chyba poprawiony bug po load error - odwtorzenie rejestru stanu CPU
