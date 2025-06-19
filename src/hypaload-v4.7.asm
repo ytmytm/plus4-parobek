@@ -4,8 +4,7 @@
 ; NOTE: this doesn't work in VICE, can be tested on YaPe
 ; NOTE: too many bytes sent to the drive, drivecode is shorter by at least 32 bytes
 ; NOTE: can be optimized and cleaned up
-
-DEV1551 = 8
+; NOTE: commands go to current device (RAM_FA), but I/O fixed to #8 (TCBM_DEV8_x)
 
 RAM_ISTOP       = $0326
 
@@ -149,7 +148,7 @@ E06E0:  lda     #<HYPADRVCODE            ; XXX entrypoint
         ldx     #$03
         sta     $05
         stx     $06
-L06F0:  lda     #DEV1551
+L06F0:  lda     RAM_FA
         jsr     ROM_LISTEN
         lda     #$6F
         jsr     ROM_SECOND
@@ -194,7 +193,7 @@ L06F0:  lda     #DEV1551
         lda     #$00            ; M-E $0300
 HYPA_MEMORYEXEC:
         pha
-        lda     #DEV1551
+        lda     RAM_FA
         jsr     ROM_LISTEN
         lda     #$6F
         jsr     ROM_SECOND

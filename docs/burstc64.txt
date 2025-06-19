@@ -3,12 +3,13 @@
 ? basic wedge https://jimlawless.net/blog/posts/basic-wedge/
 ? z tokenami https://github.com/barryw/CustomBasicCommands
 ? DOS5.1 https://www.c64-wiki.com/wiki/DOS_Wedge (+moje FD DD-001)
+	? przechwytywanie wektora GONE nie dziala, raczej przejac procedure CHRGET (0473) / CHRGOT (0479) (GET - zwieksza $3b/c, GOT - tylko czyta)
 
 TODO:
 ! NA SCHEMACIE VIA trzeba zmienić footprint na JP4 (zegar GAL) - ma być 3-2 = Phi0
 ! BUGs after filenotfound (1551)
 ! 	load burst, t2sd OK - ale wychodzi do ?BREAK (bo A=$FF? (LOADRET))
-!	fnf 1551(hypa) - wpada w monitor
+!	fnf 1551(hypa) - wraca z prawidłowym błędem, ale wpada w monitor po jakiejkolwiek komendzie BASIC (jeden bajt nie zdjęty ze stosu)
 !  	fnf t2sd - wiesza się (czeka na transmisję?)
 ! 	fnf burst - device not present
 ! 	- jesli po tym odczyta sie DS$ z spróbuje ponownie to jest ok
