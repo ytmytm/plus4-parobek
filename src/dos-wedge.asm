@@ -76,13 +76,38 @@ dos_dir:
         rts
 
 dos_status:
+        lda #0
+        sta RAM_STATUS
         lda cmd_len
         beq dos_display_status
-        ; XXX next char is digit 8,9,1? yes->set device number
+        ; if next char is a digit 8,9,1? yes->set device number
+        lda cmd_text
+        tay
+        and #$f0
+        cmp #$30
+        bne dos_send_command
+        tya
+        and #$0f
+        cmp #$01        ; 10 or 11?
+        beq dos_device_number_1x
+        sta RAM_FA
+        rts
+dos_device_number_1x:
+        lda cmd_text+1
+        and #$0f
+        clc
+        adc #10
+        sta RAM_FA
+        rts
+
         ; send command to drive
+dos_send_command:
         lda RAM_FA
         beq dos_status_end
         jsr ROM_LISTEN
+        jsr ROM_READST
+        and #%10000000          ; device not present?
+        bne dos_send_command_end
         lda #$6F
         jsr ROM_SECOND
         ldy #0
@@ -91,6 +116,7 @@ dos_status:
         iny
         cpy cmd_len
         bne -
+dos_send_command_end:
         jsr ROM_UNLISTEN
         jmp dos_wedge_end
 
@@ -98,14 +124,19 @@ dos_display_status:
         lda RAM_FA
         beq dos_status_end
         jsr ROM_TALK
+        jsr ROM_READST
+        and #%10000000          ; device not present?
+        bne dos_display_status_end
         lda #$6F
         jsr ROM_TKSA
 -       jsr ROM_ACPTR
+        bcs dos_display_status_end
         cmp #$0D
         beq +
         jsr ROM_CHROUT
         jmp -
 +       jsr ROM_CHROUT
+dos_display_status_end:
         jsr ROM_UNTLK
 
 dos_status_end:
