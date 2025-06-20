@@ -7,13 +7,16 @@
 	? raczej tokenizer 0304 (8956)
 	? break 8c60 -> odkrycie wbudowanych funkcji
 		DIR = C8BC
-		DLOAD = ?
-		DSAVE = ?
+		DLOAD = C951
+		DSAVE = C941
 
 TODO:
 ! NA SCHEMACIE VIA trzeba zmienić footprint na JP4 (zegar GAL) - ma być 3-2 = Phi0
 ! BUGs after filenotfound (1551)
 !  	fnf t2sd - wiesza się (czeka na transmisję?) - chyba inaczej się nie da
+
+[20250620]
+- @8..12 do ustawienia nr urządzenia
 
 [20250619]
 - dodane function key definition z prawidłowym wykrywaniem banku
