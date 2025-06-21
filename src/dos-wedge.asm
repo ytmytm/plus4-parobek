@@ -12,23 +12,20 @@ cmd_text = cmd_buffer+3     ; (40)
 cmd_table:
     !byte   "@"	; 0 command/status/device
     !byte   "$" ; 1 directory
-    !byte	"/"	; 2 load BASIC
-    !byte   "^"	; 3 load and RUN
-    !byte   "_"	; 4 <- save
+    !byte   "/"	; 2 dload
+    !byte   "_"	; 3 <- dsave
 
 dos_jump_table_lo:
     !byte   <dos_status
     !byte   <dos_dir
-    !byte   <dos_wedge_end
-    !byte   <dos_wedge_end
-    !byte   <dos_wedge_end
+    !byte   <dos_dload
+    !byte   <dos_dsave
 
 dos_jump_table_hi:
     !byte   >dos_status
     !byte   >dos_dir
-    !byte   >dos_wedge_end
-    !byte   >dos_wedge_end
-    !byte   >dos_wedge_end
+    !byte   >dos_dload
+    !byte   >dos_dsave
 
 ; out: A=0 return, <>0 pass to ROM
 doswedge_parse:
@@ -52,6 +49,9 @@ doswedge_parse:
         sta cmd_vec+1
 
 inc TED_BORDER
+        ; patch CHRGT to not ignore spaces
+        lda #$ff
+        sta $048a
         ; consume input until end of line
         ldx #0
 -       jsr CHRGET
@@ -62,8 +62,9 @@ inc TED_BORDER
         inx
         cpx #40             ; max length one line
         bne -
-+       stx cmd_len	; store length
-
++       stx cmd_len	    ; store length
+        lda #$20            ; restore CHRGT to ignore spaces
+        sta $048a
         jmp (cmd_vec)
 
 dos_dir:
@@ -71,6 +72,59 @@ dos_dir:
         sta cmd_vec
         lda #>$C8BC
         sta cmd_vec+1
+        lda #$80
+        clc
+        rts
+
+dos_filename_scan:
+; scan - is there a quote?
+        ldx #0
+-       lda cmd_text,x
+        beq +
+        cmp #$22
+        beq dos_filename_scan_skip_until_quote
+        inx
+        cpx cmd_len
+        bne -
++       jmp dos_filename_scan_end
+
+dos_filename_scan_skip_until_quote:
+        ldy #0
+-       inx
+        lda cmd_text,x
+        cmp #$22
+        bne +
+        lda #0
++       sta cmd_text,y
+        beq dos_filename_scan_end
+        iny
+        bne -
+
+dos_filename_scan_end:
+        lda #$22        ; quote
+        sta cmd_text-1
+        lda #<(cmd_text-1)
+        sta TXTPTR
+        lda #>(cmd_text-1)
+        sta TXTPTR+1
+        rts
+
+dos_dload:
+        lda #<$C951
+        sta cmd_vec
+        lda #>$C951
+        sta cmd_vec+1
+        jsr dos_filename_scan
+        lda #$80
+        clc
+        rts
+
+dos_dsave:
+        lda #<$C941
+        sta cmd_vec
+        lda #>$C941
+        sta cmd_vec+1
+        jsr dos_filename_scan
         lda #$80
         clc
         rts
