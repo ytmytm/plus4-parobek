@@ -12,8 +12,11 @@
 
 TODO:
 ! NA SCHEMACIE VIA trzeba zmienić footprint na JP4 (zegar GAL) - ma być 3-2 = Phi0
-! BUGs after filenotfound (1551)
-!  	fnf t2sd - wiesza się (czeka na transmisję?) - chyba inaczej się nie da
+! DIRECTORY BROWSER load&run overwrites wedge code -> put it above it (in tape buffer?)
+
+[20250621]
+- /=dload, <-=dsave + użyj tylko nazwy w cudzysłowach, więc '/' na początku listingu z DIR działa dobrze
+- check if file exists before loading it with tcbm2sd fastload utility command
 
 [20250620]
 - @8..12 do ustawienia nr urządzenia

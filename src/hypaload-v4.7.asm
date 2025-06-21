@@ -12,6 +12,8 @@ EF265           = $F265
 
 TED_FF06        = $FF06
 
+        !zone Hypaload_Fastload {
+
 ; copy of ROM code between F06B (load from serial) and F0A5 (where JSR FFE1 is called - test for STOP)
         LDX   RAM_SA
         JSR   $F160
@@ -27,22 +29,22 @@ TED_FF06        = $FF06
         LDA   RAM_STATUS
         LSR
         LSR
-        BCS   LF0E8
+        BCS   .LF0E8
         JSR   $EC8B
         STA   $9E
         TXA
-        BNE   LF09C
+        BNE   .LF09C
         LDA   RAM_MEMUSS
         STA   $9D
         LDA   RAM_MEMUSS+1
         STA   $9E
-LF09C   JSR   $F189
-LF09F   LDA   #$FD
+.LF09C  JSR   $F189
+.LF09F  LDA   #$FD
         AND   RAM_STATUS
         STA   RAM_STATUS
         jmp   L077C                     ; continue our code
 
-LF0E8   ; JMP   LF27C                   ; print "I/O ERROR #4" 
+.LF0E8   ; JMP   LF27C                   ; print "I/O ERROR #4" 
         lda #4
         sta load_status
         rts
@@ -240,3 +242,5 @@ L0461:  ldx     #$03
 
 HYPADRVCODE:
         !binary "hypadrv0300.bin", $280, 2
+
+        }

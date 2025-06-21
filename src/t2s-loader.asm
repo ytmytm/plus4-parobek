@@ -2,6 +2,43 @@
 t2sd_fastload:
         !zone TCBM2SD_Fastload {
 
+; (same thing as in hypaload)
+; copy of ROM code between F06B (load from serial) and F0A5 (where JSR FFE1 is called - test for STOP)
+        LDX   RAM_SA
+        JSR   $F160
+        LDA   #$60
+        STA   RAM_SA
+        JSR   $F005
+        LDA   RAM_FA
+        JSR   $EDFA
+        LDA   RAM_SA
+        JSR   $EE1A
+        JSR   $EC8B
+        STA   $9D
+        LDA   RAM_STATUS
+        LSR
+        LSR
+        BCS   .LF0E8
+        JSR   $EC8B
+        STA   $9E
+        TXA
+        BNE   .LF09C
+        LDA   RAM_MEMUSS
+        STA   $9D
+        LDA   RAM_MEMUSS+1
+        STA   $9E
+.LF09C  JSR   $F189
+.LF09F  LDA   #$FD
+        AND   RAM_STATUS
+        STA   RAM_STATUS
+        jmp   t2sd_can_load             ; continue our code
+
+.LF0E8   ; JMP   LF27C                  ; print "I/O ERROR #4" 
+        JMP LOADFAIL
+
+; file exists, can load with utility command
+t2sd_can_load:
+        jsr ROM_UNTLK
 	lda #0
 	sta RAM_STATUS
 

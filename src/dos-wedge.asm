@@ -7,7 +7,7 @@ CHRGOT = $0479
 cmd_buffer = $0340 ; tape buffer
 cmd_vec = cmd_buffer        ; (2)
 cmd_len = cmd_buffer+2      ; (1)
-cmd_text = cmd_buffer+3     ; (40)
+cmd_text = cmd_buffer+3     ; (40) one byte before that needed to inject quote
 
 cmd_table:
     !byte   "@"	; 0 command/status/device
@@ -48,7 +48,7 @@ doswedge_parse:
         lda dos_jump_table_hi,x
         sta cmd_vec+1
 
-inc TED_BORDER
+;inc TED_BORDER
         ; patch CHRGT to not ignore spaces
         lda #$ff
         sta $048a
@@ -58,7 +58,7 @@ inc TED_BORDER
         sta cmd_text,x  ; store command text
         cmp #0
         beq +
-        jsr ROM_CHROUT
+;        jsr ROM_CHROUT
         inx
         cpx #40             ; max length one line
         bne -
