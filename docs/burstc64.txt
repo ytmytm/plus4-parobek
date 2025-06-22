@@ -12,7 +12,9 @@
 
 TODO:
 ! NA SCHEMACIE VIA trzeba zmienić footprint na JP4 (zegar GAL) - ma być 3-2 = Phi0
-! DIRECTORY BROWSER load&run overwrites wedge code -> put it above it (in tape buffer?)
+
+[20250622]
+- directory browser with load&run wedge code moved to tape buffer and without RESTOR call
 
 [20250621]
 - /=dload, <-=dsave + użyj tylko nazwy w cudzysłowach, więc '/' na początku listingu z DIR działa dobrze

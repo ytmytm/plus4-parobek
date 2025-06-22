@@ -149,9 +149,14 @@ coldstart:
 	beq run_browser
 	cmp #3
 	beq install_fastload
+	; anything else falls through to normal_reset
 normal_reset:
 	jmp print_welcome		; normal reset, back to BASIC
+
 run_browser:
+;	jsr install_fastload	; we could do it here, but then some games would not work (that use LOAD but also overwrite wedge)
+                            ; for fastload from directory browser simply hit '3' for fastload and then f1-f3 for directory browser
+
 warmstart:					; warmstart runs the BASIC code after SYS
 	jmp dirbrowser_loadrun
 
@@ -376,7 +381,7 @@ print_msg_always:
 		;* = $C000
 		; TCBM2SD directory browser (2024-11-30)
 dirbrowser:
-!bin "boot.t2sd",,2
+!bin "db12b.prg",,2
 dirbrowserend:
 
 !fill ($10000-*), $ff
