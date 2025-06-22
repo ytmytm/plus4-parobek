@@ -10,8 +10,13 @@
 		DLOAD = C951
 		DSAVE = C941
 
+? port-turbo https://plus4world.powweb.com/software/Port-Turbo_V1 - 1541 w/ parallel cable, w/ 8255 lub 6529, no handshake
+	8255: FE00 / 6529: FD10 + inny init + 6529 ma NOP NOP NOP
+
 TODO:
 ! NA SCHEMACIE VIA trzeba zmienić footprint na JP4 (zegar GAL) - ma być 3-2 = Phi0
+! hypaload: drv 9
+! tcbm2sd: drv 9
 
 [20250622]
 - directory browser with load&run wedge code moved to tape buffer and without RESTOR call
