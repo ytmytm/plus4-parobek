@@ -8,47 +8,18 @@
 
 LEF3B           = $EF3B
 LF211           = $F211
-EF265           = $F265
 
 TED_FF06        = $FF06
 
         !zone Hypaload_Fastload {
 
-; copy of ROM code between F06B (load from serial) and F0A5 (where JSR FFE1 is called - test for STOP)
-        LDX   RAM_SA
-        JSR   eF160                    ; print 'SEARCHING'
-        LDA   #$60
-        STA   RAM_SA
-        JSR   $F005
-        LDA   RAM_FA
-        JSR   ROM_TALK
-        LDA   RAM_SA
-        JSR   ROM_TKSA
-        JSR   ROM_ACPTR
-        STA   $9D
-        LDA   RAM_STATUS
-        LSR
-        LSR
-        BCS   .LF0E8
-        JSR   ROM_ACPTR
-        STA   $9E
-        TXA
-        BNE   .LF09C
-        LDA   RAM_MEMUSS
-        STA   $9D
-        LDA   RAM_MEMUSS+1
-        STA   $9E
-.LF09C  JSR   eF189                    ; print 'LOADING'
-.LF09F  LDA   #$FD
-        AND   RAM_STATUS
-        STA   RAM_STATUS
-        jmp   L077C                     ; continue our code
+        jsr shared_rom_check
+        bcc +
 
-.LF0E8   ; JMP   LF27C                   ; print "I/O ERROR #4" 
-        lda #4
+        lda #4                         ; file not found, fall back to ROM
         sta load_status
         rts
-
++
 ; JSR L077C inline
 L077C:  jsr     LEF3B
         jsr     LF211

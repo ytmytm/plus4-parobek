@@ -432,6 +432,48 @@ print_msg_always:
 
 ;--------------------------------------------------
 
+shared_rom_check:
+	!zone shared_rom_check {
+; copy of ROM code between F06B (load from serial) and F0A5 (where JSR FFE1 is called - test for STOP)
+; will setup load address in $9D/$9E according to RAM_SA
+        LDX   RAM_SA
+        JSR   eF160                    ; print 'SEARCHING'
+        LDA   #$60
+        STA   RAM_SA
+        JSR   $F005                    ; ROM routine for load setup
+        LDA   RAM_FA
+        JSR   ROM_TALK                 ; ROM_TALK - TALK routine
+        LDA   RAM_SA
+        JSR   ROM_TKSA                 ; ROM_TKSA - TKSA routine
+        JSR   ROM_ACPTR                ; ROM_ACPTR - ACPTR routine
+        STA   $9D                      ; load address low byte
+        LDA   RAM_STATUS
+        LSR
+        LSR
+        BCS   .file_not_found
+        JSR   ROM_ACPTR                ; ROM_ACPTR - ACPTR routine
+        STA   $9E                      ; load address high byte
+        TXA
+        BNE   .use_file_addr
+        LDA   RAM_MEMUSS               ; use caller's load address
+        STA   $9D
+        LDA   RAM_MEMUSS+1
+        STA   $9E
+.use_file_addr:
+        JSR   eF189                    ; print 'LOADING'
+        LDA   #$FD
+        AND   RAM_STATUS
+        STA   RAM_STATUS
+        clc                            ; file found, continue
+        rts
+
+.file_not_found:
+        sec                            ; file not found, fall back to ROM
+        rts
+	}
+
+;--------------------------------------------------
+
 ; delay to let drive interpret command
 delay:
 		ldx     #$03
