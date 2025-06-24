@@ -11,7 +11,6 @@
 		DSAVE = C941
 
 ? port-turbo https://plus4world.powweb.com/software/Port-Turbo_V1 - 1541 w/ parallel cable, w/ 8255 lub 6529, no handshake
-	8255: FE00 / 6529: FD10 + inny init + 6529 ma NOP NOP NOP
 ! transfers with VIA handshake on 1541 side https://github.com/ytmytm/geos/blob/feature-drv1541parallel/drv/drv1541parallel.s
 	(nice but no benefit - data comes from drive head, is limited by that)
 
@@ -19,10 +18,15 @@ TODO:
 ! NA SCHEMACIE VIA trzeba zmienić footprint na JP4 (zegar GAL) - ma być 3-2 = Phi0
 ! hypaload: drv 9
 ! tcbm2sd: drv 9
-! detect 1541+parallel port
-!	M-W directly to registers, send $AA/$55 and check input?
-!		$ff -> $1803, $aa -> $1801, $55 -> $1801, $00 -> $1803
-!	handle both 8522 (PPI) and 6529 (PIO) for emulation, later also VIA
+
+! 1541+parallel loader based on port-turbo
+! - needs lots of RAM for track cache
+! - decoding+dispatch must run from RAM too (switching would make it slow)
+! - only drivecode+setup (send drivecode) can stay in ROM
+! - BASIC RAM has to be moved down like in original installer (once, don't do it again if it's already moved)
+
+[20250624]
+- detect 1541 + parallel cable and port type (8522 PPI, 6529 PIO, 6522 VIA, 6526 CIA)
 
 [20250622]
 - directory browser with load&run wedge code moved to tape buffer and without RESTOR call
