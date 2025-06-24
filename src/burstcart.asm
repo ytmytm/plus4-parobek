@@ -303,15 +303,71 @@ myload:
 	jsr eEDA9			;check if this is 8/9 TCBM device
 	bcs +				;no, it's IEC, try using burst
 	jmp tcbm_load		;yes, fastloader for 1551/tcbm2sd
-+	jmp iecburst_load	;no, it's IEC, try using burst
++	jmp iec_load	    ;no, it's IEC, try using burst/parallel
 
 load_rom:
+	lda #<load_rom_txt
+	ldy #>load_rom_txt
+	jsr print_msg
 	lda #$80
 	sta load_status		; pass back to ROM code
 	rts
 
+iec_load:
+	lda #<iec_load_txt
+	ldy #>iec_load_txt
+	jsr print_msg
+
+	lda #$80
+	sta load_status
+	jsr iecburst_load
+	bit load_status
+	bmi +			    ; was not loaded, try 1541/parallel
+
+    lda #<iec_load_txt2
+    ldy #>iec_load_txt2
+    jsr print_msg
+	rts
+
++	lda #<iec_load_txt3
+    ldy #>iec_load_txt3
+    jsr print_msg
+
+	jsr par1541_detect
+	sta RAM_ZPVEC1
+	bit RAM_ZPVEC1
+	bpl load_rom		; not 1541 -> fall back on ROM
+	and #%01111111
+	beq load_rom	    ; 1541 but no parallel cable -> fall back on ROM
+	lda #<iec_load_txt4
+    ldy #>iec_load_txt4
+    jsr print_msg
+	jmp load_rom 		; not implemented yet: jmp par1541_load
+
+load_rom_txt:
+	!text "ROM LOAD",13,0
+
+iec_load_txt:
+	!text "IEC LOAD",13,0
+
+iec_load_txt2:
+	!text "BURST LOADED",13,0
+
+iec_load_txt3:
+	!text "1541/PARALLEL TEST",13,0
+
+iec_load_txt4:
+	!text "1541/PARALLEL TEST PASSED",13,0
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 iecburst_load:
 	+LoadBurst
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+!source "par1541-detect.asm"
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 !source "t2s-detect.asm"
