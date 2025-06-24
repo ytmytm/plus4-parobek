@@ -20,8 +20,6 @@ par1541_detect:
 
             lda #$80            ; device is not 1541 or no parallel cable connected -> fall back on ROM
 		    sta load_status
-            lda #$00            ; default status: no parallel cable connected, not 1541
-            sta RAM_ZPVEC1
 
             lda #<.cbminfo
             sta $d0
@@ -48,11 +46,10 @@ par1541_detect:
             bne .not_1541
             cpx #'4'
             beq +
-.not_1541:  rts
+.not_1541:  lda #0              ; not 1541
+            rts
 
-+           lda #$80            ; device is 1541
-            sta RAM_ZPVEC1
-
++
 ; now check if there's a parallel cable connected and where 
 
             lda #0
@@ -115,6 +112,7 @@ par1541_detect:
             ldy #>.no_parallel
             jsr print_msg
 
+            lda #$80            ; device is 1541 but no parallel cable connected
             rts
 +
 
@@ -216,7 +214,7 @@ par1541_detect:
             sta $0c00+43
 
             ; gather results
-            lda RAM_ZPVEC1
+            lda #$80
             ldx #3          ; 3 tests passed: port stable, $55, $aa
             cpx $d3
             bne +
@@ -230,8 +228,7 @@ par1541_detect:
 +           cpx $d6
             bne +
             ora #%00001000  ; VIA connected
-+           sta RAM_ZPVEC1
-            rts
++           rts
 
 .send_command:
             lda RAM_FA
