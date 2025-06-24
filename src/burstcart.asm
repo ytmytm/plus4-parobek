@@ -48,6 +48,8 @@ RAM_FNADR	= $AF	; vector to filename
 RAM_MEMUSS	= $B4	; load RAM base ($AE/AF on C64)
 RAM_CURBNK	= $FB	; current ROM bank
 
+RAM_TED_BORDER_BACKUP = $E6	; backup of TED_BORDER
+
 RAM_ICRNCH  = $0304 ; Indirect Crunch (Tokenization Routine) 
 RAM_ILOAD	= $032E	; LOAD vector
 
@@ -428,6 +430,20 @@ print_msg_always:
 		bne -
 +		rts
 
+;--------------------------------------------------
+
+; delay to let drive interpret command
+delay:
+		ldx     #$03
+        ldy     #$00
+-       nop
+        iny
+        bne     -
+        dex
+        bpl     -
+        rts
+
+;--------------------------------------------------
 
 ; anything above $C000 comes from KERNAL (see coldstart memory config)
 ; so we must fit executable code within 16k, below $C000

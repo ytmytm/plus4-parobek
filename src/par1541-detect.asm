@@ -156,7 +156,7 @@ par1541_detect:
             sta $d2
             jsr .send_command
 ;875c
-            jsr .delay
+            jsr delay
 
             lda .ppibase
             cmp #$55
@@ -190,7 +190,7 @@ par1541_detect:
             sta $d2
             jsr .send_command
 
-            jsr .delay
+            jsr delay
 
             lda .ppibase
             cmp #$aa
@@ -264,15 +264,6 @@ par1541_detect:
             cpy $d2
             bne -
             jmp ROM_UNLISTEN
-
-.delay:
-            ldy #$03        ; delay to let drive interpret command
-            ldx #$00
--           dex
-            bne -
-            dey
-            bne -
-            rts
 
 !if par1541_debug = 1 {
 .ppi_present:

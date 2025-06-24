@@ -16,21 +16,21 @@ TED_FF06        = $FF06
 
 ; copy of ROM code between F06B (load from serial) and F0A5 (where JSR FFE1 is called - test for STOP)
         LDX   RAM_SA
-        JSR   $F160
+        JSR   eF160                    ; print 'SEARCHING'
         LDA   #$60
         STA   RAM_SA
         JSR   $F005
         LDA   RAM_FA
-        JSR   $EDFA
+        JSR   ROM_TALK
         LDA   RAM_SA
-        JSR   $EE1A
-        JSR   $EC8B
+        JSR   ROM_TKSA
+        JSR   ROM_ACPTR
         STA   $9D
         LDA   RAM_STATUS
         LSR
         LSR
         BCS   .LF0E8
-        JSR   $EC8B
+        JSR   ROM_ACPTR
         STA   $9E
         TXA
         BNE   .LF09C
@@ -38,7 +38,7 @@ TED_FF06        = $FF06
         STA   $9D
         LDA   RAM_MEMUSS+1
         STA   $9E
-.LF09C  JSR   $F189
+.LF09C  JSR   eF189                    ; print 'LOADING'
 .LF09F  LDA   #$FD
         AND   RAM_STATUS
         STA   RAM_STATUS
@@ -54,11 +54,11 @@ L077C:  jsr     LEF3B
         jsr     LF211
 ;        jsr     E045B
 
-E045B:  jsr     L0461   ; entry point XXX
+E045B:  jsr     delay   ; entry point XXX
         jsr     E06E0   ; send drivecode
 
         lda     TED_BORDER
-        sta     $D0
+        sta     RAM_TED_BORDER_BACKUP
         lda     #$01
         jsr     ROM_CLOSE       ; close file #1, opened by ROM calls above?
 
@@ -66,17 +66,17 @@ E045B:  jsr     L0461   ; entry point XXX
         jsr     HYPA_MEMORYEXEC ; M-E $0303
 
 ;        jmp     E0455
-E0455:  jsr     L0461   ; entry point XXX
+E0455:  jsr     delay   ; entry point XXX
         ;jmp     L0408
 
 L0408:  ;jsr     E06B0
 E06B0:  sei                     ; XXX entrypoint
         lda     #$0B
         sta     TED_FF06
-        ldy     #$00            ; $9F/A0 are not used, but are set to $1C00
-        ldy     $9F
-        ldy     #$1C
-        ldy     $A0
+        ;ldy     #$00            ; $9F/A0 are not used, but are set to $1C00
+        ;ldy     $9F
+        ;ldy     #$1C
+        ;ldy     $A0
         ldy     #$00            ; TCBM I/O input setup
         sty     TCBM_DEV8_2
         sty     TCBM_DEV8_3
@@ -139,23 +139,22 @@ L068C:  lda     #$1B
         sta     TED_FF06
 ;        jmp     L06D3
 
-L06D3:  nop
-        nop
+L06D3:  ;nop
+        ;nop
         cli
+
         pla
         clc
         adc     #$01
         sta     $9D
-;        jmp     L065E
-
-L065E:  lda     $9E             ; executed after load
-        adc     #$00
-        sta     $9E
-        lda     $9D
-        sta     $2D
-        lda     $9E
-        sta     $2E
-        lda     $D0             ; restore colors
+        bcc     +
+        inc     $9E
++
+;        lda     $9D
+;        sta     $2D
+;        lda     $9E
+;        sta     $2E
+        lda     RAM_TED_BORDER_BACKUP             ; restore colors
         sta     TED_BORDER
         ldx     $9D             ; load address
         ldy     $9E
@@ -231,14 +230,6 @@ HYPA_MEMORYEXEC:
         jsr     ROM_UNLISTEN        ; initialize $0300
         rts
 
-L0461:  ldx     #$03
---      ldy     #$00
--       nop
-        iny
-        bne     -
-        dex
-        bpl     --
-        rts
 
 HYPADRVCODE:
         !binary "hypadrv0300.bin", $280, 2
