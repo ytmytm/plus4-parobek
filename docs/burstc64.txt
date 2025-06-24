@@ -25,8 +25,11 @@ TODO:
 ! - only drivecode+setup (send drivecode) can stay in ROM
 ! - BASIC RAM has to be moved down like in original installer (once, don't do it again if it's already moved)
 
+? czy VIA i t2sd nadal działają?
+
 [20250624]
 - detect 1541 + parallel cable and port type (8522 PPI, 6529 PIO, 6522 VIA, 6526 CIA)
+- refactor common parts
 
 [20250622]
 - directory browser with load&run wedge code moved to tape buffer and without RESTOR call
