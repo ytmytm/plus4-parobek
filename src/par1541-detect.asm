@@ -10,6 +10,8 @@
 ; %xxx1xxxx - parallel cable connected to CIA at ciabase $FD90 (6526)
 ; %xxxx1xxx - parallel cable connected to VIA at viabase $FDA0 (6522)
 
+!set par1541_debug = 0 ; 0 - no debug, 1 - debug
+
 par1541_detect:
         !zone PAR1541_Detect {
 
@@ -65,9 +67,11 @@ par1541_detect:
             inc $d3
             lda #$90
             sta .ppibase+3      ; set port A to input
-            lda #<.ppi_present
-            ldy #>.ppi_present
-            jsr print_msg
+            !if par1541_debug = 1 {
+                lda #<.ppi_present
+                ldy #>.ppi_present
+                jsr print_msg
+            }
 
 +           ; check if PIO is connected
             lda .piobase
@@ -76,20 +80,24 @@ par1541_detect:
             inc $d4
             lda #$ff
             sta .piobase        ; set port to input
-            lda #<.pio_present
-            ldy #>.pio_present
-            jsr print_msg
+            !if par1541_debug = 1 {
+                lda #<.pio_present
+                ldy #>.pio_present
+                jsr print_msg
+            }
 
 +           ; check if CIA is connected
-            lda .ciabase
-            cmp .ciabase
+            lda .ciabase+3
+            cmp .ciabase+3
             bne +
             inc $d5
             lda #$00
             sta .ciabase+3      ; set port B to input
-            lda #<.cia_present
-            ldy #>.cia_present
-            jsr print_msg
+            !if par1541_debug = 1 {
+                lda #<.cia_present
+                ldy #>.cia_present
+                jsr print_msg
+            }
 
 +           ; check if VIA is connected
             lda .viabase
@@ -98,9 +106,11 @@ par1541_detect:
             inc $d6
             lda #$00
             sta .viabase+3      ; set port A to input (same as on 1541 side)
-            lda #<.via_present
-            ldy #>.via_present
-            jsr print_msg
+            !if par1541_debug = 1 {
+                lda #<.via_present
+                ldy #>.via_present
+                jsr print_msg
+            }
 +
             lda $d3
             ora $d4
@@ -108,17 +118,21 @@ par1541_detect:
             ora $d6
             bne +               ; continue only if at least one interface is connected
 
-            lda #<.no_parallel
-            ldy #>.no_parallel
-            jsr print_msg
+            !if par1541_debug = 1 {
+                lda #<.no_parallel
+                ldy #>.no_parallel
+                jsr print_msg
+            }
 
             lda #$80            ; device is 1541 but no parallel cable connected
             rts
 +
 
-            lda #<.via1output_txt
-            ldy #>.via1output_txt
-            jsr print_msg
+            !if par1541_debug = 1 {
+                lda #<.via1output_txt
+                ldy #>.via1output_txt
+                jsr print_msg
+            }
 
             lda #<.via1output
             sta $d0
@@ -128,9 +142,11 @@ par1541_detect:
             sta $d2
             jsr .send_command
 
-            lda #<.via1_test55_txt
-            ldy #>.via1_test55_txt
-            jsr print_msg
+            !if par1541_debug = 1 {
+                lda #<.via1_test55_txt
+                ldy #>.via1_test55_txt
+                jsr print_msg
+            }
 
             lda #<.via1test55
             sta $d0
@@ -160,9 +176,11 @@ par1541_detect:
             inc $d6
 +
 
-            lda #<.via1_testaa_txt
-            ldy #>.via1_testaa_txt
-            jsr print_msg
+            !if par1541_debug = 1 {
+                lda #<.via1_testaa_txt
+                ldy #>.via1_testaa_txt
+                jsr print_msg
+            }
 
             lda #<.via1testAA
             sta $d0
@@ -192,9 +210,11 @@ par1541_detect:
             inc $d6
 +
 
-            lda #<.via1_input_txt
-            ldy #>.via1_input_txt
-            jsr print_msg
+            !if par1541_debug = 1 {
+                lda #<.via1_input_txt
+                ldy #>.via1_input_txt
+                jsr print_msg
+            }
 
             lda #<.via1input
             sta $d0
@@ -204,14 +224,16 @@ par1541_detect:
             sta $d2
             jsr .send_command
 
-            lda $d3
-            sta $0c00+40
-            lda $d4
-            sta $0c00+41
-            lda $d5
-            sta $0c00+42
-            lda $d6
-            sta $0c00+43
+            !if par1541_debug = 1 {
+                lda $d3
+                sta $0c00+40
+                lda $d4
+                sta $0c00+41
+                lda $d5
+                sta $0c00+42
+                lda $d6
+                sta $0c00+43
+            }
 
             ; gather results
             lda #$80
@@ -252,6 +274,7 @@ par1541_detect:
             bne -
             rts
 
+!if par1541_debug = 1 {
 .ppi_present:
     !text "PPI"
     !byte $0d, 00
@@ -275,6 +298,7 @@ par1541_detect:
     !text "VIA TEST AA",13,0
 .via1_input_txt:
     !text "VIA INPUT",13,0
+}
 
 .cbminfo:	; gets CBM drive info at $e5c5 in drive ROM
 	!text "M-R"
@@ -305,4 +329,4 @@ par1541_detect:
     !byte 1
     !byte $00
 
-        }
+        } ; zone
