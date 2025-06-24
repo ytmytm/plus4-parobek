@@ -1,6 +1,5 @@
 
 ; XXX load address is already in $9D/9E from ROM check
-; XXX need to preserve TED_BORDER
 
 t2sd_fastload:
         !zone TCBM2SD_Fastload {
@@ -44,6 +43,9 @@ t2sd_can_load:
         jsr ROM_UNTLK
 	lda #0
 	sta RAM_STATUS
+
+        lda TED_BORDER          ; backup TED_BORDER
+        sta RAM_TED_BORDER_BACKUP
 
 	lda RAM_FA
 	jsr ROM_LISTEN
@@ -160,12 +162,15 @@ LOADEND:
         clc
         adc RAM_MEMUSS
         sta RAM_MEMUSS
-        bcc LOADRET
+        bcc +
         inc RAM_MEMUSS+1
++
 
-LOADRET:
         lda #$ff                                    ;// ;port A to output (a bit delayed after ACK)
         sta TCBM_DEV8_3
+
+        lda RAM_TED_BORDER_BACKUP             ; restore colors
+        sta TED_BORDER
 
         ldx RAM_MEMUSS
         ldy RAM_MEMUSS+1                                   ;// ;return end address+1 and C=0=no error
