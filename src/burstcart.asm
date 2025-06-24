@@ -195,7 +195,7 @@ install_fastload:
 	sta RAM_ICRNCH+1
 +
 
-
+	; init VIA/CIA/CPLD and CIA TOD clock too
 	+InitBurst
 
 print_welcome:

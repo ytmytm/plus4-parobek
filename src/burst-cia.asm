@@ -26,6 +26,12 @@
 }
 
 !macro LoadBurst {
+	; check if CIA is present
+	lda #$00						; port B input
+	sta ciabase+3
+	cmp ciabase+3
+	bne NotCIA
+
 	; our loading code
 ;myload_cont:
 	ldy #4

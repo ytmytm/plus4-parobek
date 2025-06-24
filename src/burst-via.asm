@@ -41,6 +41,13 @@ via_ier		= viabase+14
 }
 
 !macro LoadBurst {
+	; check if VIA is present
+	lda #%00000001
+	sta via_ddrb				; port B output
+	sta via_portb				; PB0=1 -> SR input
+	cmp via_ddrb
+	bne NotVIA
+
 	; our loading code
 ;myload_cont:
 	ldy #4
