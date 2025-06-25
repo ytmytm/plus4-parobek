@@ -15,11 +15,6 @@
 par1541_detect:
         !zone PAR1541_Detect {
 
-.ppibase = $fe00
-.piobase = $fd10
-.ciabase = $fd90
-.viabase = $fda0
-
             lda #$80            ; device is not 1541 or no parallel cable connected -> fall back on ROM
 		    sta load_status
 
@@ -61,12 +56,12 @@ par1541_detect:
             sta $d6             ; VIA
 
             ; check if PPI is connected
-            lda .ppibase
-            cmp .ppibase
+            lda ppibase
+            cmp ppibase
             bne +
             inc $d3
             lda #$90
-            sta .ppibase+3      ; set port A to input
+            sta ppibase+3      ; set port A to input
             !if par1541_debug = 1 {
                 lda #<.ppi_present
                 ldy #>.ppi_present
@@ -74,12 +69,12 @@ par1541_detect:
             }
 
 +           ; check if PIO is connected
-            lda .piobase
-            cmp .piobase
+            lda piobase
+            cmp piobase
             bne +
             inc $d4
             lda #$ff
-            sta .piobase        ; set port to input
+            sta piobase        ; set port to input
             !if par1541_debug = 1 {
                 lda #<.pio_present
                 ldy #>.pio_present
@@ -87,12 +82,12 @@ par1541_detect:
             }
 
 +           ; check if CIA is connected
-            lda .ciabase+3
-            cmp .ciabase+3
+            lda ciabase+3
+            cmp ciabase+3
             bne +
             inc $d5
             lda #$00
-            sta .ciabase+3      ; set port B to input
+            sta ciabase+3      ; set port B to input
             !if par1541_debug = 1 {
                 lda #<.cia_present
                 ldy #>.cia_present
@@ -100,12 +95,12 @@ par1541_detect:
             }
 
 +           ; check if VIA is connected
-            lda .viabase
-            cmp .viabase
+            lda viabase
+            cmp viabase
             bne +
             inc $d6
             lda #$00
-            sta .viabase+3      ; set port A to input (same as on 1541 side)
+            sta viabase+3      ; set port A to input (same as on 1541 side)
             !if par1541_debug = 1 {
                 lda #<.via_present
                 ldy #>.via_present
@@ -158,19 +153,19 @@ par1541_detect:
 ;875c
             jsr delay
 
-            lda .ppibase
+            lda ppibase
             cmp #$55
             bne +
             inc $d3
-+           lda .piobase
++           lda piobase
             cmp #$55
             bne +
             inc $d4
-+           lda .ciabase+1
++           lda ciabase+1
             cmp #$55
             bne +
             inc $d5
-+           lda .viabase+1
++           lda viabase+1
             cmp #$55
             bne +
             inc $d6
@@ -192,19 +187,19 @@ par1541_detect:
 
             jsr delay
 
-            lda .ppibase
+            lda ppibase
             cmp #$aa
             bne +
             inc $d3
-+           lda .piobase
++           lda piobase
             cmp #$aa
             bne +
             inc $d4
-+           lda .ciabase+1
++           lda ciabase+1
             cmp #$aa
             bne +
             inc $d5
-+           lda .viabase+1
++           lda viabase+1
             cmp #$aa
             bne +
             inc $d6

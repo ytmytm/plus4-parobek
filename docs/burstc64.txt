@@ -19,13 +19,14 @@ TODO:
 ! hypaload: drv 9
 ! tcbm2sd: drv 9
 
-! 1541+parallel loader based on port-turbo
-! - needs lots of RAM for track cache
-! - decoding+dispatch must run from RAM too (switching would make it slow)
-! - only drivecode+setup (send drivecode) can stay in ROM
-! - BASIC RAM has to be moved down like in original installer (once, don't do it again if it's already moved)
+BUGS:
+! can't DLOAD after DLOAD with parallel loader
 
 ? czy VIA i t2sd nadal działają?
+
+[20250625]
+- 1541 parallel loader for PPI/PIO/VIA/CIA; a bit broken (can't load a second file after load) ; based on Port-Turbo_V1
+- lots of duplicated code for highram-loader
 
 [20250624]
 - detect 1541 + parallel cable and port type (8522 PPI, 6529 PIO, 6522 VIA, 6526 CIA)

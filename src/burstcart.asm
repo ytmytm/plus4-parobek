@@ -109,6 +109,12 @@ RAM_SELECT	= $FF3F
 
 CMD_CHANNEL = 239 ; command channel for burst command
 
+ppibase = $fe00	; parallel cable connected to PPI at ppibase $FE00 (Intel 8255)
+piobase = $fd10	; parallel cable connected to PIO at piobase $FD10 (6529)
+ciabase = $fd90	; burst/parallel cable connected to CIA at ciabase $FD90 (6526)
+viabase = $fda0	; burst/parallel cable connected to VIA at viabase $FDA0 (6522)
+
+
 ; ?speeddos for 1541+parallel?
 ; ?anyfastload for 1541?
 ; ?embedded directory browser (one for tcbm2sd)
@@ -344,7 +350,8 @@ iec_load:
 	lda #<iec_load_txt4
     ldy #>iec_load_txt4
     jsr print_msg
-	jmp load_rom 		; not implemented yet: jmp par1541_load
+	lda RAM_ZPVEC1
+	jmp par1541_load
 
 load_rom_txt:
 	!text "ROM LOAD",13,0
@@ -369,6 +376,7 @@ iecburst_load:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 !source "par1541-detect.asm"
+!source "par1541-loader.asm"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
