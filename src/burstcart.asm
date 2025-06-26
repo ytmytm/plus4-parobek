@@ -342,15 +342,15 @@ iec_load:
     jsr print_msg
 
 	jsr par1541_detect
-	sta RAM_ZPVEC1
-	bit RAM_ZPVEC1
+	sta $d0
+	bit $d0
 	bpl load_rom		; not 1541 -> fall back on ROM
 	and #%01111111
 	beq load_rom	    ; 1541 but no parallel cable -> fall back on ROM
 	lda #<iec_load_txt4
     ldy #>iec_load_txt4
     jsr print_msg
-	lda RAM_ZPVEC1
+	lda $d0
 	jmp par1541_load
 
 load_rom_txt:

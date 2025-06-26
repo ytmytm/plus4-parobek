@@ -20,10 +20,12 @@ TODO:
 ! tcbm2sd: drv 9
 
 BUGS:
-! can't DLOAD after DLOAD with parallel loader
 ! directory browser load&run will fail with t2sd/parallel loader because tape buffer is used
 
 ? czy VIA i t2sd nadal działają?
+
+[20250626]
+- corrected dload after dload bug with 1541 parallel loader (mess with same zp locations used for different purposes)
 
 [20250625]
 - 1541 parallel loader for PPI/PIO/VIA/CIA; a bit broken (can't load a second file after load) ; based on Port-Turbo_V1
