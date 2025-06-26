@@ -21,6 +21,7 @@ TODO:
 
 BUGS:
 ! can't DLOAD after DLOAD with parallel loader
+! directory browser load&run will fail with t2sd/parallel loader because tape buffer is used
 
 ? czy VIA i t2sd nadal działają?
 
