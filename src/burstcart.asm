@@ -48,6 +48,10 @@ RAM_FNADR	= $AF	; vector to filename
 RAM_MEMUSS	= $B4	; load RAM base ($AE/AF on C64)
 RAM_CURBNK	= $FB	; current ROM bank
 
+; $D0-$E6 used by detect/load code
+; directory browser uses $D4 for load&run flag, but it's copied to $8F
+; MAKE SURE TO NOT USE $8F FOR ANYTHING ELSE
+
 RAM_TED_BORDER_BACKUP = $E6	; backup of TED_BORDER
 
 RAM_ICRNCH  = $0304 ; Indirect Crunch (Tokenization Routine) 

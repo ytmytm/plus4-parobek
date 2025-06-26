@@ -15,7 +15,7 @@ LF215           = $F215
 TED_FF1D        = $FF1D
 
 ; memory layout
-trampoline_buffer = $0340   ; tape buffer
+trampoline_buffer = $0200   ; input buffer (can't use tape buffer because of directory browser loader)
 GCR_SECTOR_BUFFER	= $DE00 ; decoded sector; drivecode + $0100
 GCR_TRACK_BUFFER	= GCR_SECTOR_BUFFER+$0100 ; 21*$0146 (DF00-F9BD)
 

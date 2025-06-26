@@ -5,7 +5,8 @@
 ;; another way: send any command that is valid 'M-R' and check if status is 30,SYNTAX ERROR (tcbm2sd) or else (1551)
 
 ;status_buffer = $0fc0 ; $0fc0 to make it visible in status line on screen (XXX DEBUG)
-status_buffer = $0340 ; tape buffer
+;status_buffer = $0340 ; tape buffer
+status_buffer = $0200 ; can't use tape buffer because of directory browser loader
 
 ; return C=0 - device is TCBM2SD, C=1 - device is not TCBM2SD (IEC or 1551)
 
