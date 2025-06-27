@@ -1,16 +1,14 @@
 
 ; XXX load address is already in $9D/9E from ROM check
 
-t2sd_fastload:
         !zone TCBM2SD_Fastload {
 
         jsr shared_rom_check
         bcc +
-        jmp LOADFAIL               ; file not found, fall back to ROM
+        jmp .LOADFAIL               ; file not found, fall back to ROM
 
 +
 ; file exists, can load with utility command
-t2sd_can_load:
         jsr ROM_UNTLK
 	lda #0
 	sta RAM_STATUS
@@ -27,7 +25,7 @@ t2sd_can_load:
 	lda #<tcbm2sd_load_error_txt
 	ldy #>tcbm2sd_load_error_txt
 	jsr print_msg
-        jmp LOADFAIL
+        jmp .LOADFAIL
 
 +       lda #$6F
         jsr ROM_SECOND
@@ -50,21 +48,21 @@ t2sd_can_load:
         jsr ROM_UNLISTEN
 
         lda #0
-        sta TCBM_DEV8_3                                   ;// ;port A DDR = input first
-        sta TCBM_DEV8                                   ;// ;port A (to clear pullups?)
-        sta TCBM_DEV8_2                                   ;// ;DAV=0 - WE ARE READY
+        sta tcbmbase+3                                   ;// ;port A DDR = input first
+        sta tcbmbase                                   ;// ;port A (to clear pullups?)
+        sta tcbmbase+2                                   ;// ;DAV=0 - WE ARE READY
 
-        bit TCBM_DEV8_2                                   ;// ;wait for ACK low
+        bit tcbmbase+2                                   ;// ;wait for ACK low
         bmi *-3
-        lda TCBM_DEV8                                   ;// ;1st byte = load addr low  // need to flip ACK after this
+        lda tcbmbase                                   ;// ;1st byte = load addr low  // need to flip ACK after this
         tay
-        ldx TCBM_DEV8_1                                   ;// STATUS
+        ldx tcbmbase+1                                   ;// STATUS
         lda #$40                                    ;// DAV=1 confirm
-        sta TCBM_DEV8_2
+        sta tcbmbase+2
 	txa
         and #%00000011
         beq +
-LOADFAIL:
+.LOADFAIL:
         lda #4                  ; file not found (not realy, but we should not pass to ROM load)
 	sta load_status		; return and don't pass to ROM load
         rts
@@ -73,15 +71,15 @@ LOADFAIL:
 
 +       sei
 
--       bit TCBM_DEV8_2                                   ;// ;wait for ACK high
+-       bit tcbmbase+2                                   ;// ;wait for ACK high
         bpl -
-        lda TCBM_DEV8                                   ;// ;2nd byte = load addr high // need to flip ACK after this
+        lda tcbmbase                                   ;// ;2nd byte = load addr high // need to flip ACK after this
         pha
         lda #$00                                    ;// DAV=0 confirm
-        sta TCBM_DEV8_2
-        lda TCBM_DEV8_1                                   ;// STATUS
+        sta tcbmbase+2
+        lda tcbmbase+1                                   ;// STATUS
         and #%00000011
-        bne LOADEND                                 ;// error
+        bne .LOADEND                                 ;// error
 
         pla                     ; A=hi, Y=lo addr from file
         ldx RAM_ZPVEC1		; The secondary address - do we use load
@@ -90,43 +88,43 @@ LOADFAIL:
 	sta RAM_MEMUSS+1
 +
 
-LOADSTART:
+.LOADSTART:
         ldy #0
-LOADLOOP:
-        lda TCBM_DEV8_2                                   ;// ;wait for ACK low
-        bmi *-3
+.LOADLOOP:
+-       lda tcbmbase+2                                   ;// ;wait for ACK low
+        bmi -
 inc TED_BORDER
-        lda TCBM_DEV8
+        lda tcbmbase
         sta (RAM_MEMUSS),y
         iny
-        ldx TCBM_DEV8_1                                   ;// STATUS
+        ldx tcbmbase+1                                   ;// STATUS
         lda #$40                                    ;// DAV=1 confirm
-        sta TCBM_DEV8_2
+        sta tcbmbase+2
         txa                                         ;// EOI?
         and #%00000011
-        bne LOADEND
+        bne .LOADEND
 
-        lda TCBM_DEV8_2                                   ;// ;wait for DAV high
-        bpl *-3
+-       lda tcbmbase+2                                   ;// ;wait for DAV high
+        bpl -
 inc TED_BORDER
-        lda TCBM_DEV8                                   ;// XXX need to flip ACK after this
+        lda tcbmbase                                   ;// XXX need to flip ACK after this
         sta (RAM_MEMUSS),y
         iny
-        ldx TCBM_DEV8_1                                   ;// STATUS
+        ldx tcbmbase+1                                   ;// STATUS
         lda #$00                                    ;// DAV=0 confirm
-        sta TCBM_DEV8_2
+        sta tcbmbase+2
         txa                                         ;// EOI?
         and #%00000011
-        bne LOADEND
+        bne .LOADEND
 
         tya
-        bne LOADLOOP
+        bne .LOADLOOP
         inc RAM_MEMUSS+1
-        bne LOADLOOP
+        bne .LOADLOOP
 
-LOADEND:
+.LOADEND:
         lda #$40                                    ;// ;$40 = ACK (bit 6) to 1
-        sta TCBM_DEV8_2
+        sta tcbmbase+2
         cli
 
         tya                                         ;// adjust end address (Y was already increased so just take care about low byte)
@@ -138,7 +136,7 @@ LOADEND:
 +
 
         lda #$ff                                    ;// ;port A to output (a bit delayed after ACK)
-        sta TCBM_DEV8_3
+        sta tcbmbase+3
 
         lda RAM_TED_BORDER_BACKUP             ; restore colors
         sta TED_BORDER
@@ -147,8 +145,5 @@ LOADEND:
         ldy RAM_MEMUSS+1                                   ;// ;return end address+1 and C=0=no error
         clc                                         ;// no error
         rts
-
-tcbm2sd_load_error_txt:
-	!text "TCBM2SD LOAD ERROR",13,0
 
 }

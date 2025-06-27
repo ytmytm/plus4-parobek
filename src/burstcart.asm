@@ -25,13 +25,7 @@
 
 ; (c) 2025 by Maciej 'YTM/Elysium' Witkowiak
 
-; BUG: status is saved to ErrNo, but that's in ROM now(!)
-; BUG: ?DS$ after load error (file not found) drops to MONITOR (BRK) (only hypaload?)
-
 ; todo: burst: inline GetByte in GetAndStore to save some cycles
-; todo: tcbm2sd fastloader fixed to device 8
-; todo: hypaload fastloader fixed to device 8
-; todo: both tcbm2sd and hypaload fastloader should be duplicated for device 9 (space is not a problem in ROM)
 ; todo: tcbm2sd is problematic - DLOAD"*" will always try to load the first file (even disk image) instead of booter
 ;       with embedded directory browser maybe that fastloader doesn't make sense
 
@@ -70,11 +64,9 @@ eE2B8		= $E2B8 ; clk hi (inverted)
 eEDA9		= $EDA9 ; check if device 8/9 (RAM_FA) is parallel (TCBM), C=0 --> yes
 eF160		= $F160	; print 'SEARCHING'
 eF189		= $F189 ; print 'LOADING'
-
-TCBM_DEV8       = $FEF0	; ;// portA
-TCBM_DEV8_1     = $FEF1	; ;// portB 1/0
-TCBM_DEV8_2     = $FEF2 ; ;// portC 7/6
-TCBM_DEV8_3     = $FEF3 ; ;// portA DDR
+; ???
+LEF3B           = $EF3B
+LF211           = $F211
 
 TED_FF06        = $FF06
 TED_BACK        = $FF15
@@ -118,10 +110,12 @@ piobase = $fd10	; parallel cable connected to PIO at piobase $FD10 (6529)
 ciabase = $fd90	; burst/parallel cable connected to CIA at ciabase $FD90 (6526)
 viabase = $fda0	; burst/parallel cable connected to VIA at viabase $FDA0 (6522)
 
-
-; ?speeddos for 1541+parallel?
-; ?anyfastload for 1541?
-; ?embedded directory browser (one for tcbm2sd)
+TCBM_DEV9       = $FEC0
+TCBM_DEV8       = $FEF0
+; +0 port A
+; +1 port B 1/0
+; +2 port C 7/6
+; +3 port A DDR
 
 lowmem_code 	= $0640	; our bank number and trampoline into ROM (must be above basic key trampoline)
 
@@ -384,8 +378,6 @@ iecburst_load:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-!source "t2s-detect.asm"
-
 tcbm_load:
 	lda #<tcbm2sd_detect_txt
 	ldy #>tcbm2sd_detect_txt
@@ -399,6 +391,20 @@ tcbm_load:
 	ldy #>tcbm2sd_fastload_txt
 	jsr print_msg
 
+	lda RAM_FA
+	cmp #9
+	beq +
+	jmp t2sd_fastload_8
++	jmp t2sd_fastload_9
+
+!source "t2s-detect.asm"
+
+!set tcbmbase = TCBM_DEV8
+t2sd_fastload_8:
+!source "t2s-loader.asm"
+
+!set tcbmbase = TCBM_DEV9
+t2sd_fastload_9:
 !source "t2s-loader.asm"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -408,6 +414,20 @@ hypa_load:
 	ldy #>tcbm_1551_txt
 	jsr print_msg		; HYPALOAD would start here
 
+	lda RAM_FA
+	cmp #9
+	beq +
+	jmp hypa_load_8
++	jmp hypa_load_9
+
+!source "hypaload-common.asm"
+
+!set tcbmbase = TCBM_DEV8
+hypa_load_8:
+!source "hypaload-v4.7.asm"
+
+!set tcbmbase = TCBM_DEV9
+hypa_load_9:
 !source "hypaload-v4.7.asm"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -418,7 +438,8 @@ tcbm2sd_fastload_txt:
 	!text "TCBM2SD DETECTED",13,0
 tcbm_1551_txt:
 	!text "TCBM DEVICE, 1551 HYPALOAD",13,0
-
+tcbm2sd_load_error_txt:
+	!text "TCBM2SD LOAD ERROR",13,0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
