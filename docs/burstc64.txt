@@ -17,11 +17,10 @@
 TODO:
 ! NA SCHEMACIE VIA trzeba zmienić footprint na JP4 (zegar GAL) - ma być 3-2 = Phi0
 
-? czy burst VIA i t2sd nadal działają?
-? test parallel 1541 na real hardware
-
 [20250627]
 - tcbm2sd, hypaloader - support for drive #9
+- 1541 parallel doesn't work on real h/w - drive motor turns off quickly, data doesn't come in; VIA is correctly detected, cable test passed
+  (maybe try speed dos loader? that would also remove the memory issue)
 
 [20250626]
 - corrected dload after dload bug with 1541 parallel loader (mess with same zp locations used for different purposes)
