@@ -17,10 +17,17 @@
 TODO:
 ! NA SCHEMACIE VIA trzeba zmienić footprint na JP4 (zegar GAL) - ma być 3-2 = Phi0
 
+BUG:
+'$' doesn't use current drive number, defaults to 8 (diR U9 works, but $ U9 not)
+
+[20250628]
+- tests with parallel 1541: won't start on any ROM (stock/jiffy + w/wo RAM patch, nor DolphinDOS 2) - motor stops as if idling
+- more puzzling: only stock DOS is able to load with kernal protocol
+  (maybe try speed dos loader? that would also remove the memory issue)
+
 [20250627]
 - tcbm2sd, hypaloader - support for drive #9
 - 1541 parallel doesn't work on real h/w - drive motor turns off quickly, data doesn't come in; VIA is correctly detected, cable test passed
-  (maybe try speed dos loader? that would also remove the memory issue)
 
 [20250626]
 - corrected dload after dload bug with 1541 parallel loader (mess with same zp locations used for different purposes)
