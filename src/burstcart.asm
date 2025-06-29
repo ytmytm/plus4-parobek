@@ -349,7 +349,8 @@ iec_load:
     ldy #>iec_load_txt4
     jsr print_msg
 	lda $d0
-	jmp par1541_load
+	jmp SpeedDOS_load
+;	jmp par1541_load ; XXX
 
 load_rom_txt:
 	!text "ROM LOAD",13,0

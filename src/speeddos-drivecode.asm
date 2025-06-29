@@ -10,8 +10,6 @@
 ; par1541_interface = 1,2 -> s/w handshake (PPI,PIO)
 ; par1541_interface = 3,4 -> h/w handshake (CIA,VIA)
 
-SpeedDOS_drivecode:
-
 !pseudopc $0300 {
 
 ; $E0 command start ($0300) - change track
@@ -23,8 +21,10 @@ SpeedDOS_drivecode:
             STX $1803		;// PA out
             INX
             STX $0F
-            LDA #$0B
-            STA $180C		// handshake
+            LDA #$0B        ; XXX proper handshake type for this cable XXX?
+            STA $180C		; hardware handshake
+            LDA #$02
+            STA $1800       ; software handshake
 
 .L0310      JSR .L049E		;// setup halftrack sequence
 .L0313      LDA $18
@@ -150,7 +150,23 @@ SpeedDOS_drivecode:
             BNE .L03F7
             RTS
 
-.L0405      BIT $1800		;// send byte ; clear handshake
+.L0405
+!if ((par1541_interface = 1) or (par1541_interface = 2)) { ; PPI or PIO
+            STA $1801       ; send A, receive X
+            LDA #$04
+-           BIT $1800
+            BEQ -
+            LDX #0
+            STX $1800
+            LDX $1801
+-           BIT $1800
+            BNE -
+            LDA #$02
+            STA $1800
+            RTS
+}
+!if ((par1541_interface = 3) or (par1541_interface = 4)) { ; CIA or VIA
+            BIT $1800		;// send byte ; clear handshake
             STA $1801		;// send byte
             LDY #$E0		;// timeout
 .L040D      LDA $180D		;// wait for handshake
@@ -160,6 +176,7 @@ SpeedDOS_drivecode:
             BNE .L040D
             JMP $EAA0		;// timeout->RESET ($FFFA?)
 .L041A      RTS			    ;// ok
+}
 
 .L041B      STA $31
             TAX
@@ -223,11 +240,16 @@ SpeedDOS_drivecode:
             LDY #$01		;// send out sector data
 .L0489      INY
             LDA ($30),Y
+!if ((par1541_interface = 1) or (par1541_interface = 2)) { ; PPI or PIO
+            JSR .L0405
+}
+!if ((par1541_interface = 3) or (par1541_interface = 4)) { ; CIA or VIA
             BIT $1800		;// clear flag
             STA $1801
             LDA #$10		;// wait for handshake
             BIT $180D
             BEQ *-3
+}
             CPY $0C		    ;// number of bytes to send
             BNE .L0489
             RTS
@@ -246,5 +268,3 @@ SpeedDOS_drivecode:
             BNE .L04A2		;// this is always taken
 
 }
-
-SpeedDOS_drivecode_end:
