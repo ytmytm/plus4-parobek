@@ -1,0 +1,139 @@
+(0330) ILOAD-> F4A5
+.C:f4a5  85 93       STA $93
+.C:f4a7  A9 00       LDA #$00
+.C:f4a9  85 90       STA $90
+.C:f4ab  A5 BA       LDA $BA
+.C:f4ad  D0 03       BNE $F4B2
+.C:f4af  4C 13 F7    JMP $F713
+.C:f4b2  C9 03       CMP #$03
+.C:f4b4  F0 F9       BEQ $F4AF
+.C:f4b6  90 F7       BCC $F4AF
+.C:f4b8  A4 B7       LDY $B7
+.C:f4ba  D0 03       BNE $F4BF
+.C:f4bc  4C 10 F7    JMP $F710
+
+
+.C:f710  A9 08       LDA #$08
+.C:f712  2C 
+.C:F713  A9 09       LDA #$09
+.C:f715  48          PHA
+.C:f716  20 CC FF    JSR $FFCC
+.C:f719  A0 00       LDY #$00
+.C:f71b  24 9D       BIT $9D
+.C:f71d  50 0A       BVC $F729
+.C:f71f  20 2F F1    JSR $F12F
+.C:f722  68          PLA
+.C:f723  48          PHA
+.C:f724  09 30       ORA #$30
+.C:f726  20 D2 FF    JSR $FFD2
+.C:f729  68          PLA
+.C:f72a  38          SEC
+.C:f72b  60          RTS
+
+.C:f72c  20 23 FC    JSR $FC23		; ???
+.C:f72f  E0 02       CPX #$02
+.C:f731  F0 04       BEQ $F737
+.C:f733  A6 93       LDX $93
+.C:f735  F0 03       BEQ $F73A
+.C:f737  4C F3 F4    JMP $F4F3		; standard load?
+
+.C:f73a  A1 BB       LDA ($BB,X)
+.C:f73c  C9 24       CMP #$24		; '$'
+.C:f73e  F0 F7       BEQ $F737
+.C:f740  AD 0F DC    LDA $DC0F
+.C:f743  10 F2       BPL $F737
+.C:f745  86 C3       STX $C3
+.C:f747  20 33 F5    JSR $F533
+.C:f74a  A2 F8       LDX #$F8		; F800 = drivecode
+.C:f74c  86 C4       STX $C4
+
+.C:f74e  A9 57       LDA #$57
+.C:f750  20 E5 F7    JSR $F7E5		; listen+second+M-...(W) command
+.C:f753  A0 00       LDY #$00
+.C:f755  A5 C3       LDA $C3
+.C:f757  20 DD ED    JSR $EDDD		; EDDD = ACPTR
+.C:f75a  A5 C4       LDA $C4
+.C:f75c  69 0B       ADC #$0B		; $F800+$0B00 = $0300 = (C3/C4) common output vector
+.C:f75e  20 DD ED    JSR $EDDD
+.C:f761  A9 1E       LDA #$1E
+.C:f763  20 DD ED    JSR $EDDD
+.C:f766  B1 C3       LDA ($C3),Y
+.C:f768  20 DD ED    JSR $EDDD
+.C:f76b  C8          INY
+.C:f76c  C0 1E       CPY #$1E
+.C:f76e  90 F6       BCC $F766
+
+.C:f770  20 FE ED    JSR $EDFE		; unlisten
+.C:f773  18          CLC
+.C:f774  A5 C3       LDA $C3
+.C:f776  69 1E       ADC #$1E		; next chunk
+.C:f778  85 C3       STA $C3
+.C:f77a  90 02       BCC $F77E
+.C:f77c  E6 C4       INC $C4
+.C:f77e  A5 C4       LDA $C4
+.C:f780  C9 FA       CMP #$FA		; F800-FA00 = 512 bytes
+.C:f782  D0 CA       BNE $F74E
+.C:f784  A9 45       LDA #$45
+.C:f786  20 E5 F7    JSR $F7E5		; listen+second+M-...(E) command
+.C:f789  A9 03       LDA #$03
+.C:f78b  20 DD ED    JSR $EDDD		; $xx03
+.C:f78e  20 DD ED    JSR $EDDD		; $0303
+.C:f791  20 FB FB    JSR $FBFB		; ?
+
+.C:f794  78          SEI
+.C:f795  20 DA F7    JSR $F7DA		; number of bytes that follow
+.C:f798  AA          TAX
+.C:f799  20 DA F7    JSR $F7DA		; skip over load-addr
+.C:f79c  20 DA F7    JSR $F7DA		; skip over load-addr
+.C:f79f  CA          DEX		; skip over load-addr
+.C:f7a0  CA          DEX		; skip over load-addr
+.C:f7a1  8A          TXA
+.C:f7a2  4C AF F7    JMP $F7AF		; could jump to $F7B0 as well
+
+.C:f7a5  AD 01 DC    LDA $DC01		; STOP key
+.C:f7a8  C9 7F       CMP #$7F
+.C:f7aa  F0 29       BEQ $F7D5
+.C:f7ac  20 DA F7    JSR $F7DA		; get byte - number of bytes that follow+1
+.C:f7af  AA          TAX
+.C:f7b0  F0 1A       BEQ $F7CC		; 0=end of transmission
+.C:f7b2  CA          DEX
+.C:f7b3  A0 00       LDY #$00
+.C:f7b5  A9 10       LDA #$10		; wait for handshake
+.C:f7b7  2C 0D DD    BIT $DD0D		; wait for byte
+.C:f7ba  F0 FB       BEQ $F7B7
+.C:f7bc  AD 01 DD    LDA $DD01
+.C:f7bf  91 AE       STA ($AE),Y	; next byte
+.C:f7c1  E6 AE       INC $AE
+.C:f7c3  D0 02       BNE $F7C7
+.C:f7c5  E6 AF       INC $AF
+.C:f7c7  CA          DEX
+.C:f7c8  D0 EB       BNE $F7B5		; next byte in sector
+.C:f7ca  F0 D9       BEQ $F7A5		; next sector
+
+.C:f7cc  A2 40       LDX #$40		; $40=no error?
+.C:f7ce  20 DA F7    JSR $F7DA		; get status byte
+.C:f7d1  C9 01       CMP #$01		; $01=ok, any other=error
+.C:f7d3  F0 02       BEQ $F7D7
+.C:f7d5  A2 42       LDX #$42		; $42=error?
+.C:f7d7  4C 83 F5    JMP $F583		; return with X=$40 or $42
+
+.C:f7da  A9 10       LDA #$10		; get byte
+.C:f7dc  2C 0D DD    BIT $DD0D
+.C:f7df  F0 FB       BEQ $F7DC
+.C:f7e1  AD 01 DD    LDA $DD01
+.C:f7e4  60          RTS
+
+.C:f7e5  48          PHA		; listen+second+M-... command
+.C:f7e6  A5 BA       LDA $BA
+.C:f7e8  20 0C ED    JSR $ED0C
+.C:f7eb  A9 6F       LDA #$6F
+.C:f7ed  20 B9 ED    JSR $EDB9
+.C:f7f0  A9 4D       LDA #$4D
+.C:f7f2  20 DD ED    JSR $EDDD
+.C:f7f5  A9 2D       LDA #$2D
+.C:f7f7  20 DD ED    JSR $EDDD
+.C:f7fa  68          PLA
+.C:f7fb  4C DD ED    JMP $EDDD
+
+f7fe: FA F5
+-- f800 - drivecode
