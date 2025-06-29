@@ -21,7 +21,7 @@
             STX $1803		;// PA out
             INX
             STX $0F
-            LDA #$0B        ; XXX proper handshake type for this cable XXX?
+            LDA #$0B        ; CA2 pulse output on PA write
             STA $180C		; hardware handshake
             LDA #$02
             STA $1800       ; software handshake

@@ -37,7 +37,8 @@
         !if par1541_interface = 4 { ; VIA
                 lda #$00
                 sta viabase+3
-                ; XXX h/w handshake? (same as in drivecode, lines are crossed)
+                lda #%00001011       ; CA2 pulse output on PA write
+                sta viabase+12
         }
 ;        lda     TED_FF06	; screen off
 ;        and     #$EF
@@ -79,6 +80,12 @@ inc TED_BORDER
         sty     $01             ; always 0, data received
 -       bit     $01             ; remote confirms
         bmi     -
+}
+!if (par1541_interface = 5) { ; VIA (later)
+        lda     #$02            ; test CA1 input
+-       bit     viabase+13
+        beq     -
+        lda     parallel_port
 }
 !if (par1541_interface = 3) { ; CIA
         lda     #$10
@@ -129,6 +136,14 @@ inc TED_BORDER
 -       bit     $01
         bmi     -
         txa
+        rts
+}
+
+!if (par1541_interface = 5) { ; VIA (later)
+        lda     #$02            ; test CA1 input
+-       bit     viabase+13
+        beq     -
+        lda     parallel_port
         rts
 }
 
