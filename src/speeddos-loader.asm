@@ -87,6 +87,8 @@ SpeedDOS_load:  !zone SpeedDOS_Loader {
         lda     #$03
         jsr     ROM_CIOUT
         jsr     ROM_UNLISTEN
+        lda     #$00
+        sta     load_status
         jmp     ($0007)         ; jump to loader
 
 .SpeedDOS_SendMCommand:
@@ -101,14 +103,6 @@ SpeedDOS_load:  !zone SpeedDOS_Loader {
         jsr     ROM_CIOUT
         pla
         jmp     ROM_CIOUT
-
-.SpeedDOS_LoadEnd:
-        lda     RAM_TED_BORDER_BACKUP             ; restore colors
-        sta     TED_BORDER
-        ldx     $9D             ; load address
-        ldy     $9E
-        clc
-        rts
 
 }
 

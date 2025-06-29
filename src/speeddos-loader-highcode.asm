@@ -49,9 +49,11 @@
 
         sei                             ; f794
         jsr .SpeedDOS_GetParallelByte
-        tax
+        pha
         jsr .SpeedDOS_GetParallelByte   ; skip over load address
         jsr .SpeedDOS_GetParallelByte
+        pla
+        tax
         dex                             ; skip over load address
         dex
         txa
@@ -63,6 +65,7 @@
 .LF7AF: tax
         beq .LF7CC                       ; end of file or error
         dex
+        stx $d0
         ldy #0
 .LF7B5:
         ; inline GetParallelByte
@@ -79,7 +82,7 @@
         inc $9d
         bne +
         inc $9e
-+       dex
++       dec $d0
         bne .LF7B5                       ; next byte from sector
         beq .LF7A5                       ; next sector
 
