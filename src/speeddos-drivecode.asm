@@ -236,6 +236,7 @@
 
 ; send out sector data: number of bytes, then data
 .L0482      STA $0C		    ;// send out number of bytes that follow?
+            STX $14         ;// preserve X (next track number) b/c software handshake destroys X
             JSR .L0405
             LDY #$01		;// send out sector data
 .L0489      INY
@@ -252,6 +253,7 @@
 }
             CPY $0C		    ;// number of bytes to send
             BNE .L0489
+            LDX $14         ;// restore X (next track number)
             RTS
 
 ; move head?
