@@ -22,12 +22,16 @@ BUG:
 	drive num in $0277 set in first JSR from $C8BC; maybe just set '$' at $027C + JSR ROM_SETNAM + jump into JSR $FFBD after that?
 if there is drive 8, but we do '@9' and then '@' we get endless loop of $40)
 ROM load always loads at file-based address (as if ,1 was given)
+speeddos loader has the same problem as par1541 - doesn't work with software handshake with VIA
+speeddos loader doesn't work with JiffyDOS (ROM differences?)
+speeddos loader loses bytes with h/w handshake (wrong setup?) - seems to be the problem on the receiving end
 
 [20250629]
 - ported SpeedDOS+ PLUS instead, works with PPI/PIO
 - on real h/w doesn't work with DolphinDOS (detection fails)
 - on real h/w doesn't work with JiffyDOS (patched for RAM track cache) nor JiffyDOS in YaPe - ends with 23 read error 00,17
 - software handshake doesn't work with JiffyDOS/stock
+- hardware handshake works with stock, but loses bytes in the process ; hardware handshake doesn't work with Jiffy
 
 [20250628]
 - tests with parallel 1541: won't start on any ROM (stock/jiffy + w/wo RAM patch, nor DolphinDOS 2) - motor stops as if idling

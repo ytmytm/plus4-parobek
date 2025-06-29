@@ -151,7 +151,7 @@
             RTS
 
 .L0405:
-!if ((par1541_interface = 1) or (par1541_interface = 2) or (par1541_interface = 4)) { ; PPI or PIO or VIA (test)
+!if ((par1541_interface = 1) or (par1541_interface = 2)) { ; PPI or PIO or VIA (test)
             STA $1801       ; send A, receive X
             LDA #$04
 -           BIT $1800
@@ -165,7 +165,7 @@
             STA $1800
             RTS
 }
-!if ((par1541_interface = 3)) { ; CIA or VIA
+!if ((par1541_interface = 3) or (par1541_interface = 4)) { ; CIA or VIA
             BIT $1800		;// send byte ; clear handshake
             STA $1801		;// send byte
             LDY #$E0		;// timeout
@@ -242,7 +242,7 @@
             LDY #$01		;// send out sector data
 .L0489      INY
             LDA ($30),Y
-!if ((par1541_interface = 1) or (par1541_interface = 2) or (par1541_interface = 4)) { ; PPI or PIO or VIA (test)
+!if ((par1541_interface = 1) or (par1541_interface = 2)) { ; PPI or PIO or VIA (test)
             STA $1801
             LDA #$04
 -           BIT $1800
@@ -253,7 +253,7 @@
             LDA #$02
             STA $1800
 }
-!if ((par1541_interface = 3)) { ; CIA or VIA
+!if ((par1541_interface = 3) or (par1541_interface = 4)) { ; CIA or VIA
             BIT $1800		;// clear flag
             STA $1801
             LDA #$10		;// wait for handshake

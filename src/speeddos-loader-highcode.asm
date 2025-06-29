@@ -70,7 +70,7 @@
         ldy #0
 .LF7B5:
         ; inline GetParallelByte
-!if (par1541_interface = 1) or (par1541_interface = 2) or (par1541_interface = 4) { ; PPI or PIO or VIA (test)
+!if (par1541_interface = 1) or (par1541_interface = 2) { ; PPI or PIO
 inc TED_BORDER
         lda     #$02            ; ready
         sta     $01
@@ -81,7 +81,7 @@ inc TED_BORDER
 -       bit     $01             ; remote confirms
         bmi     -
 }
-!if (par1541_interface = 5) { ; VIA (later)
+!if (par1541_interface = 4) { ; VIA
         lda     #$02            ; test CA1 input
 -       bit     viabase+13
         beq     -
@@ -125,7 +125,7 @@ inc TED_BORDER
 
 .SpeedDOS_GetParallelByte:              ; f7da
 inc TED_BORDER
-!if (par1541_interface = 1) or (par1541_interface = 2) or (par1541_interface = 4) { ; PPI or PIO or VIA (test)
+!if (par1541_interface = 1) or (par1541_interface = 2) { ; PPI or PIO
 	lda     #$02
         sta     $01
 -       bit     $01
@@ -139,7 +139,7 @@ inc TED_BORDER
         rts
 }
 
-!if (par1541_interface = 5) { ; VIA (later)
+!if (par1541_interface = 4) { ; VIA
         lda     #$02            ; test CA1 input
 -       bit     viabase+13
         beq     -
