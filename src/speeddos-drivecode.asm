@@ -238,11 +238,20 @@
 .L0482      STA $0C		    ;// send out number of bytes that follow?
             STX $14         ;// preserve X (next track number) b/c software handshake destroys X
             JSR .L0405
+            LDX #0
             LDY #$01		;// send out sector data
 .L0489      INY
             LDA ($30),Y
 !if ((par1541_interface = 1) or (par1541_interface = 2)) { ; PPI or PIO
-            JSR .L0405
+            STA $1801
+            LDA #$04
+-           BIT $1800
+            BEQ -
+            STX $1800       ; X always 0
+-           BIT $1800
+            BNE -
+            LDA #$02
+            STA $1800
 }
 !if ((par1541_interface = 3) or (par1541_interface = 4)) { ; CIA or VIA
             BIT $1800		;// clear flag
