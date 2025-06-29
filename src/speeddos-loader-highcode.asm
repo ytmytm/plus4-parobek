@@ -37,6 +37,7 @@
         !if par1541_interface = 4 { ; VIA
                 lda #$00
                 sta viabase+3
+                ; XXX h/w handshake? (same as in drivecode, lines are crossed)
         }
 ;        lda     TED_FF06	; screen off
 ;        and     #$EF
@@ -68,7 +69,7 @@
         ldy #0
 .LF7B5:
         ; inline GetParallelByte
-!if (par1541_interface = 1) or (par1541_interface = 2) { ; PPI or PIO
+!if (par1541_interface = 1) or (par1541_interface = 2) or (par1541_interface = 4) { ; PPI or PIO or VIA (test)
 inc TED_BORDER
         lda     #$02            ; ready
         sta     $01
@@ -117,7 +118,7 @@ inc TED_BORDER
 
 .SpeedDOS_GetParallelByte:              ; f7da
 inc TED_BORDER
-!if (par1541_interface = 1) {
+!if (par1541_interface = 1) or (par1541_interface = 2) or (par1541_interface = 4) { ; PPI or PIO or VIA (test)
 	lda     #$02
         sta     $01
 -       bit     $01

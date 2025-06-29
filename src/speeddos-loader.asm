@@ -43,6 +43,15 @@ SpeedDOS_load:  !zone SpeedDOS_Loader {
         sta     $07
         stx     $08
 
+        lda     #<SpeedDOS_drivecode_PIO
+        ldx     #>SpeedDOS_drivecode_PIO
+        sta     $03
+        stx     $04
+        lda     #<SpeedDOS_loader_PIO
+        ldx     #>SpeedDOS_loader_PIO
+        sta     $07
+        stx     $08
+
         ; send 512 bytes from ($03) to drive at ($05) $0300
         lda     #$00                    ; drive address 0300
         ldx     #$03
@@ -112,4 +121,11 @@ SpeedDOS_drivecode_PPI:
 !source "speeddos-drivecode.asm"
 SpeedDOS_drivecode_PPI_END:
 SpeedDOS_loader_PPI:
+!source "speeddos-loader-highcode.asm"
+; PIO version
+!set par1541_interface = 2
+SpeedDOS_drivecode_PIO:
+!source "speeddos-drivecode.asm"
+SpeedDOS_drivecode_PIO_END:
+SpeedDOS_loader_PIO:
 !source "speeddos-loader-highcode.asm"
