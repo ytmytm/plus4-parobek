@@ -151,7 +151,9 @@ SpeedDOS_load:  !zone SpeedDOS_Loader {
 ; PPI version
 !set par1541_interface = 1
 SpeedDOS_drivecode_PPI:
+!zone SpeedDOS_drivecode_PPI {
 !source "speeddos-drivecode.asm"
+}
 SpeedDOS_drivecode_PPI_END:
 SpeedDOS_loader_PPI:
 !source "speeddos-loader-highcode.asm"
@@ -159,15 +161,19 @@ SpeedDOS_loader_PPI:
 ; PIO version
 !set par1541_interface = 2
 SpeedDOS_drivecode_PIO:
+!zone SpeedDOS_drivecode_PIO {
 !source "speeddos-drivecode.asm"
+}
 SpeedDOS_drivecode_PIO_END:
 SpeedDOS_loader_PIO:
 !source "speeddos-loader-highcode.asm"
 
 ; CIA version
-;!set par1541_interface = 3
+!set par1541_interface = 3
 SpeedDOS_drivecode_CIA:
+!zone SpeedDOS_drivecode_CIA {
 !source "speeddos-drivecode.asm"
+}
 SpeedDOS_drivecode_CIA_END:
 SpeedDOS_loader_CIA:
 !source "speeddos-loader-highcode.asm"
@@ -175,7 +181,9 @@ SpeedDOS_loader_CIA:
 ; VIA version
 !set par1541_interface = 4
 SpeedDOS_drivecode_VIA:
+!zone SpeedDOS_drivecode_VIA {
 !source "speeddos-drivecode.asm"
+}
 SpeedDOS_drivecode_VIA_END:
 SpeedDOS_loader_VIA:
 !source "speeddos-loader-highcode.asm"
