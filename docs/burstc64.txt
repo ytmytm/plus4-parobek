@@ -13,6 +13,26 @@
 ? port-turbo https://plus4world.powweb.com/software/Port-Turbo_V1 - 1541 w/ parallel cable, w/ 8255 lub 6529, no handshake
 ! transfers with VIA handshake on 1541 side https://github.com/ytmytm/geos/blob/feature-drv1541parallel/drv/drv1541parallel.s
 	(nice but no benefit - data comes from drive head, is limited by that)
+	
+https://coronax.wordpress.com/2013/07/03/retrochallenge-6522-parallel-communications/
+When the VIA wants to write to the Arduino, it puts a data byte on the parallel port and then pulses CA2
+(the VIA is set to do this automatically whenever the port is read from or written to).
+Then, the P:65 waits for a pulse on CA1 which indicates that the Arduino has read the byte.
+- init jest 
+          lda     #%00001010 <- TU JEST $0A, a u mnie po stronie komputera $0B - rózni się o CA1 edge (tu negative, u mnie positive)
+          sta     VIA_PCR    ; set CA2 to pulse mode, CA1 negative edge trigger
+          lda     #$19       ; tell the Arduino I want to read a byte
+          sta     VIA_DATAA  ; write to port A
+          ; wait for arduino to read
+@wait:    lda     VIA_IFR    ; busy wait for IFR bit 1 to go high
+          and     #$2
+          beq     @wait			; TU MAM TAK SAMO
+
+TO TEST:
+input latching on CA1 negative edge? zablokuje dane w porcie A
+- to się włącza w viabase+11 (ACR) bit 0 (1=latch enabled na PA=CA1)
+- tylko wybrać negative edge w viabase+12 (bit 0=0) czyli $0A, a nie $0B
+
 
 TODO:
 ! NA SCHEMACIE VIA trzeba zmienić footprint na JP4 (zegar GAL) - ma być 3-2 = Phi0
