@@ -32,8 +32,10 @@ SpeedDOS_load:  !zone SpeedDOS_Loader {
         lda     #$01
         jsr     ROM_CLOSE       ; close file #1, opened by ROM calls above?
 
-        ; XXX only PPI version here
-
+        lda RAM_ZPVEC1
+        tay
+        and #%01000000
+        beq +
         lda     #<SpeedDOS_drivecode_PPI
         ldx     #>SpeedDOS_drivecode_PPI
         sta     $03
@@ -42,7 +44,11 @@ SpeedDOS_load:  !zone SpeedDOS_Loader {
         ldx     #>SpeedDOS_loader_PPI
         sta     $07
         stx     $08
+        jmp     .SpeedDOS_SendCode
 
++       tya
+        and #%00100000
+        beq +
         lda     #<SpeedDOS_drivecode_PIO
         ldx     #>SpeedDOS_drivecode_PIO
         sta     $03
@@ -51,7 +57,34 @@ SpeedDOS_load:  !zone SpeedDOS_Loader {
         ldx     #>SpeedDOS_loader_PIO
         sta     $07
         stx     $08
+        jmp     .SpeedDOS_SendCode
 
++       tya
+        and #%00010000
+        beq +
+        lda     #<SpeedDOS_drivecode_CIA
+        ldx     #>SpeedDOS_drivecode_CIA
+        sta     $03
+        stx     $04
+        lda     #<SpeedDOS_loader_CIA
+        ldx     #>SpeedDOS_loader_CIA
+        sta     $07
+        stx     $08
+        jmp     .SpeedDOS_SendCode
+
++       tya
+        and #%00001000
+        beq +
+        lda     #<SpeedDOS_drivecode_VIA
+        ldx     #>SpeedDOS_drivecode_VIA
+        sta     $03
+        stx     $04
+        lda     #<SpeedDOS_loader_VIA
+        ldx     #>SpeedDOS_loader_VIA
+        sta     $07
+        stx     $08
+
+.SpeedDOS_SendCode:
         ; send 512 bytes from ($03) to drive at ($05) $0300
         lda     #$00                    ; drive address 0300
         ldx     #$03
@@ -122,10 +155,27 @@ SpeedDOS_drivecode_PPI:
 SpeedDOS_drivecode_PPI_END:
 SpeedDOS_loader_PPI:
 !source "speeddos-loader-highcode.asm"
+
 ; PIO version
 !set par1541_interface = 2
 SpeedDOS_drivecode_PIO:
 !source "speeddos-drivecode.asm"
 SpeedDOS_drivecode_PIO_END:
 SpeedDOS_loader_PIO:
+!source "speeddos-loader-highcode.asm"
+
+; CIA version
+;!set par1541_interface = 3
+SpeedDOS_drivecode_CIA:
+!source "speeddos-drivecode.asm"
+SpeedDOS_drivecode_CIA_END:
+SpeedDOS_loader_CIA:
+!source "speeddos-loader-highcode.asm"
+
+; VIA version
+!set par1541_interface = 4
+SpeedDOS_drivecode_VIA:
+!source "speeddos-drivecode.asm"
+SpeedDOS_drivecode_VIA_END:
+SpeedDOS_loader_VIA:
 !source "speeddos-loader-highcode.asm"

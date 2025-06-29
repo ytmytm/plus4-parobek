@@ -150,7 +150,7 @@
             BNE .L03F7
             RTS
 
-.L0405
+.L0405:
 !if ((par1541_interface = 1) or (par1541_interface = 2) or (par1541_interface = 4)) { ; PPI or PIO or VIA (test)
             STA $1801       ; send A, receive X
             LDA #$04
@@ -165,17 +165,17 @@
             STA $1800
             RTS
 }
-!if ((par1541_interface = 3) or (par1541_interface = 3)) { ; CIA or VIA
+!if ((par1541_interface = 3)) { ; CIA or VIA
             BIT $1800		;// send byte ; clear handshake
             STA $1801		;// send byte
             LDY #$E0		;// timeout
-.L040D      LDA $180D		;// wait for handshake
+-           LDA $180D		;// wait for handshake
             AND #$10
-            BNE .L041A
+            BNE +
             INY
-            BNE .L040D
+            BNE -
             JMP $EAA0		;// timeout->RESET ($FFFA?)
-.L041A      RTS			    ;// ok
++           RTS			    ;// ok
 }
 
 .L041B      STA $31
@@ -253,12 +253,12 @@
             LDA #$02
             STA $1800
 }
-!if ((par1541_interface = 3) or (par1541_interface = 3)) { ; CIA or VIA
+!if ((par1541_interface = 3)) { ; CIA or VIA
             BIT $1800		;// clear flag
             STA $1801
             LDA #$10		;// wait for handshake
-            BIT $180D
-            BEQ *-3
+-           BIT $180D
+            BEQ -
 }
             CPY $0C		    ;// number of bytes to send
             BNE .L0489
