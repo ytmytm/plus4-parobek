@@ -49,17 +49,16 @@
 
         sei                             ; f794
         jsr .SpeedDOS_GetParallelByte
-        pha
+        tax
+        dex
+        dex
+        stx $d0
         jsr .SpeedDOS_GetParallelByte   ; skip over load address
         jsr .SpeedDOS_GetParallelByte
-        pla
-        tax
-        dex                             ; skip over load address
-        dex
-        txa
+        lda $d0
         jmp .LF7AF
 
-.LF7A5: ; test for STOP key
+.LF7A5: ; test for STOP key was here
         ; if yes -> F7D5
         jsr .SpeedDOS_GetParallelByte   ; number of bytes that follows
 .LF7AF: tax
@@ -69,8 +68,16 @@
         ldy #0
 .LF7B5:
         ; inline GetParallelByte
-!if (par1541_interface = 1) { ; PPI
-        jsr .SpeedDOS_GetParallelByte
+!if (par1541_interface = 1) or (par1541_interface = 2) { ; PPI or PIO
+inc TED_BORDER
+        lda     #$02            ; ready
+        sta     $01
+-       bit     $01             ; remote ready
+        bpl     -
+        lda     parallel_port
+        sty     $01             ; always 0, data received
+-       bit     $01             ; remote confirms
+        bmi     -
 }
 !if (par1541_interface = 3) { ; CIA
         lda     #$10
