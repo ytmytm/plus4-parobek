@@ -378,6 +378,11 @@ iecburst_load:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+!source "speeddos-loader.asm"
+!source "speeddos-drivecode.asm"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 tcbm_load:
 	lda #<tcbm2sd_detect_txt
 	ldy #>tcbm2sd_detect_txt
