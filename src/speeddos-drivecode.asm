@@ -40,7 +40,7 @@
 
             LDX $0F		    ;// reaction to error - seek halftrack up once, down twice, up twice, down twice, up once and retry; but how it knows when to stop?
             INC $0F
-            LDA $FB99,X	    ;// 01 FF FF 01 01 FF FF 01 00
+            LDA .halftrack_sequence,X	    ;// 01 FF FF 01 01 FF FF 01 00
             STA $02FE
             BNE .L0313		;// 00 means end of halftrack sequence - can't retry
 
@@ -268,7 +268,7 @@
 ; move head?
 .L049E      LDX $0F		    ;// 0 in $0F means end of sequence
             BEQ .L04A9
-.L04A2      LDA $FB99,X	    ;// 01 FF FF 01 01 FF FF 01 00 - halftrack sequence
+.L04A2      LDA .halftrack_sequence,X	    ;// 01 FF FF 01 01 FF FF 01 00 - halftrack sequence
             BNE .L04AA
             STA $0F		    ;// 0 in $0F end of sequence, $2FE unchanged
 .L04A9      RTS
@@ -277,5 +277,8 @@
             BNE .L04AD
             INX			    ;// will never roll over because 0 ends the halftrack up/down sequence
             BNE .L04A2		;// this is always taken
+
+.halftrack_sequence: ; $FB99 in SpeedDOS+ Plus 1541 ROM
+            !byte $01, $FF, $FF, $01, $01, $FF, $FF, $01, $00
 
 }
