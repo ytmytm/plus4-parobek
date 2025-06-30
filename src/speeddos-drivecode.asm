@@ -26,6 +26,16 @@
             LDA #$02
             STA $1800       ; software handshake
 
+; is this jiffydos? 'JIFFYDOS 5.0'
+            LDA #$46        ; test for 'FF'
+            CMP $E5B9
+            BNE +
+            CMP $E5BA
+            BNE +
+            LDA #$F5        ; jump to $F8F5 instead of $F8F4
+            STA .jiffypatch+1
++
+
 .L0310      JSR .L049E		;// setup halftrack sequence
 .L0313      LDA $18
             STA $06
@@ -120,6 +130,8 @@
             LDA #$07
             STA $31
             STA $2F
+            LDA #$00        ; needed for jiffydos
+            STA $4B
 .jiffypatch
             JSR $F8F4		;// partial decode $0700-$07FF, $0146-?? (decode second buffer?)
 .L03D1      LDA $3A         ; checksum of decoded data - tested in .L041B

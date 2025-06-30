@@ -46,6 +46,10 @@ speeddos loader has the same problem as par1541 - doesn't work with software han
 speeddos loader doesn't work with JiffyDOS (ROM differences?)
 speeddos loader loses bytes with h/w handshake (wrong setup?) - seems to be the problem on the receiving end
 
+[20250630]
+- works (in Yape) with standard JiffyDOS - GCR decoding routines were different
+- copied halftrack sequence from SpeedDOS ROM, compared called ROM routines and only F8E0/F8F2 calls were different between SpeedDOS/JiffyDOS/stock rom
+
 [20250629]
 - ported SpeedDOS+ PLUS instead, works with PPI/PIO
 - on real h/w doesn't work with DolphinDOS (detection fails)
