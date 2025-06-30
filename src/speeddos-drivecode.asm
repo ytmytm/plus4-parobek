@@ -93,7 +93,7 @@
             BNE .L0361
             LDA #$07
             JSR .L041B
-            BPL .L0361
+            BPL .L0361      ; always taken
 .L039A      PHA			    ;// read two sectors at once? why
             TYA
             PHA
@@ -119,10 +119,12 @@
             INC $36
             LDA #$07
             STA $31
-            JSR $F8F2		;// partial decode $0700-$07FF, $0146-?? (decode second buffer?)
-.L03D1      LDA $3A
-            LDX $31
-            STA $03,X
+            STA $2F
+.jiffypatch
+            JSR $F8F4		;// partial decode $0700-$07FF, $0146-?? (decode second buffer?)
+.L03D1      LDA $3A         ; checksum of decoded data - tested in .L041B
+            LDX $31         ; buffer number
+            STA $03,X       ; store checksum in buffer
             RTS
 
 .L03D8      STA $31		    ;// read sector starts here?
@@ -178,17 +180,18 @@
 +           RTS			    ;// ok
 }
 
-.L041B      STA $31
+.L041B      STA $31         ; buffer number
             TAX
-            LDA $03,X
+            LDA $03,X       ; checksum copied from sector header
             LDY #$00
-.L0422      EOR ($30),Y	    ;// sector checksum?
+-           EOR ($30),Y	    ;// sector checksum?
             INY
-            BNE .L0422
+            BNE -
             TAX
-            BEQ .L042D
+            BEQ +           ; if checksum matches, continue
             JMP $F502		;// 23 READ ERROR
-.L042D      TAY			    ;// next track & sector
+
++           TAY			    ;// next track & sector
             LDA ($30),Y
             BNE .L043B		;// non-zero track, this is not the last sector
             INY
@@ -202,11 +205,11 @@
             LDA #$FF
             JSR .L0482		;// send out $FE bytes from current buffer
             CPX $18		    ;// next track the same?
-            BEQ .L0451		;// yes: return with next sector number in A
+            BEQ +   		;// yes: return with next sector number in A
             STX $18		    ;// no: new track
             LDA #$10		;// $10 = different track (report error back to $00), new track number in $18
             JMP $F969		;// Error entry disk controller - loop at $0303 will issue job $E0 on the new track (from $18)
-.L0451      LDA #$00
++           LDA #$00        ; reset halftrack sequence
             STA $0F
             LDA $19		    ;// next sector number
             RTS
