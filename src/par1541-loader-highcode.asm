@@ -34,6 +34,7 @@
                 sta viabase+3
         }
         lda     TED_FF06	; screen off
+        sta     RAM_TED_FF06_BACKUP
         and     #$EF
         sta     TED_FF06
         ldy     #$04
@@ -103,8 +104,7 @@
         jsr     .SendByteParport
         lda     $D2
         jsr     .SendByteParport
-+       lda     TED_FF06	; screen on
-        ora     #$10
++       lda     RAM_TED_FF06_BACKUP
         sta     TED_FF06
         pla
         clc

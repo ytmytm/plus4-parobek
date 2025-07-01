@@ -47,6 +47,9 @@ RAM_CURBNK	= $FB	; current ROM bank
 ; MAKE SURE TO NOT USE $8F FOR ANYTHING ELSE
 
 RAM_TED_BORDER_BACKUP = $E6	; backup of TED_BORDER
+RAM_TED_FF06_BACKUP = $E7	; backup of TED_FF06
+RAM_SA_BACKUP = $E8	; backup of RAM_SA
+
 
 RAM_ICRNCH  = $0304 ; Indirect Crunch (Tokenization Routine) 
 RAM_ILOAD	= $032E	; LOAD vector
@@ -476,6 +479,8 @@ shared_rom_check:
 ; will setup load address in $9D/$9E according to RAM_SA
         LDX   RAM_SA
         JSR   eF160                    ; print 'SEARCHING'
+		LDA   RAM_SA
+		STA   RAM_SA_BACKUP
         LDA   #$60
         STA   RAM_SA
         JSR   $F005                    ; ROM routine for load setup
@@ -502,10 +507,14 @@ shared_rom_check:
         LDA   #$FD
         AND   RAM_STATUS
         STA   RAM_STATUS
+		LDA   RAM_SA_BACKUP
+		STA   RAM_SA
         clc                            ; file found, continue
         rts
 
 .file_not_found:
+		LDA   RAM_SA_BACKUP
+		STA   RAM_SA
         sec                            ; file not found, fall back to ROM
         rts
 	}

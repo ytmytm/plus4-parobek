@@ -31,7 +31,9 @@
         jsr     delay   ; entry point XXX
 
         sei                     ; XXX entrypoint
-        lda     #$0B
+        lda     TED_FF06
+        sta     RAM_TED_FF06_BACKUP
+        and     #$EF
         sta     TED_FF06
         ;ldy     #$00            ; $9F/A0 are not used, but are set to $1C00
         ;ldy     $9F
@@ -94,7 +96,7 @@
         pha
         lda     #$00
         sta     ($9D),y
-+       lda     #$1B
++       lda     RAM_TED_FF06_BACKUP
         sta     TED_FF06
 
         cli

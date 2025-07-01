@@ -45,6 +45,7 @@
                 lda viabase+13       ; clear flags
         }
         lda     TED_FF06	; screen off
+        sta     RAM_TED_FF06_BACKUP
         and     #$EF
         sta     TED_FF06
         ldy     #$04
@@ -119,8 +120,7 @@ inc TED_BORDER
 .loadok:
         lda     RAM_TED_BORDER_BACKUP             ; restore colors
         sta     TED_BORDER
-        lda     TED_FF06	; screen on
-        ora     #$10
+        lda     RAM_TED_FF06_BACKUP
         sta     TED_FF06
 
         ldx     $9D             ; load address
