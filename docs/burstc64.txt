@@ -22,13 +22,9 @@ BUG:
 	drive num in $0277 set in first JSR from $C8BC; maybe just set '$' at $027C + JSR ROM_SETNAM + jump into JSR $FFBD after that?
 if there is drive 8, but we do '@9' and then '@' we get endless loop of $40)
 ROM load always loads at file-based address (as if ,1 was given)
-speeddos loader has the same problem as par1541 - doesn't work with software handshake with VIA
-speeddos loader doesn't work with JiffyDOS (ROM differences?)
-speeddos loader loses bytes with h/w handshake (wrong setup?) - seems to be the problem on the receiving end
 
 [20250701]
 - tested w/ JiffyDOS+TrackCache on real 1541, works with screen off
-- second load fails, but even software reset remedies that
 
 [20250630]
 - works (in Yape) with standard JiffyDOS - GCR decoding routines were different

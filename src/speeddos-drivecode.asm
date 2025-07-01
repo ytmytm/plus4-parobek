@@ -64,7 +64,10 @@
             LDA #$00
             STA $1803       ; PA as input
             LDA #$01
-            STA $180C       ; don't send more pulses
+            STA $180C       ; don't send more pulses, keep CA1 (ATN IN) trigger on positive edge
+            LDA #$82
+            STA $180D       ; interrupt possible through ATN IN
+            STA $180E
             LDA $18		    ;// track & sector (header)
             PHA
             LDA $19
