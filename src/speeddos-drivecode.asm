@@ -134,7 +134,7 @@
             LDA #$07
             STA $31
             STA $2F
-            LDA #$00        ; needed for jiffydos
+            LDA #$00        ; needed for jiffydos (initial state of checksum - updated while decoding GCR)
             STA $4B
 .jiffypatch
             JSR $F8F4		;// partial decode $0700-$07FF, $0146-?? (decode second buffer?)
