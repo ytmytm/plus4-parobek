@@ -179,10 +179,13 @@ dos_display_status:
         beq dos_status_end
         jsr ROM_TALK
         jsr ROM_READST
-        and #%10000000          ; device not present?
+        and #%11000000          ; device not present?
         bne dos_display_status_end
         lda #$6F
         jsr ROM_TKSA
+        jsr ROM_READST
+        and #%11000000          ; device not present?
+        bne dos_display_status_end
 -       jsr ROM_ACPTR
         bcs dos_display_status_end
         cmp #$0D

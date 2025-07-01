@@ -20,7 +20,6 @@ TODO:
 BUG:
 '$' doesn't use current drive number, defaults to 8 (diR U9 works, but $ U9 not)
 	drive num in $0277 set in first JSR from $C8BC; maybe just set '$' at $027C + JSR ROM_SETNAM + jump into JSR $FFBD after that?
-if there is drive 8, but we do '@9' and then '@' we get endless loop of $40)
 ROM load always loads at file-based address (as if ,1 was given)
 
 [20250701]
