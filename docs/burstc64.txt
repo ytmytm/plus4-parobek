@@ -19,6 +19,7 @@ TODO:
 
 BUG:
 DSAVE always uses #8
+secondary address messedup for burst load (1581), always loads to file-addr
 
 [20250701]
 - tested w/ JiffyDOS+TrackCache on real 1541, works with screen off
