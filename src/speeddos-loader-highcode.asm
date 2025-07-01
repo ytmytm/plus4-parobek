@@ -33,16 +33,20 @@
         !if par1541_interface = 3 { ; CIA
                 lda #$00
                 sta ciabase+3
+                lda ciabase+13       ; clear flags
         }
         !if par1541_interface = 4 { ; VIA
                 lda #$00
                 sta viabase+3
-                lda #%00001011       ; CA2 pulse output on PA write
+                lda #%00000001       ; enable latching of PA
+                sta viabase+11
+                lda #%00001010       ; CA2 pulse output on PA write, negative edge trigger on CA1
                 sta viabase+12
+                lda viabase+13       ; clear flags
         }
-;        lda     TED_FF06	; screen off
-;        and     #$EF
-;        sta     TED_FF06
+        lda     TED_FF06	; screen off
+        and     #$EF
+        sta     TED_FF06
         ldy     #$04
 -       cpy     TED_FF1D	; some kind of delay
         bne     -
@@ -82,6 +86,7 @@ inc TED_BORDER
         bmi     -
 }
 !if (par1541_interface = 4) { ; VIA
+inc TED_BORDER
         lda     #$02            ; test CA1 input
 -       bit     viabase+13
         beq     -

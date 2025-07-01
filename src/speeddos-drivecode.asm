@@ -25,6 +25,7 @@
             STA $180C		; hardware handshake
             LDA #$02
             STA $1800       ; software handshake
+            LDA $180D       ; clear flags
 
 ; is this jiffydos? 'JIFFYDOS 5.0'
             LDA #$46        ; test for 'FF'
@@ -60,7 +61,10 @@
             LDA $00
             PHA
             JSR .L0405		;// send status byte, 01=no error
-            INC $1803		;// PA input
+            LDA #$00
+            STA $1803       ; PA as input
+            LDA #$01
+            STA $180C       ; don't send more pulses
             LDA $18		    ;// track & sector (header)
             PHA
             LDA $19
@@ -183,8 +187,8 @@
             BIT $1800		;// send byte ; clear handshake
             STA $1801		;// send byte
             LDY #$E0		;// timeout
--           LDA $180D		;// wait for handshake
-            AND #$10
+            LDA #$10
+-           BIT $180D		;// wait for handshake
             BNE +
             INY
             BNE -
