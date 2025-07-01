@@ -118,11 +118,26 @@ dos_filename_scan_end:
         rts
 
 dos_dload:
-        lda #<$C951
-        sta cmd_vec
-        lda #>$C951
-        sta cmd_vec+1
         jsr dos_filename_scan
+        ldy #0
+-       lda cmd_text,y  ; find end of filename
+        beq +
+        iny
+        bne -
++       tya
+        ldx #<cmd_text
+        ldy #>cmd_text
+        jsr ROM_SETNAM
+        lda #0
+        ldx RAM_FA
+        ldy #1          ; always load to file address
+        jsr ROM_SETLFS
+        lda #0          ; load, not verify
+        sta $0a
+        lda #<$A7FA
+        sta cmd_vec
+        lda #>$A7FA
+        sta cmd_vec+1
         lda #$80
         clc
         rts
