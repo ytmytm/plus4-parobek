@@ -18,12 +18,12 @@ TODO:
 ! NA SCHEMACIE VIA trzeba zmienić footprint na JP4 (zegar GAL) - ma być 3-2 = Phi0
 
 BUG:
-'$' doesn't use current drive number, defaults to 8 (diR U9 works, but $ U9 not)
-	drive num in $0277 set in first JSR from $C8BC; maybe just set '$' at $027C + JSR ROM_SETNAM + jump into JSR $FFBD after that?
 ROM load always loads at file-based address (as if ,1 was given)
+DLOAD always uses #8 (DSAVE probably too)
 
 [20250701]
 - tested w/ JiffyDOS+TrackCache on real 1541, works with screen off
+- fixed bugs with status (with no drive present) and made '$' use current drive always
 
 [20250630]
 - works (in Yape) with standard JiffyDOS - GCR decoding routines were different

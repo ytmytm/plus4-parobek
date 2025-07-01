@@ -68,9 +68,17 @@ doswedge_parse:
         jmp (cmd_vec)
 
 dos_dir:
-        lda #<$C8BC
+        lda #'$'
+        sta $027c
+        lda #1
+        ldx #<$027c
+        ldy #>$027c
+        jsr ROM_SETNAM
+        lda RAM_FA
+        sta $0277
+        lda #<$C8C8
         sta cmd_vec
-        lda #>$C8BC
+        lda #>$C8C8
         sta cmd_vec+1
         lda #$80
         clc
