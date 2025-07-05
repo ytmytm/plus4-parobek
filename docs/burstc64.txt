@@ -21,6 +21,13 @@ BUG:
 DSAVE always uses #8
 secondary address messedup for burst load (1581), always loads to file-addr
 
+[2025075]
+- updated https://github.com/ytmytm/1541-RAMBOardII ROM patches:
+  - SpeedDOS loader for all ROM options (CBM, Jiffy too)
+  - signature at $A000 and jumptable at $A003
+- test for that signature and use ROM loader if present - works as fast as ActionReplay one
+  with track cache and fast GCR decoding (still not as fast as DolphinDOS :)
+
 [20250701]
 - tested w/ JiffyDOS+TrackCache on real 1541, works with screen off
 - fixed bugs with status (with no drive present) and made '$' use current drive always
