@@ -7,7 +7,7 @@
 
 ; input flags in A:
 ; %1xxxxxxx - device is 1541 (already tested)
-; dispatch code, CIA/VIA could use h/w handshake
+; %xxxxxxx1 - YTM's 1541 TrackCache ROM (supports SpeedDOS loader out of the box) https://github.com/ytmytm/1541-RAMBOardII
 ; %x1xxxxxx - parallel cable connected to PPI at ppibase $FE00 (Intel 8255)
 ; %xx1xxxxx - parallel cable connected to PIO at piobase $FD10 (6529)
 ; %xxx1xxxx - parallel cable connected to CIA at ciabase $FD90 (6526)
@@ -31,6 +31,11 @@ SpeedDOS_load:  !zone SpeedDOS_Loader {
         sta     RAM_TED_BORDER_BACKUP
         lda     #$01
         jsr     ROM_CLOSE       ; close file #1, opened by ROM calls above?
+
+        lda     #<$0303         ; M-E address of drivecode
+        ldx     #>$0303
+        sta     $d6
+        stx     $d7
 
         lda RAM_ZPVEC1
         tay
@@ -83,8 +88,24 @@ SpeedDOS_load:  !zone SpeedDOS_Loader {
         ldx     #>SpeedDOS_loader_VIA
         sta     $07
         stx     $08
++
 
 .SpeedDOS_SendCode:
+        tya
+        and     #%00000001      ; YTM's 1541 TrackCache ROM is installed? (CIA/VIA only but already tested)
+        sta     $d5             ; save flag, pass to highcode
+        beq     +
+        ; it's fine, just send 'M-E' and jump to loader
+;	lda #<.trackcache_rom_txt
+;	ldy #>.trackcache_rom_txt
+;	jsr print_msg
+        lda     #<$A003         ; M-E address of drivecode in ROM
+        ldx     #>$A003
+        sta     $d6
+        stx     $d7
+        jmp     .SpeedDOS_SendMemoryExec
+
++
         ; send 512 bytes from ($03) to drive at ($05) $0300
         lda     #$00                    ; drive address 0300
         ldx     #$03
@@ -122,11 +143,12 @@ SpeedDOS_load:  !zone SpeedDOS_Loader {
 +       cpx     #$05            ; send 2 pages ($0300-$04FF)
         bcc     .sendcodeloop
 
+.SpeedDOS_SendMemoryExec
         lda     #'E'
         jsr     .SpeedDOS_SendMCommand
-        lda     #$03
+        lda     $d6
         jsr     ROM_CIOUT
-        lda     #$03
+        lda     $d7
         jsr     ROM_CIOUT
         jsr     ROM_UNLISTEN
         lda     #$00
@@ -145,6 +167,9 @@ SpeedDOS_load:  !zone SpeedDOS_Loader {
         jsr     ROM_CIOUT
         pla
         jmp     ROM_CIOUT
+
+;.trackcache_rom_txt:
+;        !text "TRACKCACHE ROM",13,0
 
 }
 

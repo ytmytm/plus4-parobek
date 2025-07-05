@@ -1,10 +1,12 @@
 
 ; detect if that's a 1541
 ; detect if it has parallel cable connected and which interface is used on local end: PPI, PIO, CIA or VIA
-; (CIA/VIA controlled by burst type setting)
+
+; because of multiple M-R/M-W commands it's not possible to detect cable with DolphinDOS ROM
 
 ; return flags in A:
 ; %1xxxxxxx - device is 1541
+; %xxxxxxx1 - YTM's 1541 TrackCache ROM (supports SpeedDOS loader out of the box) https://github.com/ytmytm/1541-RAMBOardII
 ; %x1xxxxxx - parallel cable connected to PPI at ppibase $FE00 (Intel 8255)
 ; %xx1xxxxx - parallel cable connected to PIO at piobase $FD10 (6529)
 ; %xxx1xxxx - parallel cable connected to CIA at ciabase $FD90 (6526)
@@ -245,7 +247,51 @@ par1541_detect:
 +           cpx $d6
             bne +
             ora #%00001000  ; VIA connected
-+           rts
++           sta $d7
+
+; check if YTM's 1541 TrackCache ROM is installed - 'RAM' at $a000
+; only if it's CIA or VIA because hardware handshake is required
+            and #%00011000
+            beq +
+
+            lda #<.trackcache_rom
+            sta $d0
+            lda #>.trackcache_rom
+            sta $d1
+            lda #6
+            sta $d2
+            jsr .send_command
+
+            lda RAM_FA
+            jsr ROM_TALK
+            lda #$6F
+            jsr ROM_TKSA
+            jsr ROM_ACPTR
+            pha             ; 'R'
+            jsr ROM_ACPTR
+            pha             ; 'A'
+            jsr ROM_ACPTR
+            pha             ; 'M'
+            jsr ROM_UNTLK
+            pla
+            tax
+            pla
+            tay
+            pla
+            !if par1541_debug = 1 {
+            sta $0c00
+            sty $0c01
+            stx $0c02
+            }
+            cmp #'R'
+            bne +
+            cpy #'A'
+            bne +
+            cpx #'M'
+            bne +
+            inc $d7
++           lda $d7
+            rts
 
 .send_command:
             lda RAM_FA
@@ -290,6 +336,11 @@ par1541_detect:
 	!text "M-R"
 	!word $e5c5
 	!byte 2
+
+.trackcache_rom:    ; check if YTM's 1541 TrackCache ROM is installed - 'RAM' at $a000
+    !text "M-R"
+    !word $a000
+    !byte 3 ; 'RAM'
 
 .via1output:
     !text "M-W"

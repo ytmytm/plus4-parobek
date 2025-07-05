@@ -48,12 +48,14 @@
         sta     RAM_TED_FF06_BACKUP
         and     #$EF
         sta     TED_FF06
+        lda     $d5             ; with trackcache ROM it's not needed
+        bne     +
         ldy     #$04
 -       cpy     TED_FF1D	; some kind of delay
         bne     -
         dey
         bne     -
-
++
         sei                             ; f794
         jsr .SpeedDOS_GetParallelByte
         tax
