@@ -79,7 +79,7 @@ basic_trampoline_end:
 
 basicsys:
 		!text "SYS1525:"
-		!text " BURSTCART"
+		!text " PAROBEK"
 basicsysend:
 
 ; F1=1525, F2=1578, F3=1546
@@ -135,7 +135,7 @@ startup_screen_txt:
 		!byte 147
 		!byte 5 ; white
 		;      1234567890123456789012345678901234567890
-		!text "           BURSTCART ROM V1.0",13,13
+		!text "              PAROBEK V1.0",13,13
 		!text "        (C) BY YTM/ELYSIUM 2025",13,13
 		!fill 40, 163
 		!byte 13,13,13

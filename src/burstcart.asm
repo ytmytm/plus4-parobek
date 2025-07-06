@@ -3,17 +3,17 @@
 !set burst=2
 
 !if burst=1 {
-	!to "bin/burstcart-cia.bin",plain
+	!to "bin/parobek-cia.bin",plain
 	ciabase		= $FD90
 	!source "burst-cia.asm"
 }
 !if burst=2 {
-	!to "bin/burstcart-via.bin",plain
+	!to "bin/parobek-via.bin",plain
 	viabase		= $FDA0
 	!source "burst-via.asm"
 }
 !if burst=3 {
-	!to "bin/burstcart-cpld.bin",plain
+	!to "bin/parobek-cpld.bin",plain
 	cpldbase	= $FD90
 	!source "burst-cpld.asm"
 }
@@ -452,7 +452,7 @@ tcbm2sd_load_error_txt:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 startup_txt:
-	!text " BURSTCART ON KEY F",0
+	!text " PAROBEK ON KEY F",0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

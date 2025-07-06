@@ -1,12 +1,12 @@
 .PHONY: all run clean
 
-all:	bin/burstcart.bin
+all:	bin/parobek.bin
 
-bin/burstcart.bin: burstcart.asm burst-cia.asm burst-cpld.asm burst-via.asm t2s-detect.asm
+bin/parobek.bin: burstcart.asm burst-cia.asm burst-cpld.asm burst-via.asm t2s-detect.asm
 	acme -l labels.txt burstcart.asm
 
-run:	bin/burstcart.bin
-	xplus4 -c1lo bin/burstcart-via.bin
+run:	bin/parobek.bin
+	xplus4 -c1lo bin/parobek-via.bin
 
 clean:
 	rm -f bin/*.bin
