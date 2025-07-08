@@ -1,0 +1,39 @@
+name: Build ROM
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install ACME cross-assembler
+      run: |
+        # Install ACME cross-assembler
+        sudo apt-get update
+        sudo apt-get install -y acme
+        
+        # Verify installation
+        acme --version || echo "ACME installed successfully"
+    
+    - name: Build ROM
+      run: |
+        cd src
+        make
+        
+        # List the generated files
+        ls -la bin/
+    
+    - name: Upload ROM binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: parobek-rom
+        path: src/bin/
+        retention-days: 30
