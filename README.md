@@ -101,6 +101,6 @@ Correct fastloader is autodetected, except for fast serial one. This is configur
 
 ## 4  Credits & Acknowledgements
 
-Full development notes are available in [`docs/burstc64.txt`](docs/burstc64.txt).
+Full development notes can be found in [`docs/burstc64.txt`](docs/burstc64.txt).
 
-Hardware input courtesy of the Plus/4 World community ([plus4world.powweb.com](https://plus4world.powweb.com)). 
+Hardware insights provided by the Plus/4 World community ([plus4world.powweb.com](https://plus4world.powweb.com)).
