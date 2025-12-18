@@ -134,6 +134,10 @@ lowmem_code 	= $0640	; our bank number and trampoline into ROM (must be above ba
 !source "dos-wedge.asm"
 
 coldstart:
+	jsr check_if_installed
+	bcc +
+	rts				; already installed, just return
++
 	lda RAM_CURBNK
 	and #$03		; enable kernal in top half so we don't care about IRQ
 	tax			; (if we want top half, set $FFFE/F to FCB3 - Kernal paged IRQ; then need own eF160 etc.)
@@ -218,6 +222,21 @@ print_welcome:
 	lda #13
 	jsr ROM_CHROUT
 	rts
+
+	
+	; check if we're already installed (C=1 = already installed, C=0 = not installed)
+check_if_installed:
+	lda RAM_ILOAD
+	cmp #<myloadlow
+	bne +			; not installed
+	lda RAM_ILOAD+1
+	cmp #>myloadlow
+	bne +			; not installed
+	sec
+	rts
++	clc
+	rts
+
 
 lowmem_trampoline:
 	!pseudopc lowmem_code {
