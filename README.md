@@ -26,6 +26,10 @@ Requires the [Burstcart](https://github.com/ytmytm/plus4-burstcart) interface.
 
 **Burst fastloader** for 1570/1571/1581 – uses C128-style fast serial over the SRQ line with hardware shift register. Code based on the [original burst loader for C64](https://a1bert.kapsi.fi/Dev/burst/) by **Pasi Ojala**.
 
+#### 1541 IEC
+
+Not done yet. When implemented it must support both original CPU as well as 6502/6510 replacements.
+
 #### 1541 with parallel cable
 
 Loader supports PPI (8255) / PIO (6529) interfaces (software handshake) and VIA (6522) / CIA (6526) [Burstcart](https://github.com/ytmytm/plus4-burstcart) interface (hardware handshake).
@@ -37,6 +41,15 @@ With hardware handshake and **[1541-RAMBOardII](https://github.com/ytmytm/1541-R
 #### 1551
 
 1551 drive loader based on **[HypaLoad v4.7](https://plus4world.powweb.com/software/Hypaload_1551)**, patched to work with both device numbers: #8 and #9
+
+#### 1551 with RAMBOard
+
+1551 drive loader loosely based on **[HypaLoad v4.7](https://plus4world.powweb.com/software/Hypaload_1551)** supporting
+**[1551-RAMBOard](https://github.com/ytmytm/1551-RAMBOard)** drive-side RAM/ROM expansion for whole track data cache, the operation is 7x faster than stock 1551 and 27x faster than stock 1541.
+
+Requires ROM patched to support 1551-RAMBOard.
+
+Supports both drives #8 and #9.
 
 #### TCBM2SD
 
@@ -82,7 +95,7 @@ The resulting binaries are written to `src/bin/`.
 
 ### 2.3 Configuration
 
-Correct fastloader is autodetected, except for fast serial one. This is configured by setting the `burst` variable on top of the `burstcart.asm` file to one of possible values (VIA=2 is default):
+Correct fastloader is autodetected, except for fast serial one. This is configured at ROM assembly step by setting the `burst` variable on top of the `burstcart.asm` file to one of possible values (VIA=2 is default):
 
 ```
 ; 1=CIA, 2=VIA, 3=CPLD

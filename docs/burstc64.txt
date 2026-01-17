@@ -21,7 +21,11 @@ BUG:
 DSAVE always uses #8
 secondary address messedup for burst load (1581), always loads to file-addr
 
-[2025075]
+[20260117]
+- added support for 1551 RAMBOard + patched ROM to use embedded fastloader HypaRAM; https://github.com/ytmytm/1551-RAMBOard
+  now it works with VICE (patched to support 1551 RAMBOard too)
+
+[20250705]
 - updated https://github.com/ytmytm/1541-RAMBOardII ROM patches:
   - SpeedDOS loader for all ROM options (CBM, Jiffy too)
   - signature at $A000 and jumptable at $A003
