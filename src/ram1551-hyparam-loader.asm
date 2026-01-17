@@ -7,8 +7,6 @@
 ; %0xxxxxx0 - plain 1551
 
 HypaRAM_load:  !zone HypaRAM_Loader {
-    // detect parallel cable (par1541-detect)
-    // receive data, handshake over IEC lines like par1541-loader
 
         sta RAM_ZPVEC1 ; save type of interface
 
