@@ -12,9 +12,11 @@ LFFFC           = $FFFC
 hypa1551_drivecode:
         !pseudopc $0300 {
 hypa1551_drivecode_start:
-        jmp     .L049F		; init entry point (after file was opened and code was transfered)
-
-        jmp     .L054A		; fastload start
+; copy t&s of first sector of the file to $0202/3
+        lda     $1A
+        sta     $0202
+        lda     $1B
+        sta     $0203
 
 .L0306: sei			; t&s of 1st sector is in $0202/3 now
         tsx
@@ -34,7 +36,6 @@ hypa1551_drivecode_start:
         sta     $1B
         jsr     LF52C		; compute required header ($18-$1B) checksum into $1C, encode, wait for header to arrive
         jsr     LF560		; wait for sync before sector data
-        jsr     .L052C		; set BUFPNT ($27/8) to $0600 (not used, stored directly into $0600)
 
 .L032E: bit     $01		; sector read & gcr decode, copied from ROM, store into $0600 - BUFPNT ignored
         bpl     .L032E
@@ -139,8 +140,8 @@ hypa1551_drivecode_start:
 .L03F6: stx     .L03FB+1
         asl
         tax
-.L03FB: ;.byte   $A9, $00	; LDA #$00
-	lda	#$00
+
+.L03FB:	lda	#$00
         eor     $01
         sec
         rol
@@ -229,9 +230,6 @@ hypa1551_drivecode_start:
         ldy     #$00
         rts
 
-; $0300 entrypoint
-.L049F: jmp     .L055A
-
 ; part of sector read & gcr decode, continued
 .L04A2: lda     $4001
         sta     $FA
@@ -252,7 +250,7 @@ hypa1551_drivecode_start:
 ; sector read, now transfer via TCBM - there is no ack from +4 side, but it can halt transfer if $01 bit 7 would be 0?
 ; (or was that bit/bpl + bit/bmi real two-way handshake later patched for faster transfer?)
 .L04C2: lda     $01
-        eor     #$08
+        eor     #$08            ; blink LED
         sta     $01
         lda     $0600		; next track==0?
         bne     .L04D7
@@ -260,12 +258,13 @@ hypa1551_drivecode_start:
         iny
         sty     .L04FE		; store it 
         sty     .L04EA
-.L04D8=*+1
-.L04D7: ldy #$02 ;.byte   $A0	; skip over 2 bytes (t&s)
-;L04D8:  .byte   $02
 
-.L04D9: bit     $01
-        bpl     .L04D9
+.L04D7: ldy     #$02            ; skip over t&s
+
+.L04D9: 
+
+-       lda     $4002		; wait for DAV=0
+	bmi     -
         lda     $0600,y
         sta     $4000
         lda     #$14
@@ -274,8 +273,9 @@ hypa1551_drivecode_start:
 .L04EA=*+1
 	cpy	#$00		; last byte needed?
         beq     .L0504		; yes, but issue final ack
-.L04ED: bit     $01
-        bpl     .L04ED
+
+-       lda     $4002		; wait for DAV=1
+	bpl     -
         lda     $0600,y
         sta     $4000
         lda     #$1C
@@ -286,8 +286,9 @@ hypa1551_drivecode_start:
         bne     .L04D9
         jmp     .L0512		; yes, exit
 
-.L0504: bit     $01		; wait for final ack from even byte
-        bpl     .L0504
+.L0504:
+-       lda     $4002		; wait for DAV=1 here, final ack from even byte
+	bpl     -
         lda     #$FF		; reset to default state (not executed when loop exits on odd byte)
         sta     $4000
         lda     #$1C		; required after even byte, already like that after odd byte
@@ -300,21 +301,13 @@ hypa1551_drivecode_start:
         sta     $0202		; yes, move it $0202/3
         lda     $0601
         sta     $0203
-        jmp     .L0552		; yes, reset the offset in $04d8 to 2 and go back to the main loop to read next sector from $0202/3
+        jmp     .L0318          ; go back to the loop to read next sector from $0202/3
 
 ; after last sector transfer
 .L0523: lda     #$00
         ldx     $3B		; restore stack pointer
         txs
         pha			; push 0 (no error?)
-        jmp     .L0535
-
-; set data buffer vector to $0600 (BUFPNT), vector not used
-.L052C: lda     #$00
-        sta     $27
-        lda     #$06
-        sta     $28
-        rts
 
 ; end of fastload, indicate no more data
 .L0535: ldy     #$17
@@ -327,45 +320,13 @@ hypa1551_drivecode_start:
         beq     .L0574		; no error
         jmp     LE781		; print error into message buffer, go back to the mainloop
 
-        rts
-
-; entrypoint $0303 - fastloader starts
-.L054A: lda     #$04		; set initial transferred buffer data offset to 4 to skip over t&s AND loading address
-        sta     .L04D8
-        jmp     .L0565
-
-; reset the offset to data block in $04d8 to 2 (skip over t&s) and go back to the loop to read next sector from $0202/3
-.L0552: lda     #$02
-        sta     .L04D8
-        jmp     .L0318
-
-; entrypoint $0300 (continued) - copy t&s of first sector of the file to $5fe/f
-.L055A: lda     $1A
-        sta     $05FE
-        lda     $1B
-        sta     $05FF
-        rts
-
-; entrypoint $0303 (continued) - restore t&s of the first sector to $0202/3, read the file
-.L0565: lda     $05FE
-        sta     $0202
-        lda     $05FF
-        sta     $0203
-        jmp     .L0306
-
 ; exit from fastloader with no error
 .L0574:  jmp     (LFFFC)		; system reset vector
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        ora     ($58,x)
-        rts
 
-.L057A:  brk			; storage related to head movement
-        brk
-        and     $31,x
-        !byte   $03
-        !byte   $FF
-        !byte   $A2
+.L057A:  !byte 0		; storage related to head movement
+
         } // end of pseudopc
 
 hypa1551_drivecode_end:
