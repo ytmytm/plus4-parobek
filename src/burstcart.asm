@@ -466,6 +466,8 @@ hyparam_load:
 
 !source "ram1551-hyparam-loader.asm"
 
+!source "hypa1551-drivecode.asm"
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; hypaload 4.7 for 1551 without RAMBoard

@@ -8,12 +8,12 @@
         !zone Hypaload_Common {
 
 Hypaload_SendDriveCode:
-        lda     #<HYPADRVCODE
-        ldx     #>HYPADRVCODE
+        lda     #<hypa1551_drivecode
+        ldx     #>hypa1551_drivecode
         sta     $03
         stx     $04
-        lda     #$00                    ; drive address 0300
-        ldx     #$03
+        lda     #<hypa1551_drivecode_start  ; drive address 0300
+        ldx     #>hypa1551_drivecode_start
         sta     $05
         stx     $06
 .L06F0: lda     RAM_FA
@@ -76,8 +76,5 @@ Hypaload_MemoryExec:
         lda     #$03
         jsr     ROM_CIOUT
         jmp     ROM_UNLISTEN        ; run code at $03xx
-
-HYPADRVCODE:
-        !binary "hypadrv0300.bin", $280, 2
 
         }
