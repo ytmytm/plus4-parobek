@@ -455,7 +455,7 @@ hyparam_load:
 	lda #<tcbm_1551_ram_txt
 	ldy #>tcbm_1551_ram_txt
 	jsr print_msg
-	jmp HypaRAM_load
+	jmp HypaRAM_load	; this takes care of device #8 or #9 from RAM_FA
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
