@@ -41,13 +41,14 @@ With hardware handshake and **[1541-RAMBOardII](https://github.com/ytmytm/1541-R
 #### 1551
 
 1551 drive loader based on **[HypaLoad v4.7](https://plus4world.powweb.com/software/Hypaload_1551)**, patched to work with both device numbers: #8 and #9
+and to work with two-way handshake.
 
 #### 1551 with RAMBOard
 
 1551 drive loader loosely based on **[HypaLoad v4.7](https://plus4world.powweb.com/software/Hypaload_1551)** supporting
 **[1551-RAMBOard](https://github.com/ytmytm/1551-RAMBOard)** drive-side RAM/ROM expansion for whole track data cache, the operation is 7x faster than stock 1551 and 27x faster than stock 1541.
 
-Requires ROM patched to support 1551-RAMBOard.
+Uses the same protocol as 1551 fastloader but requires ROM patched to support 1551-RAMBOard - with `RAM` signature at `$a000` and jumptable at `$a003`.
 
 Supports both drives #8 and #9.
 
