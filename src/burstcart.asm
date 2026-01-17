@@ -440,47 +440,33 @@ t2sd_fastload_9:
 drive1551_load:
 
 	jsr ram1551_detect
+	pha
 	bne hyparam_load	; we have a RAMBoard installed
 
 	lda #<tcbm_1551_txt
 	ldy #>tcbm_1551_txt
 	jsr print_msg
-
-	lda RAM_FA
-	cmp #9
-	beq +
-	jmp hypa_load_8
-+	jmp hypa_load_9
+	pla
+	jmp HypaRAM_load	; both drives #8/#9, with or without RAMBOard served by the same code
 
 hyparam_load:
 	lda #<tcbm_1551_ram_txt
 	ldy #>tcbm_1551_ram_txt
 	jsr print_msg
-	jmp HypaRAM_load	; this takes care of device #8 or #9 from RAM_FA
+	pla
+	jmp HypaRAM_load	; both drives #8/#9, with or without RAMBOard served by the same code
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; hyparam loader for 1551 with RAMBoard installed
+; hyparam loader for 1551 with RAMBoard installed (or not)
 
 !source "ram1551-detect.asm"
 
 !source "ram1551-hyparam-loader.asm"
 
+; drivecode for 1551 without RAMBoard
+
 !source "hypa1551-drivecode.asm"
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-; hypaload 4.7 for 1551 without RAMBoard
-
-!source "hypaload-common.asm"
-
-!set tcbmbase = TCBM_DEV8
-hypa_load_8:
-!source "hypaload-v4.7.asm"
-
-!set tcbmbase = TCBM_DEV9
-hypa_load_9:
-!source "hypaload-v4.7.asm"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

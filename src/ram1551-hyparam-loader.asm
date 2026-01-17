@@ -41,8 +41,8 @@ HypaRAM_load:  !zone HypaRAM_Loader {
 .HypaRAM_InterfaceCheck:
         ldy     RAM_ZPVEC1          ; interface type?
         beq     +
-        lda     #<$0303         ; M-E address of plain 1551 drivecode (if there would be one)
-        ldx     #>$0303
+        lda     #<$0300         ; M-E address of plain 1551 drivecode
+        ldx     #>$0300
         sta     $d6
         stx     $d7
         jmp     .HypaRAM_SendCode
@@ -54,12 +54,47 @@ HypaRAM_load:  !zone HypaRAM_Loader {
         jmp     .HypaRAM_SendMemoryExec
 
 .HypaRAM_SendCode:
-;        lda     #<HypaRAM_drivecode ; plain 1551 needs drivecode
-;        ldx     #>HypaRAM_drivecode
-;        sta     $03
-;        stx     $04
-; code to send drivecode to drive would be here (see SpeedDOS-loader)
-; from ($0003) up
+        lda     #<hypa1551_drivecode ; plain 1551 needs drivecode
+        ldx     #>hypa1551_drivecode
+        sta     $03
+        stx     $04
+        lda     #<hypa1551_drivecode_start  ; drive address $0300
+        ldx     #>hypa1551_drivecode_start
+        sta     $05
+        stx     $06
+        ; send bytes from ($03) to drive at ($05) $0300
+.sendcodeloop:
+        lda     #'W'
+        jsr     .HypaRAM_SendMCommand
+        ldy     #$00
+        lda     $05
+        jsr     ROM_CIOUT
+        lda     $06
+        jsr     ROM_CIOUT
+        lda     #$1E            ; chunk size
+        jsr     ROM_CIOUT
+-       lda     ($03),y         ; this must be in ROM, in lower 16k
+        jsr     ROM_CIOUT
+        iny
+        cpy     #$1E
+        bcc     -
+        jsr     ROM_UNLISTEN
+        clc
+        lda     $03
+        adc     #$1E            ; next chunk address
+        sta     $03
+        bcc     +
+        inc     $04
++       clc
+        lda     $05
+        ldx     $06
+        adc     #$1E            ; next chunk address
+        sta     $05
+        bcc     +
+        inc     $06
++       cpx     #$06            ; send 3 pages ($0300-$05FF)
+        bcc     .sendcodeloop
+
         ; fall through to .HypaRAM_SendMemoryExec
 
 .HypaRAM_SendMemoryExec
