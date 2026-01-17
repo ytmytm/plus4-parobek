@@ -128,8 +128,11 @@ hypa1551_drivecode_start:
 .L03E1: jmp     .L04C2		; whole sector was read, now transfer it
 
 ; move head from current track ($29 decoded from a header) to desired ($0202)
-.L03E4: ldx     #$00
-        lda     $0202
+.L03E4: lda     $0202
+        cmp     $29
+        bne     +
+        rts
++       ldx     #$00
         sec
         sbc     $29
         beq     .L0422
@@ -325,7 +328,7 @@ hypa1551_drivecode_start:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-.L057A:  !byte 0		; storage related to head movement
+.L057A:  ;!byte 0		; storage related to head movement
 
         } // end of pseudopc
 
