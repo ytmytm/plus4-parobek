@@ -136,7 +136,7 @@ startup_screen_txt:
 		!byte 5 ; white
 		;      1234567890123456789012345678901234567890
 		!text "              PAROBEK V1.1",13,13
-		!text "        (C) BY YTM/ELYSIUM 2025",13,13
+		!text "        (C) BY YTM/ELYSIUM 2026",13,13
 		!fill 40, 163
 		!byte 13,13,13
 		!text "         1. NORMAL RESET",13,13
