@@ -406,9 +406,10 @@ iecburst_load:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 tcbm_load:
-	lda #<tcbm2sd_detect_txt
-	ldy #>tcbm2sd_detect_txt
+	lda #<tcbm_device_txt
+	ldy #>tcbm_device_txt
 	jsr print_msg
+
 	jsr t2sd_detect
 	bcc +				; not tcbm2sd, must be 1551 - pass to hypaload
 	jmp drive1551_load
@@ -481,14 +482,14 @@ hypa_load_9:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-tcbm2sd_detect_txt:
-	!text "TCBM2SD DETECTING...",13,0
+tcbm_device_txt:
+	!text "TCBM DEVICE, ",0
 tcbm2sd_fastload_txt:
-	!text "TCBM2SD DETECTED",13,0
+	!text "TCBM2SD",13,0
 tcbm_1551_txt:
-	!text "TCBM DEVICE, 1551 HYPALOAD",13,0
+	!text "1551 HYPALOAD",13,0
 tcbm_1551_ram_txt:
-	!text "TCBM DEVICE, 1551 RAMBOARD",13,0
+	!text "1551 RAMBOARD",13,0
 tcbm2sd_load_error_txt:
 	!text "TCBM2SD LOAD ERROR",13,0
 
