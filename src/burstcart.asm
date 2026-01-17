@@ -411,7 +411,7 @@ tcbm_load:
 	jsr print_msg
 	jsr t2sd_detect
 	bcc +				; not tcbm2sd, must be 1551 - pass to hypaload
-	jmp hypa_load
+	jmp drive1551_load
 
 	; TCBM2SD fastloader here
 +	lda #<tcbm2sd_fastload_txt
@@ -436,16 +436,38 @@ t2sd_fastload_9:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-hypa_load:
+drive1551_load:
+
+	jsr ram1551_detect
+	bne hyparam_load	; we have a RAMBoard installed
+
 	lda #<tcbm_1551_txt
 	ldy #>tcbm_1551_txt
-	jsr print_msg		; HYPALOAD would start here
+	jsr print_msg
 
 	lda RAM_FA
 	cmp #9
 	beq +
 	jmp hypa_load_8
 +	jmp hypa_load_9
+
+hyparam_load:
+	lda #<tcbm_1551_ram_txt
+	ldy #>tcbm_1551_ram_txt
+	jsr print_msg
+	jmp HypaRAM_load
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; hyparam loader for 1551 with RAMBoard installed
+
+!source "ram1551-detect.asm"
+
+!source "ram1551-hyparam-loader.asm"
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; hypaload 4.7 for 1551 without RAMBoard
 
 !source "hypaload-common.asm"
 
@@ -465,6 +487,8 @@ tcbm2sd_fastload_txt:
 	!text "TCBM2SD DETECTED",13,0
 tcbm_1551_txt:
 	!text "TCBM DEVICE, 1551 HYPALOAD",13,0
+tcbm_1551_ram_txt:
+	!text "TCBM DEVICE, 1551 RAMBOARD",13,0
 tcbm2sd_load_error_txt:
 	!text "TCBM2SD LOAD ERROR",13,0
 
