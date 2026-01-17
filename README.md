@@ -18,6 +18,10 @@ The ROM image is **32 KB** (`$8000–$FFFF`) – suitable for a 27C256 EPROM or 
 
 ![Startup menu](media/01.startup.png)
 
+Warning: there are problems when Parobek is installed more than once (e.g. as internal function ROM and again on C1) so please avoid that.
+
+For instance, do not put it on a 32KB ROM that goes into tcbm2sd - it would appear both as C1 and again on C2.
+
 ### 1.1 Fastloaders
 
 #### 1570/1571/1581

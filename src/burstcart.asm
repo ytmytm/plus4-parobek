@@ -438,8 +438,12 @@ t2sd_fastload_9:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 drive1551_load:
+	jsr pi1551_detect	; not tcbm2sd, we can check reset string for PI1551
+	bcs +				; not pi1551, must be a 1551 - pass to hypaload
+	jmp load_rom		; we don't have a fastloader for PI1551 yet, so fall back on ROM
 
-	jsr ram1551_detect
++
+	jsr ram1551_detect	; stock 1551 or 1551 with RAMBOard?
 	pha
 	bne hyparam_load	; we have a RAMBoard installed
 
@@ -455,6 +459,10 @@ hyparam_load:
 	jsr print_msg
 	pla
 	jmp HypaRAM_load	; both drives #8/#9, with or without RAMBOard served by the same code
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+!source "pi1551-detect.asm"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

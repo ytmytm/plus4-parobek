@@ -27,6 +27,9 @@ secondary address messedup for burst load (1581), always loads to file-addr
   - signature at $A000 and jumptable at $A003
   - track cache
 - removed HypaLoad 4.7 code, replaced by drivecode for HypaRAM fastloader protocol (what is embedded in 1551-RAMBOard patched ROM)
+- added check for PI1551 (in browser mode), it must fall back on ROM load protocol; this can be removed once PI1551 in browser mode supports some kind of fastloader
+  (prefereably tcbm2sd), just by adding 'TCBM2SD' string to the reset message would be enough to enable that support without changing Parobek
+- bumped version to 1.1 and year to 2026
 
 [20250705]
 - updated https://github.com/ytmytm/1541-RAMBOardII ROM patches:
