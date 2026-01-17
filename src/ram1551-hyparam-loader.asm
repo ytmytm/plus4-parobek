@@ -40,7 +40,7 @@ HypaRAM_load:  !zone HypaRAM_Loader {
 
 .HypaRAM_InterfaceCheck:
         ldy     RAM_ZPVEC1          ; interface type?
-        beq     +
+        bne     +
         lda     #<$0300         ; M-E address of plain 1551 drivecode
         ldx     #>$0300
         sta     $d6
@@ -63,6 +63,8 @@ HypaRAM_load:  !zone HypaRAM_Loader {
         sta     $05
         stx     $06
         ; send bytes from ($03) to drive at ($05) $0300
+        lda     #0
+        sta     $09             ; number of chunks
 .sendcodeloop:
         lda     #'W'
         jsr     .HypaRAM_SendMCommand
@@ -87,13 +89,14 @@ HypaRAM_load:  !zone HypaRAM_Loader {
         inc     $04
 +       clc
         lda     $05
-        ldx     $06
         adc     #$1E            ; next chunk address
         sta     $05
         bcc     +
         inc     $06
-+       cpx     #$06            ; send 3 pages ($0300-$05FF)
-        bcc     .sendcodeloop
++       inc     $09             ; next chunk
+        lda     $09
+        cmp     #<((hypa1551_drivecode_end - hypa1551_drivecode) / $1E)+1
+        bne     .sendcodeloop
 
         ; fall through to .HypaRAM_SendMemoryExec
 
