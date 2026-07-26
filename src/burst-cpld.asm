@@ -5,9 +5,20 @@
 
 ; (c) 2025 by Maciej 'YTM/Elysium' Witkowiak
 
-; note: this version flashes border during load, original colour is not restored (needed for debug only)
+; note: this version flashes the border during load and restores it on every exit path
 
-; TODO: redo error reporting (Errno, load_status, etc.) like VIA version
+; 2026-07-26: error reporting reworked to match the VIA version.
+;   - load_status is now always written (the caller presets $80 = "not handled";
+;     leaving it alone after a successful load made iec_load fall through to the
+;     1541/parallel test and then load the file a second time via the ROM)
+;   - the old "sta ErrNo+1" self-modifying trick could never work: this macro is
+;     expanded at burstcart.asm:iecburst_load, which lives in ROM at $8000+,
+;     so ErrNo always returned 5 = "device not present"
+;   - the secondary address is kept in load_sa, not RAM_ZPVEC1 ($03/$04, which
+;     print_msg uses as its own string pointer)
+;   - the load-address test had inverted polarity; per the Kernal's own code
+;     (see shared_rom_check in burstcart.asm) SA!=0 means "use the address from
+;     the file" and SA==0 means "relocate to the caller's address"
 
 !macro InitBurst {
         ; setup CPLD
@@ -16,6 +27,9 @@
 }
 
 !macro LoadBurst {
+	lda TED_BORDER		; remember the border colour before anything
+	sta RAM_TED_BORDER_BACKUP ;  can branch to End, which restores it
+
 	; our loading code
 ;myload_cont:
 	lda cpldbase+1
@@ -36,7 +50,8 @@
 	beq -			; wait until data sent
 
 NotCPLD:
-        inc load_status
+	lda #$80
+	sta load_status		; not handled -> fall back to ROM load
 	lda #<cpld_not_present
 	ldy #>cpld_not_present
 	jmp print_msg
@@ -45,12 +60,16 @@ CPLDFound:
 	lda #0
 	sta cpldbase+1		; serial IN; clear flag
 
+	lda #<iec_type_txt	; append the device type to "IEC DEVICE, "
+	ldy #>iec_type_txt	;  (hardware is present - this is the silent
+	jsr print_msg		;   detection point, same idea as t2sd_detect)
+
 	jsr eF160		;print "SEARCHING" ; XXX too early - will show "SEARCHING" twice if device is not burst capable
 
 	lda RAM_FNLEN		; preserve the filename length
 	pha
 	lda RAM_SA		; same with secondary address
-	sta RAM_ZPVEC1		; temp
+	sta load_sa		; temp (private byte, survives print_msg)
 
 	lda #0
 	sta RAM_FNLEN		; no filename for command channel
@@ -59,8 +78,8 @@ CPLDFound:
 	lda #CMD_CHANNEL
 	sta RAM_LA		; logical file number (15 might be in use)
 	jsr ROM_OPEN
-	sta ErrNo+1
-    lda RAM_ZPVEC1	; restore secondary address
+	sta load_status
+    lda load_sa		; restore secondary address
     sta RAM_SA
 	pla
 	sta RAM_FNLEN		; restore filename length
@@ -71,7 +90,7 @@ CPLDFound:
 	; Send burst command for Fastload
 	ldx #CMD_CHANNEL
 	jsr ROM_CHKOUT		; command channel as output
-	sta ErrNo+1
+	sta load_status
 ;	bcs NoDev		; "device not present" or other errors
 	bcc +
 	jmp NoDev
@@ -109,10 +128,11 @@ CPLDFound:
 	tax
 	jsr GetByte		; Get the load address (high)
 	tay			; already in Y
-	lda RAM_ZPVEC1		; The secondary address - do we use load
+	lda load_sa		; The secondary address - do we use the load
 				;  address in the file or the one given to
-	bne Our			;  us by the caller ?
-	stx RAM_MEMUSS		; We use file's load addr. -> store it.
+	beq Our			;  us by the caller ?  (SA==0 -> caller's,
+				;   already in RAM_MEMUSS from myload)
+	stx RAM_MEMUSS		; SA!=0 -> use file's load addr. -> store it.
 	sty RAM_MEMUSS+1
 Our:	ldx #252		; We have 252 bytes left in this block
 	pla			; Restore the Status
@@ -125,31 +145,46 @@ Last:	tax			; Otherwise it is bytes left. Do the last..
 	jsr eE2B8		; Serial clock on (the normal value)
 	lda #CMD_CHANNEL
 	jsr ROM_CLOSE		; Close the command channel
+	lda #0
+	sta load_status		; loaded OK - tell iec_load we handled it
 	clc			; carry clear -> no error indicator
 	bcc End
 
 FileNotFound:
-	pla			; Pop the return address
+	pla			; Pop the return address (from HandleStat)
 	pla
 	jsr eE2B8		; Serial clock on (the normal value)
 	lda #4			; File not found
-	sta ErrNo+1
-NoDev:	lda #CMD_CHANNEL
+	sta load_status
+	bne NoDevClose
+NoDev:
+	lda #5			; Device not present
+	sta load_status
+NoDevClose:
+	lda #CMD_CHANNEL
 	jsr ROM_CLOSE		; Close the command channel
-ErrNo:	lda #5			; Device not present
+ErrNo:
+	lda load_status
 	sec			; carry set -> error indicator
 End:
+	pha			; A = error code / 0 and C = error indicator are
+	php			;  return values, so keep them across the restore
+	lda RAM_TED_BORDER_BACKUP
+	sta TED_BORDER		; undo the border flashing
+	plp
+	pla
     ldx RAM_MEMUSS		; Loader returns the end address,
 	ldy RAM_MEMUSS+1	;  so get it into regs..
 	cli
 	rts			; Return from the loader
-				; load_status = 0 so do nothing more
+				; load_status was set on every path above
 
 NotFast:			; device doesn't handle burst
 	lda #CMD_CHANNEL
 	jsr ROM_CLOSE
 	jsr ROM_CLRCHN		; close file
-	inc load_status		; return and pass to ROM load
+	lda #$80
+	sta load_status		; not handled -> pass to ROM load
 	lda #<not_burst
 	ldy #>not_burst
 	jmp print_msg
@@ -198,6 +233,10 @@ BCMD:	!byte $1f, $30, $55	; 'U0',$1F == Burst Fastload command
 				; If $9F, Doesn't have to be a prg-file
 
 ;
+iec_type_txt:
+		!text "CPLD BURST",0	; no trailing CR - whatever prints next
+				;  (SEARCHING, NOT BURST CAPABLE, a BASIC error)
+				;  brings its own leading CR
 cpld_not_present:
                 !text "CPLD NOT PRESENT",13,0
 not_burst:

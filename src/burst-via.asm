@@ -5,7 +5,14 @@
 
 ; (c) 2025 by Maciej 'YTM/Elysium' Witkowiak
 
-; note: this version flashes border during load, original colour is not restored (needed for debug only)
+; note: this version flashes the border during load and restores it on every exit path
+
+; 2026-07-26:
+;   - the secondary address is kept in load_sa, not RAM_ZPVEC1 ($03/$04, which
+;     print_msg uses as its own string pointer)
+;   - the load-address test had inverted polarity; per the Kernal's own code
+;     (see shared_rom_check in burstcart.asm) SA!=0 means "use the address from
+;     the file" and SA==0 means "relocate to the caller's address"
 
 ; todo: with listen/second/acptr/unlisten we don't care about filename/channels and preserving zp values
 ; todo: inline GetByte in GetAndStore to save some cycles
@@ -41,6 +48,9 @@ via_ier		= viabase+14
 }
 
 !macro LoadBurst {
+	lda TED_BORDER		; remember the border colour before anything
+	sta RAM_TED_BORDER_BACKUP ;  can branch to End, which restores it
+
 	; check if VIA is present
 	lda #%00000001
 	sta via_ddrb				; port B output
@@ -83,10 +93,14 @@ VIAFound:
 	lda #%00001100		; shift in under CB2
 	sta via_acr
 
+	lda #<iec_type_txt	; append the device type to "IEC DEVICE, "
+	ldy #>iec_type_txt	;  (hardware is present - this is the silent
+	jsr print_msg		;   detection point, same idea as t2sd_detect)
+
 	lda RAM_FNLEN		; preserve the filename length
 	pha
 	lda RAM_SA		; same with secondary address
-	sta RAM_ZPVEC1		; temp
+	sta load_sa		; temp (private byte, survives print_msg)
 
 	lda #0
 	sta RAM_FNLEN		; no filename for command channel
@@ -96,7 +110,7 @@ VIAFound:
 	sta RAM_LA		; logical file number (15 might be in use)
 	jsr ROM_OPEN
 	sta load_status
-    lda RAM_ZPVEC1	; restore secondary address
+    lda load_sa		; restore secondary address
     sta RAM_SA
 	pla
 	sta RAM_FNLEN		; restore filename length
@@ -146,10 +160,11 @@ VIAFound:
 	tax
 	jsr GetByte		; Get the load address (high)
 	tay			; already in Y
-	lda RAM_ZPVEC1		; The secondary address - do we use load
+	lda load_sa		; The secondary address - do we use the load
 				;  address in the file or the one given to
-	bne Our			;  us by the caller ?
-	stx RAM_MEMUSS		; We use file's load addr. -> store it.
+	beq Our			;  us by the caller ?  (SA==0 -> caller's,
+				;   already in RAM_MEMUSS from myload)
+	stx RAM_MEMUSS		; SA!=0 -> use file's load addr. -> store it.
 	sty RAM_MEMUSS+1
 Our:	ldx #252		; We have 252 bytes left in this block
 	pla			; Restore the Status
@@ -184,6 +199,12 @@ ErrNo:
 	lda load_status
 	sec			; carry set -> error indicator
 End:
+	pha			; A = error code / 0 and C = error indicator are
+	php			;  return values, so keep them across the restore
+	lda RAM_TED_BORDER_BACKUP
+	sta TED_BORDER		; undo the border flashing
+	plp
+	pla
     ldx RAM_MEMUSS		; Loader returns the end address,
 	ldy RAM_MEMUSS+1	;  so get it into regs..
 	cli
@@ -244,6 +265,10 @@ BCMD:	!byte $1f, $30, $55	; 'U0',$1F == Burst Fastload command
 				; If $9F, Doesn't have to be a prg-file
 
 ;
+iec_type_txt:
+		!text "VIA BURST",0	; no trailing CR - whatever prints next
+				;  (SEARCHING, NOT BURST CAPABLE, a BASIC error)
+				;  brings its own leading CR
 via_not_present:
                 !text "VIA NOT PRESENT",13,0
 not_burst:

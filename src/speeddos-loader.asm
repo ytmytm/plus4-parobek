@@ -17,7 +17,7 @@ SpeedDOS_load:  !zone SpeedDOS_Loader {
     // detect parallel cable (par1541-detect)
     // receive data, handshake over IEC lines like par1541-loader
 
-        sta RAM_ZPVEC1 ; save type of interface
+        sta load_iftype ; save type of interface (private byte, see burstcart.asm)
 
         jsr shared_rom_check
         bcc +
@@ -37,7 +37,7 @@ SpeedDOS_load:  !zone SpeedDOS_Loader {
         sta     $d6
         stx     $d7
 
-        lda RAM_ZPVEC1
+        lda load_iftype
         tay
         and #%01000000
         beq +

@@ -1,5 +1,14 @@
 
-; XXX load address is already in $9D/9E from ROM check
+; The load address is already resolved in $9D/$9E by shared_rom_check, which
+; applies RAM_SA exactly the way the Kernal does (copy of ROM $F06B-$F0A5):
+;   SA != 0 -> use the address stored in the file
+;   SA == 0 -> relocate to the address supplied by the caller (RAM_MEMUSS)
+; 2026-07-26: this loader used to ignore that and run its own test on
+; RAM_ZPVEC1 instead - but nothing in the TCBM path ever stores the secondary
+; address there ($03 is 'type of interface' for the other loaders, and
+; print_msg uses $03/$04 as its string pointer), and the test was inverted on
+; top of that.  So ,8 and ,8,1 behaved identically.  Now we just take $9D/$9E,
+; the same way ram1551-hyparam-loader-highcode.asm does.
 
         !zone TCBM2SD_Fastload {
 
@@ -9,6 +18,11 @@
 
 +
 ; file exists, can load with utility command
+        lda $9D                 ; take the load address resolved above as our
+        sta RAM_MEMUSS          ;  working pointer (RAM_MEMUSS is what the
+        lda $9E                 ;  store loop and the end-address arithmetic
+        sta RAM_MEMUSS+1        ;  below use)
+
         jsr ROM_UNTLK
 	lda #0
 	sta RAM_STATUS
@@ -73,20 +87,19 @@
 
 -       bit tcbmbase+2                                   ;// ;wait for ACK high
         bpl -
-        lda tcbmbase                                   ;// ;2nd byte = load addr high // need to flip ACK after this
-        pha
+        lda tcbmbase            ;// ;2nd byte = load addr high - the port MUST be
+                                ;   read (it is part of the TCBM handshake) but the
+                                ;   value is not needed: RAM_MEMUSS came from
+                                ;   $9D/$9E above.  It used to be pha'd here and
+                                ;   pla'd after the STATUS check - but the error
+                                ;   branch below skips the pla, so .LOADEND's rts
+                                ;   returned to a garbage address.  Not pushing it
+                                ;   at all keeps the stack balanced on both paths.
         lda #$00                                    ;// DAV=0 confirm
         sta tcbmbase+2
         lda tcbmbase+1                                   ;// STATUS
         and #%00000011
         bne .LOADEND                                 ;// error
-
-        pla                     ; A=hi, Y=lo addr from file
-        ldx RAM_ZPVEC1		; The secondary address - do we use load
-	bne +			;  us by the caller ?
-	sty RAM_MEMUSS		; We use file's load addr. -> store it.
-	sta RAM_MEMUSS+1
-+
 
 .LOADSTART:
         ldy #0

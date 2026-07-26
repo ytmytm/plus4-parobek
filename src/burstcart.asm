@@ -29,7 +29,11 @@
 ; todo: tcbm2sd is problematic - DLOAD"*" will always try to load the first file (even disk image) instead of booter
 ;       with embedded directory browser maybe that fastloader doesn't make sense
 
-RAM_ZPVEC1	= $03	; (2) temp	; TCBM2SD fastloader target vector
+RAM_ZPVEC1	= $03	; (2) print_msg string pointer.
+			; WARNING: this is scratch, not storage - print_msg
+			; overwrites it (when RAM_MSGFLG bit 7 is set), so it must
+			; not be used to carry state across a loader run.
+			; Use load_sa / load_iftype in the lowmem trampoline instead.
 
 RAM_STATUS  = $90	; status
 RAM_VERFCK	= $93	; 0=load, 1=verify
@@ -242,7 +246,20 @@ lowmem_trampoline:
 	!pseudopc lowmem_code {
 buf_ourbank:	!byte 0		; our bank number: internal/external1/external2
 buf_sr:         !byte 0		; status register
-load_status:	!byte 0		; 0 = go to ROM routine for load, !=0 = return
+; load_status contract (see iec_load / myloadlow):
+;   the caller presets $80 before calling a fastloader; the loader MUST
+;   overwrite it to report what happened.
+;     $80 (bit 7 set) = not handled, fall back to the ROM load routine
+;     $00             = loaded OK, return with C=0
+;     other non-zero  = error code, return with C=1
+load_status:	!byte 0
+load_sa:	!byte 0		; secondary address saved across a fastloader run
+load_iftype:	!byte 0		; parallel interface type (PPI/PIO/CIA/VIA bitmask)
+				;  from the detect code, saved across a loader run
+				; both of these used to live in RAM_ZPVEC1, which is
+				;  NOT safe: print_msg uses $03/$04 as its own string
+				;  pointer, so any message printed between the save
+				;  and the use wiped them out
 
 myloadlow:
 	sta RAM_VERFCK		; remember A
@@ -351,11 +368,10 @@ iec_load:
 	jsr iecburst_load
 	bit load_status
 	bmi +			    ; was not loaded, try 1541/parallel
-
-    lda #<iec_load_txt2
-    ldy #>iec_load_txt2
-    jsr print_msg
-	rts
+	rts			    ; loaded (or failed with an error code that
+				    ;  BASIC reports) - the device type was already
+				    ;  printed on the "IEC DEVICE, " line, so there
+				    ;  is nothing left to say here
 
 +	lda #<iec_load_txt3
     ldy #>iec_load_txt3
@@ -378,10 +394,10 @@ load_rom_txt:
 	!text "ROM LOAD",13,0
 
 iec_load_txt:
-	!text "IEC LOAD",13,0
-
-iec_load_txt2:
-	!text "BURST LOADED",13,0
+	!text "IEC DEVICE, ",0		; no CR - the burst loader appends the type
+					;  (iec_type_txt) on the same line, the way
+					;  tcbm_device_txt is followed by TCBM2SD /
+					;  1551 HYPALOAD / 1551 RAMBOARD
 
 iec_load_txt3:
 	!text "1541/PARALLEL TEST",13,0

@@ -8,7 +8,7 @@
 
 HypaRAM_load:  !zone HypaRAM_Loader {
 
-        sta RAM_ZPVEC1 ; save type of interface
+        sta load_iftype ; save type of interface (private byte, see burstcart.asm)
 
         jsr shared_rom_check
         bcc +
@@ -39,7 +39,7 @@ HypaRAM_load:  !zone HypaRAM_Loader {
         stx     $08
 
 .HypaRAM_InterfaceCheck:
-        ldy     RAM_ZPVEC1          ; interface type?
+        ldy     load_iftype         ; interface type?
         bne     +
         lda     #<$0300         ; M-E address of plain 1551 drivecode
         ldx     #>$0300

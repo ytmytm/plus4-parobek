@@ -23,7 +23,9 @@ par1541_load:
 ; this is common part
         !zone PAR1541_Loader {
 
-        sta RAM_ZPVEC1 ; save type of interface
+        sta load_iftype ; save type of interface (private byte: print_msg
+                        ;  below would have wiped out RAM_ZPVEC1, making
+                        ;  .prepare_fastload pick the wrong port)
 
         jsr shared_rom_check
         bcc +
@@ -123,7 +125,7 @@ par1541_load:
 ; %xxxx1xxx - parallel cable connected to VIA at viabase $FDA0 (6522)
 
 .prepare_fastload:
-        lda RAM_ZPVEC1
+        lda load_iftype
         tay
         and #%01000000
         beq +
