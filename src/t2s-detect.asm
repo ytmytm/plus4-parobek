@@ -16,6 +16,15 @@ t2sd_detect:
         lda #0
         sta RAM_STATUS
 
+        ldx #40                 ; clear the buffer first: the search below always
+-       dex                     ;  scans a fixed window (28 start offsets x 12
+        sta status_buffer,x     ;  signature characters = bytes 0..38), while the
+        bne -                   ;  read loop stores only as many bytes as the
+                                ;  drive actually sends.  Whatever was left in
+                                ;  $0200 from a previous run (par1541's
+                                ;  trampoline_buffer lives here too) could
+                                ;  otherwise match the signature
+
         jsr ROM_CLRCHN
         lda RAM_FA
         jsr ROM_LISTEN
@@ -23,7 +32,8 @@ t2sd_detect:
         and #%10000000          ; device not present?
         beq +
         jsr ROM_UNLISTEN
-        jmp detect_t2sd_3
+        sec                     ; no device -> not TCBM2SD.  This used to jump
+        rts                     ;  into the signature search with nothing read
 
 +       lda #$6F
         jsr ROM_SECOND
