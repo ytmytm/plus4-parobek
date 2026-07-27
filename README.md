@@ -73,6 +73,7 @@ New commands:
 | `$` | List directory of the current drive |
 | `/` | Fast load a file (also works by placing `/` in front of a filename listed by `$` and pressing **RETURN**) |
 | `←` | Save the BASIC program or memory image |
+| `@Q` | Disable fastloader, re-enable with computer reset |
 
 #### Directory Browser
 

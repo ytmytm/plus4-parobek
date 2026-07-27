@@ -35,8 +35,9 @@ doswedge_parse:
 -       cmp cmd_table,x
         beq +
         inx
-        cpx #5
-        bne -
+        cpx #4			; 4 entries in cmd_table - this used to be #5, so a
+        bne -			;  line starting with <dos_status was matched one
+				;  past the end and jumped through a bogus vector
         lda #1			; pass to ROM
         clc
         rts
@@ -157,6 +158,12 @@ dos_status:
         sta RAM_STATUS
         lda cmd_len
         beq dos_display_status
+        cmp #1                  ; exactly "@Q"?  anything longer starting with
+        bne dos_status_device   ;  'Q' is still passed on to the drive
+        lda cmd_text
+        cmp #'Q'
+        beq dos_disable_fastload
+dos_status_device:
         ; if next char is a digit 8,9,1? yes->set device number
         lda cmd_text
         tay
@@ -176,6 +183,26 @@ dos_device_number_1x:
         adc #10
         sta RAM_FA
         rts
+
+        ; @Q - turn the fastloader off: put the LOAD vector back to whatever it
+        ;  pointed at before install_fastload hooked it.  The wedge (ICRNCH)
+        ;  stays installed, so @, $, / and <- keep working; a reset offers
+        ;  "3. INSTALL FASTLOAD" again
+dos_disable_fastload:
+        jsr check_if_installed
+        bcc +                   ; not our vector any more - something else
+                                ;  hooked ILOAD after us, leave it alone
+        lda loadrom+1           ; the original vector, saved by install_fastload
+        sta RAM_ILOAD           ;  into the trampoline copy in low memory
+        lda loadrom+2
+        sta RAM_ILOAD+1
++       lda #<dos_fastload_off_txt
+        ldy #>dos_fastload_off_txt
+        jsr print_msg
+        jmp dos_wedge_end
+
+dos_fastload_off_txt:
+        !text "FASTLOAD OFF",13,0
 
         ; send command to drive
 dos_send_command:
