@@ -52,17 +52,16 @@
         sta     $D3
 .LF9F0: jsr     .ReadDecodeGCRSector ; D1/D2 = T&S
         bne     .LFA4B		; error
-        bit     $D3		; first sector of the file?
-        bpl     .LFA0D		; no, go ahead
-        lda     GCR_SECTOR_BUFFER+2	; yes, setup load addr from file
-        sta     $9D
-        lda     GCR_SECTOR_BUFFER+3
-        ldx     $D4		; D4=0 load from basic, D4<>0 load from file
-        bne     +
-        lda     RAM_MEMUSS	; load addr from basic, not file
-        sta     $9D
-        lda     RAM_MEMUSS+1
-+       sta     $9E
+				; the load address in the first sector is ignored:
+				;  $9D/$9E was already resolved by shared_rom_check
+				;  the way the Kernal does it (SA==0 -> caller's
+				;  address in RAM_MEMUSS, SA!=0 -> file's address),
+				;  same as speeddos-loader-highcode.
+				; this used to test $D4 for "load from basic", but
+				;  nothing ever set $D4 to the secondary address -
+				;  .prepare_fastload uses $D4/$D5 as its copy
+				;  destination pointer, so $D4 was always non-zero
+				;  and the file's load address always won
 .LFA0D: ldx     #$00
         lda     GCR_SECTOR_BUFFER	; last sector of file (track=0)?
         bne     +

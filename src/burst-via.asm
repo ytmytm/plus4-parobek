@@ -201,6 +201,10 @@ ErrNo:
 End:
 	pha			; A = error code / 0 and C = error indicator are
 	php			;  return values, so keep them across the restore
+	lda load_sa		; ROM_CHKOUT and ROM_CLOSE both run the Kernal's
+	sta RAM_SA		;  SETFLG ($EEF8: LDA $051D,x / STA $AD), which
+				;  replaces RAM_SA with the command channel's $6F -
+				;  put the caller's secondary address back
 	lda RAM_TED_BORDER_BACKUP
 	sta TED_BORDER		; undo the border flashing
 	plp
@@ -215,6 +219,11 @@ NotFast:			; device doesn't handle burst
 	lda #CMD_CHANNEL
 	jsr ROM_CLOSE
 	jsr ROM_CLRCHN		; close file
+	lda load_sa		; ROM_CHKOUT/ROM_CLOSE left the command channel's
+	sta RAM_SA		;  $6F in RAM_SA (see End) and everything we fall
+				;  back to reads it: the ROM load does LDX $AD at
+				;  $F06B, shared_rom_check does the same - without
+				;  this ,8 behaved like ,8,1
 	lda #$80
 	sta load_status		; return and pass to ROM load
 	lda #<not_burst
