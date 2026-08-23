@@ -200,10 +200,12 @@ dirbrowser_loadrun:
 	sta $07f9
 
 	sei
-	lda RAM_CURBNK
-	ora #%00001000		; enable kernal in top half
+	ldx RAM_CURBNK
+	lda ROM_PAGING,x	; $00,$05,$0a,$0f - cart lo+hi
 	tax
-	sta $fdd0,x  		; cart1/2 lo, cart1/2 hi
+	lda #0
+	sta $fdd0,x
+	stx $fb
 	lda TED_FF06		; switch blank: 2 Mhz
 	and #$EF
 	sta TED_FF06
@@ -233,7 +235,9 @@ dirbrowser_loadrun:
 	bne -
 
 	ldx RAM_CURBNK
-	sta $fdd0,x 		; cart1/2 lo, kernal
+	lda #0
+	sta $fdd0,x		; cart lo, kernal hi
+	stx $fb
 
 ;--- copy trampoline-code to tape-buffer
 trampolin_cpy:

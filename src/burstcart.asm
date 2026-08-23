@@ -69,6 +69,7 @@ RAM_RLUDES	= $07D9 ; read from (e07DF),y from RAM
 a07DF		= $07DF ; zp address of vector for RLUDES
 
 ROM_ILNGJMP	= $FCFA ; jumptable to LONGJMP ($FC89)
+ROM_PAGING	= $FC7B ; KERNAL ROM paging table ($00,$05,$0a,$0f)
 eE2B8		= $E2B8 ; clk hi (inverted)
 eEDA9		= $EDA9 ; check if device 8/9 (RAM_FA) is parallel (TCBM), C=0 --> yes
 eF160		= $F160	; print 'SEARCHING'
