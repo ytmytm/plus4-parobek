@@ -118,7 +118,10 @@ keys:
 		beq +
 		cmp #$33		; 3
 		beq +
-		jmp keys
+		cmp #$34		; 4
+		bne keys
+		jsr help_screen
+		jmp startup_screen
 +		and #$0f
 		pha
 		lda #147		; clear screen
@@ -128,6 +131,29 @@ keys:
 		jsr ROM_IOINIT
 		sei
 		pla
+		rts
+
+help_screen:
+		jsr ROM_CINT
+
+		lda #$2e
+		sta TED_BACK
+		sta TED_BORDER
+
+		lda #$ff
+		sta $ff0c
+		sta $ff0d           ; hide cursor
+
+		lda #<help_screen_txt
+		ldy #>help_screen_txt
+		jsr print_msg_always
+		cli
+
+help_wait:
+-		jsr ROM_GETIN
+		beq help_wait
+		cmp #$1b		; ESC
+		bne help_wait
 		rts
 
 startup_screen_txt:
@@ -141,7 +167,24 @@ startup_screen_txt:
 		!byte 13,13,13
 		!text "         1. NORMAL RESET",13,13
 		!text "         2. DIRECTORY BROWSER",13,13
-		!text "         3. INSTALL FASTLOAD",13
+		!text "         3. INSTALL FASTLOAD",13,13
+		!text "         4. HELP",13
+		!byte 0
+
+help_screen_txt:
+		!byte 147
+		!byte 5 ; white
+		;      1234567890123456789012345678901234567890
+		!text "              PAROBEK HELP",13,13
+		!text "DOS WEDGE (OPTION 3):",13,13
+		!text "  @       STATUS / COMMAND",13
+		!text "  @8-@11  DEVICE NUMBER",13
+		!text "  $       DIRECTORY LISTING",13
+		!text "  /       FAST LOAD",13
+		!text "  ",$5f,"       SAVE PROGRAM",13
+		!text "  @Q      DISABLE FASTLOAD",13,13
+		!text "FUNCTION KEY - DIRECTORY BROWSER",13,13
+		!text "         ESC: CLOSE HELP",13
 		!byte 0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

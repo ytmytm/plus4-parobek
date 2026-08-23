@@ -519,15 +519,19 @@ print_msg:
 		bmi +
 		rts
 print_msg_always:
-+		sta RAM_ZPVEC1
+		sta RAM_ZPVEC1
 		sty RAM_ZPVEC1+1
 		ldy #0
 -		lda (RAM_ZPVEC1),y
 		beq +
 		jsr ROM_CHROUT
-		iny
+		inc RAM_ZPVEC1
 		bne -
-+		rts
+		inc RAM_ZPVEC1+1
+		bne -
+		jmp -
++
+		rts
 
 ;--------------------------------------------------
 
