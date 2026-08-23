@@ -1,6 +1,8 @@
 
-; 1=CIA, 2=VIA, 3=CPLD
+; 1=CIA, 2=VIA, 3=CPLD  (override from Makefile: acme -Dburst=N)
+!ifndef burst {
 !set burst=2
+}
 
 !if burst=1 {
 	!to "bin/parobek-cia.bin",plain

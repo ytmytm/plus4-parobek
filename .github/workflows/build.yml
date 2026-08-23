@@ -20,24 +20,28 @@ jobs:
     
     - name: Install ACME cross-assembler
       run: |
-        # Install ACME cross-assembler
         sudo apt-get update
         sudo apt-get install -y acme
-        
-        # Verify installation
         acme --version || echo "ACME installed successfully"
     
     - name: Build ROM
       run: |
         cd src
-        make
-        
-        # List the generated files
+        make all
         ls -la bin/
+        test -f bin/parobek-via.bin
+        test -f bin/parobek-cpld.bin
     
-    - name: Upload ROM binary
+    - name: Upload VIA ROM
       uses: actions/upload-artifact@v4
       with:
-        name: parobek-rom
+        name: parobek-via
         path: src/bin/parobek-via.bin
+        retention-days: 30
+
+    - name: Upload CPLD ROM
+      uses: actions/upload-artifact@v4
+      with:
+        name: parobek-cpld
+        path: src/bin/parobek-cpld.bin
         retention-days: 30
