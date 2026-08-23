@@ -140,6 +140,10 @@ lowmem_code 	= $0640	; our bank number and trampoline into ROM (must be above ba
 !source "dos-wedge.asm"
 
 coldstart:
+	jsr scan_keys_for_parobek
+	bcc +
+	rts				; parobek already installed (function key)
++
 	jsr check_if_installed
 	bcc +
 	rts				; already installed, just return
@@ -228,6 +232,75 @@ print_welcome:
 	lda #13
 	jsr ROM_CHROUT
 	rts
+
+	
+	; scan function key definitions for " PAROBEK"
+	; C=1 if found (another parobek instance already did key_install)
+scan_keys_for_parobek:
+	lda #<$0567
+	sta $d5
+	lda #>$0567
+	sta $d6
+	ldx #0				; key number 0-7
+
+.key_loop:
+	cpx #8
+	bcs .not_found
+	lda $055f,x
+	beq .next_key
+
+	stx $d7				; save key number
+	sta $d3				; key length
+	ldy #0
+
+.pos_loop:
+	tya
+	clc
+	adc #parobek_sig_len
+	cmp $d3
+	bcs .advance_ptr
+
+	sty $d4
+	ldx #0
+.match:
+	ldy $d4
+	lda ($d5),y
+	cmp parobek_sig,x
+	bne .pos_next
+	iny
+	sty $d4
+	inx
+	cpx #parobek_sig_len
+	bne .match
+	sec
+	rts
+
+.pos_next:
+	ldy $d4
+	iny
+	jmp .pos_loop
+
+.advance_ptr:
+	ldx $d7
+	lda $055f,x
+	clc
+	adc $d5
+	sta $d5
+	bcc +
+	inc $d6
++
+	ldx $d7
+.next_key:
+	inx
+	jmp .key_loop
+
+.not_found:
+	clc
+	rts
+
+parobek_sig:
+	!text " PAROBEK"
+parobek_sig_len = * - parobek_sig
 
 	
 	; check if we're already installed (C=1 = already installed, C=0 = not installed)
