@@ -1,6 +1,6 @@
-; Detect host JiffyDOS kernal by banner at fixed address $EB7D.
-; Plus/4 JiffyDOS 6.01 PAL/NTSC: "JIFFYDOS V6.01..." (stock kernal has no match).
-; Call only after lowmem trampoline is copied. Clobbers A/X. Sets host_jd.
+; Detect host JiffyDOS kernal by banner at $EB7D ("JIFFYDOS" on 6.01 PAL/NTSC).
+; After trampoline is copied. Sets host_jd: skip DOS wedge; on IEC LOAD print
+; HOST JIFFYDOS and fall through to ROM (no SJL). Clobbers A/X.
 
 detect_host_jiffydos:
 	!zone HostJD_Detect {

@@ -1,10 +1,10 @@
 
-; IEC error-channel classify for SD2IEC / JiffyDOS.
-; Same shape as pi1551_detect / t2sd_detect: TALK $6F, read buffer, scan;
-; UI (pi1551) only if the current message has no signature.
-
-; Wedge (@ / $) uses cmd_text ($0343), not $0200 (BASIC BUF).
-; iec_load uses status_buffer ($0200).
+; IEC error-channel classify for SD2IEC / JiffyDOS (same idea as
+; pi1551_detect / t2sd_detect: TALK ch15, optional UI, scan the buffer).
+;
+; @ uses cmd_text ($0343), never $0200 (BASIC BUF). $ / LOAD"$" is ROM
+; directory only and does not classify. File LOAD uses status_buffer
+; ($0200): current status, then UI if sticky flags are still empty.
 
 iec_st_ptr	= $d0
 iec_st_ptrh	= $d1
@@ -136,7 +136,7 @@ iec_point_0200:
 	sta iec_st_ptrh
 	rts
 
-; Fill + scan using cmd_text. Used from @.
+; Fill + scan using cmd_text. @ only.
 iec_note_wedge:
 	jsr iec_point_cmd
 	jsr iec_fill_status
@@ -145,7 +145,7 @@ iec_note_wedge:
 	clc
 +	rts
 
-; Fill cmd_text, scan, print. @ must not touch $0200.
+; Fill cmd_text, scan, print. Must not use $0200 (BASIC BUF).
 iec_print_drive_status:
 	jsr iec_note_wedge
 	bcs +
@@ -158,8 +158,7 @@ iec_print_drive_status:
 	bne -
 +	rts
 
-; LOAD path: current status, then UI if still unclassified
-; (directory "$" is ROM-only and does not classify).
+; File LOAD: scan current status; UI + rescan if flags still empty.
 iec_note_drive_class:
 	jsr iec_point_0200
 	jsr iec_fill_status

@@ -227,8 +227,7 @@ dos_send_command_end:
 dos_display_status:
         lda RAM_FA
         beq dos_status_end
-        ; TALK error channel, print, and OR sticky flags. Do not store into
-        ; $0200 — that is BASIC BUF; overwriting it made @ end with SYNTAX ERROR.
+        ; Print ch15 and OR sticky flags into cmd_text (not $0200 / BASIC BUF).
         jsr iec_print_drive_status
         jmp dos_wedge_end
 

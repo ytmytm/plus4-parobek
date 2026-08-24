@@ -225,7 +225,7 @@ install_fastload:
 
 	jsr detect_host_jiffydos
 	lda host_jd
-	bne .after_wedge		; host JD: LOAD hook only, no DOS wedge
+	bne .after_wedge		; host JD: keep LOAD hook, skip DOS wedge
 .install_wedge:
 	; install wedge
 	lda RAM_ICRNCH
@@ -448,7 +448,7 @@ myload:
 	sta a07DF
 	ldy #0
 	jsr RAM_RLUDES		;RLUDES  Indirect routine downloaded
-	cmp #'$'			;if '$' then ROM directory (kernal $C8C8 / LOAD)
+	cmp #'$'			; directory: ROM only (wedge $ is kernal $C8C8)
 	beq load_rom
 
 	jsr eEDA9			;check if this is 8/9 TCBM device
@@ -476,8 +476,8 @@ iec_load:
 	bmi +
 	rts
 
-+	; Current error channel, then UI if still unknown (same idea as
-	;  pi1551_detect). Sticky flags: do not clear on "00, OK".
++	; Classify drive (status, then UI if flags still empty). Do not
+	;  clear sticky bits on a later "00, OK".
 	jsr iec_note_drive_class
 	bcs .try_parallel		; no device -> parallel attempt then ROM
 	; SD2IEC -> SJL (unless host_jd)
@@ -526,16 +526,16 @@ load_rom_txt:
 	!text "ROM LOAD",13,0
 
 iec_load_txt:
-	!text "IEC DEVICE, ",0		; no CR - the burst loader appends the type
-					;  (iec_type_txt) on the same line, the way
-					;  tcbm_device_txt is followed by TCBM2SD /
-					;  1551 HYPALOAD / 1551 RAMBOARD
+	!text "IEC DEVICE, ",0		; no CR; chosen loader completes the line
+					;  (VIA/CIA/CPLD BURST, SD2IEC+SJL264,
+					;  1541/PARALLEL, HOST JIFFYDOS, ROM LOAD)
+					;  the way TCBM prints TCBM2SD / 1551
 
 iec_parallel_txt:
 	!text "1541/PARALLEL",13,0
 
 iec_sd2iec_txt:
-	!text "SD2IEC, ",0		; then SJL_load appends "SJL264"
+	!text "SD2IEC, ",0		; SJL_load then prints "SJL264"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
