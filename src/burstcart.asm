@@ -522,13 +522,15 @@ iec_load:
 
 .try_drive_jd:
 	lda host_jd
-	bne load_rom
+	bne .to_rom
 	lda iec_drive_flags
 	and #%00000010
-	beq load_rom
+	beq .to_rom
 	jsr datasette_blocks_sjl
-	bcs load_rom
+	bcs .to_rom
 	jmp SJL_load
+.to_rom:
+	jmp load_rom
 
 load_rom_txt:
 	!text "ROM LOAD",13,0
