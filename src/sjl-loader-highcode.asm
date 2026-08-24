@@ -11,16 +11,20 @@ SJL_highcode:
 		jmp .return_error
 
 .motor_ok:
-		jsr sjl_untalk
+		; shared_rom_check used KERNAL TALK/$60/ACPTR — end that with ROM
+		;  UNTALK, then switch CPU port to SJL bitbang before JD SA $61.
+		;  (Calling sjl_untalk here hung in .waitclk: DDR was still KERNAL's.)
+		jsr ROM_UNTLK
+
+		lda #%00001000
+		sta $01			; release IEC lines / cass. RD low
+		lda #%00011111
+		sta $00			; DDR: include cass. RD as output (Plus/4 JD hack)
+
 		lda #$61
 		sta RAM_SA
 		lda #0
 		sta RAM_STATUS
-
-		lda #%00001000
-		sta $01
-		lda #%00011111
-		sta $00
 
 		lda RAM_FA
 		jsr sjl_talk
