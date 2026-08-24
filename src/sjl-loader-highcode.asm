@@ -181,6 +181,11 @@ sjl_restore:
 		sta TED_FF13
 		lda #$0f
 		sta $00
+		; Leave $01 bit3 set so datasette_blocks_sjl does not false-trigger
+		;  on the next LOAD (SJL drives that bit during the transfer).
+		lda $01
+		ora #%00001000
+		sta $01
 		jmp ROM_CBMSER_DAT_HIZ
 
 ; TALK

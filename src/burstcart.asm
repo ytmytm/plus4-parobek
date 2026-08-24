@@ -362,10 +362,12 @@ load_iftype:	!byte 0		; parallel interface type (PPI/PIO/CIA/VIA bitmask)
 				;  pointer, so any message printed between the save
 				;  and the use wiped them out
 host_jd:	!byte 0		; <>0 = host kernal is JiffyDOS (set at install)
-iec_drive_flags: !byte 0	; from the one post-burst status read (before parallel
-				;  clobbers $0200 / the error channel):
-				;  %xxxxxxx1 = status contained "SD2IEC"
-				;  %xxxxxx1x = status contained "JIFFYDOS"
+iec_drive_flags: !byte 0	; sticky across loads (cleared only when trampoline
+				;  is (re)installed). OR'd from error-channel scans:
+				;  %xxxxxxx1 = saw "SD2IEC"
+				;  %xxxxxx1x = saw "JIFFYDOS"
+				; After a successful load the channel is often
+				;  "00, OK" without those strings — do not clear.
 
 myloadlow:
 	sta RAM_VERFCK		; remember A
@@ -478,13 +480,12 @@ iec_load:
 	bmi +
 	rts
 
-+	lda #0
-	sta iec_drive_flags
++	; Refresh sticky IEC class from status when possible. Do NOT clear
+	;  iec_drive_flags: after a load the channel is usually "00, OK" without
+	;  JIFFYDOS/SD2IEC, and parallel detect also clobbers $0200.
 	jsr iec_read_status
 	bcs .try_parallel		; no device -> parallel attempt then ROM
 
-	; Classify once before parallel M-R / trampoline reuse of $0200
-	;  (same as status_buffer) and before the error channel becomes "00, OK".
 	jsr status_has_sd2iec
 	bcs +
 	lda iec_drive_flags
