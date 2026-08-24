@@ -1,0 +1,13 @@
+# Normalize text to LF in the repo; avoid CRLF dirtying status on shared Windows/WSL/NFS trees.
+* text=auto eol=lf
+
+# Keep binaries untouched
+*.pdf binary
+*.bin binary
+*.bz2 binary
+*.tar binary
+*.gz binary
+*.zip binary
+*.png binary
+*.jpg binary
+*.gif binary
