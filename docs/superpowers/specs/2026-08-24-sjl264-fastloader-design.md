@@ -22,8 +22,8 @@ Reference sources: `SJL264-0.3-180107.tar.bz2` in the repo root (upstream pack);
 | Topic | Choice |
 |-------|--------|
 | Integration shape | Thin Parobek wrapper + ROM-safe highcode (same layout as SpeedDOS) |
-| IEC priority | Burst → if drive is JD/SD2IEC then (JD+parallel → SpeedDOS, else SJL); else existing parallel → ROM |
-| Host JiffyDOS | Skip SJL; do **not** install DOS wedge; still install LOAD hook for burst / TCBM / parallel |
+| IEC priority | Fastest first: burst → SD2IEC+SJL → 1541 parallel → drive-JD+SJL → ROM |
+| Host JiffyDOS | Never take SJL (fall through to ROM for that slot — host kernal already has Jiffy load); do **not** install DOS wedge; still install LOAD hook for burst / TCBM / parallel |
 | Datasette | Conflicts **only** with SJL; re-check every SJL attempt; message + ROM fallback |
 | Status I/O | One error-channel read into `$0200`, then local substring scan |
 | VICE tests | Light matrix scripts (host × drive × datasette), not full CI yet |
@@ -62,20 +62,30 @@ SJL bit-bangs IEC via CPU port `$00`/`$01`, which shares cassette motor/read lin
 
 ## Detection and load flow
 
+Order is **fastest available transfer first**. `host_jd` means the computer kernal already contains `JIFFYDOS` (detected at install). SJL is only used when `!host_jd`.
+
 ```
 myload → IEC
-  → burst
-  → if handled: done
-  → read error channel once → status_buffer ($0200)
-  → if "SD2IEC" in buffer:
-        datasette? → ROM : SJL
-  → else if "JIFFYDOS" in buffer:
-        par1541_detect → cable? SpeedDOS : (datasette? ROM : SJL)
-  → else:
-        par1541_detect → cable? SpeedDOS : ROM
+  1. burst
+       → if handled: done
+  2. read error channel once → status_buffer ($0200)
+  3. if "SD2IEC" in buffer
+       and !host_jd and datasette not blocking:
+         → SJL
+  4. if 1541 parallel cable usable (par1541_detect):
+         → SpeedDOS / parallel loader
+  5. if "JIFFYDOS" in buffer
+       and !host_jd and datasette not blocking:
+         → SJL
+  6. otherwise:
+         → ROM load  (on host_jd this is the stock JiffyDOS kernal load path)
 ```
 
-Do **not** send `UI` for this read (avoids SD image remount). Talking the error channel and draining the current status line is enough for power-up / last-status strings.
+Notes:
+
+- Steps 3 and 5 both require datasette not blocking; if datasette blocks, do **not** use SJL — continue to the next step (parallel may still win at 4; otherwise ROM at 6).
+- On `host_jd`, steps 3 and 5 are skipped entirely; burst (1) and parallel (4) still run; any remaining IEC load uses ROM (6), which is already the host JiffyDOS loader.
+- Do **not** send `UI` for the status read (avoids SD image remount). Talking the error channel and draining the current status line is enough for power-up / last-status strings.
 
 ### Host JiffyDOS
 
@@ -83,7 +93,7 @@ At `install_fastload`, scan the host kernal ROM for the string `JIFFYDOS` (prese
 
 - Install LOAD trampoline / vector (burst, TCBM, parallel still useful)
 - **Do not** install `ICRNCH` DOS wedge (host JD already provides wedge-like commands)
-- Never take the SJL branch in `iec_load` (host ROM serial is already a Jiffy fastloader)
+- Never take the SJL branch; when SJL would have been chosen, fall through so `load_status=$80` and the **already written** host kernal LOAD runs
 
 Optional print: `JIFFYDOS ROM` when skipping wedge/SJL so the user sees why.
 
@@ -93,8 +103,8 @@ Optional print: `JIFFYDOS ROM` when skipping wedge/SJL so the user sees why.
 |-----------|-----------|
 | Verify or `$` directory | Existing `myload` skips fastloaders |
 | Device &lt; 8 | Existing ROM path |
-| Datasette conflict | Message + `$80` |
-| Not JD/SD2IEC after status scan | Continue parallel/ROM as today |
+| Datasette blocks SJL | Message; skip SJL; continue to parallel then ROM |
+| No SJL / no parallel | `$80` → ROM (host JD: that ROM path is already fast) |
 | File not found / DNP during SJL | Non-zero `load_status`, C=1 |
 | Load address below SJL-safe range | Fall back to ROM (`$80`) if we keep upstream `$0A00` floor; document if we relax it |
 
@@ -126,6 +136,6 @@ Parobek image via `-c1lo bin/parobek-via.bin`. Document `xplus4` flags in script
 
 1. Stock host + JD/SD2IEC-capable drive loads a PRG via Parobek SJL without self-mod in the shipped ROM path  
 2. Host JD skips SJL and does not install Parobek DOS wedge  
-3. Datasette attached blocks only SJL and falls back to ROM with a clear message  
-4. Burst / TCBM / parallel behaviour unchanged when those paths win  
+3. Datasette attached blocks only SJL; flow continues to parallel then ROM with a clear message  
+4. Burst / TCBM / parallel behaviour unchanged when those paths win; host JD never enters SJL and uses ROM load instead  
 5. VICE matrix scripts exist and document how to reproduce the four rows above  
