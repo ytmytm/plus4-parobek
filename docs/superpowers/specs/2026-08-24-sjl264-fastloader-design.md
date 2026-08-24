@@ -2,7 +2,7 @@
 
 Date: 2026-08-24  
 Branch: `feature-sjl264`  
-Status: approved for implementation planning  
+Status: implemented (experiment complete)  
 
 ## Goal
 

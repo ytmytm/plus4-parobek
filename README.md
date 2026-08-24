@@ -34,6 +34,10 @@ Requires the [Burstcart](https://github.com/ytmytm/plus4-burstcart) interface.
 
 Not done yet. When implemented it must support both original CPU as well as 6502/6510 replacements.
 
+#### IEC JiffyDOS / SD2IEC (SJL264)
+
+When the drive status contains `SD2IEC` or `JIFFYDOS`, Parobek uses an SJL264-derived serial fastloader (after burst, before or after parallel per priority in the design spec). Host JiffyDOS kernals skip this path and do not install the Parobek DOS wedge. A connected datasette blocks only SJL.
+
 #### 1541 with parallel cable
 
 Loader supports PPI (8255) / PIO (6529) interfaces (software handshake) and VIA (6522) / CIA (6526) [Burstcart](https://github.com/ytmytm/plus4-burstcart) interface (hardware handshake).
