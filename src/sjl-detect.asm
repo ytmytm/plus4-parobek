@@ -57,11 +57,14 @@ scan_status_for:
 .inner:
 		lda ($d0),y
 		beq .found
+		cpx #40
+		bcs .next
 		cmp status_buffer,x
 		bne .next
 		inx
 		iny
 		bne .inner
+		jmp .next
 .found:		clc
 		rts
 .next:		inc $d2
