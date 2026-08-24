@@ -89,7 +89,7 @@ Notes:
 
 ### Host JiffyDOS
 
-At `install_fastload`, scan the host kernal ROM for the string `JIFFYDOS` (present in Plus/4 JiffyDOS 6.01 PAL/NTSC at kernal file offset corresponding to `$EB7D`; absent in Zimmers stock kernals). If found:
+At `install_fastload`, compare the host kernal banner at fixed address `$EB7D` for the string `JIFFYDOS` (Plus/4 JiffyDOS 6.01 PAL/NTSC; absent in Zimmers stock kernals). If found:
 
 - Install LOAD trampoline / vector (burst, TCBM, parallel still useful)
 - **Do not** install `ICRNCH` DOS wedge (host JD already provides wedge-like commands)

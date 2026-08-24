@@ -1,58 +1,23 @@
-; Scan host kernal for "JIFFYDOS". Sets host_jd (lowmem).
-; Call only after lowmem trampoline is copied.
-; Temporarily uses $d3 (restored on exit). Clobbers A/X/Y/$d0-$d2.
-; $d0/$d1 candidate pointer, $d2/$d3 compare pointer.
-; Candidates $E000..$FFF8 only (8-byte needle; >=$FFF9 would wrap into ZP).
-; Does not touch the drive.
+; Detect host JiffyDOS kernal by banner at fixed address $EB7D.
+; Plus/4 JiffyDOS 6.01 PAL/NTSC: "JIFFYDOS V6.01..." (stock kernal has no match).
+; Call only after lowmem trampoline is copied. Clobbers A/X. Sets host_jd.
 
 detect_host_jiffydos:
 	!zone HostJD_Detect {
 		lda #0
 		sta host_jd
-		lda $d3
-		pha
-		lda #<$e000
-		sta $d0
-		lda #>$e000
-		sta $d1
-.loop:
-		lda $d1
-		cmp #$ff
-		bne .scan
-		lda $d0
-		cmp #$f9
-		bcs .exit
-.scan:
 		ldx #0
-		lda $d0
-		sta $d2
-		lda $d1
-		sta $d3
-.byte:
-		lda .sig,x
+-		lda .sig,x
 		beq .found
-		ldy #0
-		cmp ($d2),y
-		bne .next
-		inc $d2
-		bne .bp_ok
-		inc $d3
-.bp_ok:
+		cmp $eb7d,x
+		bne .done
 		inx
-		bne .byte
+		bne -
 .found:
 		lda #1
 		sta host_jd
-.exit:
-		pla
-		sta $d3
+.done:
 		rts
-.next:
-		inc $d0
-		bne .loop
-		inc $d1
-		bne .loop
-		jmp .exit
 .sig:
 		!text "JIFFYDOS", 0
 	}

@@ -24,8 +24,9 @@ EMPTY_TAP="${EMPTY_TAP:-$SCRIPT_DIR/empty.tap}"
 DISK_IMAGE="${DISK_IMAGE:-$SCRIPT_DIR/smoke-test.d64}"
 
 # Plus/4 VICE often keeps unit #8 as 1551 from defaults/saved settings.
-# -dos1541 only swaps the ROM image; drive *type* must be forced explicitly.
-# ROMs in roms.env are 1541-II images → type 1542. True-drive required for JD.
+# Drive type must be forced: 1542 = CBM 1541-II. True-drive required for JD.
+# For type 1542 the DOS image flag is -dos1541II (NOT -dos1541 — that only
+# affects classic 1541 and leaves the 1541-II on stock "DOS 2.6").
 DRIVE8_ARGS=(-drive8type 1542 -drive8truedrive -drive9type 0)
 
 if [[ ! -f "$DISK_IMAGE" ]]; then
@@ -36,25 +37,25 @@ fi
 make -C "$REPO_ROOT/src" via
 
 cmd_stock_jd1541() {
-	printf '%s -default -kernal %q -basic %q -dos1541 %q %s -c1lo %q -8 %q' \
+	printf '%s -default -kernal %q -basic %q -dos1541II %q %s -c1lo %q -8 %q' \
 		"$XPLUS4" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1541_JD" \
 		"${DRIVE8_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE"
 }
 
 cmd_stock_stock1541() {
-	printf '%s -default -kernal %q -basic %q -dos1541 %q %s -c1lo %q -8 %q' \
+	printf '%s -default -kernal %q -basic %q -dos1541II %q %s -c1lo %q -8 %q' \
 		"$XPLUS4" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1541_STOCK" \
 		"${DRIVE8_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE"
 }
 
 cmd_stock_jd_tape() {
-	printf '%s -default -kernal %q -basic %q -dos1541 %q %s -c1lo %q -8 %q -1 %q' \
+	printf '%s -default -kernal %q -basic %q -dos1541II %q %s -c1lo %q -8 %q -1 %q' \
 		"$XPLUS4" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1541_JD" \
 		"${DRIVE8_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE" "$EMPTY_TAP"
 }
 
 cmd_hostjd_jd1541() {
-	printf '%s -default -kernal %q -basic %q -dos1541 %q %s -c1lo %q -8 %q' \
+	printf '%s -default -kernal %q -basic %q -dos1541II %q %s -c1lo %q -8 %q' \
 		"$XPLUS4" "$HOST_KERNAL_JD" "$HOST_BASIC_STOCK" "$DRIVE_1541_JD" \
 		"${DRIVE8_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE"
 }

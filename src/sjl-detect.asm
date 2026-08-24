@@ -98,7 +98,7 @@ datasette_blocks_sjl:
 .block:
 		lda #<datasette_txt
 		ldy #>datasette_txt
-		jsr print_msg
+		jsr print_msg_always
 		sec
 		rts
 datasette_txt:

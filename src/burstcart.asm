@@ -455,7 +455,7 @@ myload:
 load_rom:
 	lda #<load_rom_txt
 	ldy #>load_rom_txt
-	jsr print_msg
+	jsr print_msg_always
 	lda #$80
 	sta load_status		; pass back to ROM code
 	rts
@@ -463,7 +463,7 @@ load_rom:
 iec_load:
 	lda #<iec_load_txt
 	ldy #>iec_load_txt
-	jsr print_msg
+	jsr print_msg_always
 
 	lda #$80
 	sta load_status
@@ -487,7 +487,7 @@ iec_load:
 .try_parallel:
 	lda #<iec_load_txt3
 	ldy #>iec_load_txt3
-	jsr print_msg
+	jsr print_msg_always
 	jsr par1541_detect
 	sta $d0
 	bit $d0
@@ -496,7 +496,7 @@ iec_load:
 	beq .try_drive_jd
 	lda #<iec_load_txt4
 	ldy #>iec_load_txt4
-	jsr print_msg
+	jsr print_msg_always
 	lda $d0
 	jmp SpeedDOS_load
 

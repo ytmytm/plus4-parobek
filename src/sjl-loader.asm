@@ -2,7 +2,7 @@ SJL_load:
 	!zone SJL_Loader {
 		lda #<sjl_txt
 		ldy #>sjl_txt
-		jsr print_msg
+		jsr print_msg_always
 
 		jsr shared_rom_check
 		bcc .have_file

@@ -56,7 +56,7 @@ Regenerate:
 
 ## Notes
 
-- Every case forces **`-drive8type 1542 -drive8truedrive -drive9type 0`**. Setting `-dos1541` alone is not enough: Plus/4 VICE often leaves unit #8 as a **1551** from defaults or saved settings, so the wrong bus (TCBM) would be used.
+- Every case forces **`-drive8type 1542 -drive8truedrive -drive9type 0`** and loads the DOS image with **`-dos1541II`** (required for 1541-II). Using `-dos1541` only affects classic 1541 and leaves a 1541-II on stock **DOS 2.6**.
 - Drive type `1542` is CBM 1541-II (matches the stock/`JiffyDOS_1541-II` ROM images in `roms.env.example`).
 - `stock+jd+tape` attaches `tests/vice/empty.tap` by default (zero-byte placeholder; VICE accepts it for datasette attach).
 - `PAROBEK_BIN` in `roms.env.example` resolves via `git rev-parse --show-toplevel`.
