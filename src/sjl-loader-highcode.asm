@@ -11,6 +11,7 @@ SJL_highcode:
 		jmp .return_error
 
 .motor_ok:
+		jsr sjl_untalk
 		lda #$61
 		sta RAM_SA
 		lda #0
