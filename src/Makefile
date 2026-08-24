@@ -1,6 +1,6 @@
 .PHONY: all via cpld clean run run-via run-cpld
 
-SRCS = burstcart.asm burst-cpld.asm burst-via.asm t2s-detect.asm host-jd-detect.asm sjl-detect.asm sjl-loader.asm
+SRCS = burstcart.asm burst-cpld.asm burst-via.asm t2s-detect.asm host-jd-detect.asm sjl-detect.asm sjl-loader.asm sjl-loader-highcode.asm
 
 all: via cpld
 
