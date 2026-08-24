@@ -1,1 +1,2 @@
 src/bin/*.bin
+tests/vice/roms.env
