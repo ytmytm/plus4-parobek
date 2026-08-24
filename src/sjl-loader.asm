@@ -6,7 +6,7 @@ SJL_load:
 	!zone SJL_Loader {
 		lda #<sjl_txt
 		ldy #>sjl_txt
-		jsr print_msg_always
+		jsr print_msg
 
 		lda RAM_SA
 		sta load_sa			; original LOAD SA (0 = relocate)

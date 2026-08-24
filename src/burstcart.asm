@@ -225,11 +225,7 @@ install_fastload:
 
 	jsr detect_host_jiffydos
 	lda host_jd
-	beq .install_wedge
-	lda #<host_jd_txt
-	ldy #>host_jd_txt
-	jsr print_msg_always
-	jmp .after_wedge
+	bne .after_wedge		; host JD: LOAD hook only, no DOS wedge
 .install_wedge:
 	; install wedge
 	lda RAM_ICRNCH
@@ -452,7 +448,7 @@ myload:
 	sta a07DF
 	ldy #0
 	jsr RAM_RLUDES		;RLUDES  Indirect routine downloaded
-	cmp #'$'			;if '$' then ROM load
+	cmp #'$'			;if '$' then ROM directory (kernal $C8C8 / LOAD)
 	beq load_rom
 
 	jsr eEDA9			;check if this is 8/9 TCBM device
@@ -463,7 +459,7 @@ myload:
 load_rom:
 	lda #<load_rom_txt
 	ldy #>load_rom_txt
-	jsr print_msg_always
+	jsr print_msg
 	lda #$80
 	sta load_status		; pass back to ROM code
 	rts
@@ -471,7 +467,7 @@ load_rom:
 iec_load:
 	lda #<iec_load_txt
 	ldy #>iec_load_txt
-	jsr print_msg_always
+	jsr print_msg
 
 	lda #$80
 	sta load_status
@@ -480,23 +476,10 @@ iec_load:
 	bmi +
 	rts
 
-+	; Refresh sticky IEC class from status when possible. Do NOT clear
-	;  iec_drive_flags: after a load the channel is usually "00, OK" without
-	;  JIFFYDOS/SD2IEC, and parallel detect also clobbers $0200.
-	jsr iec_read_status
++	; Current error channel, then UI if still unknown (same idea as
+	;  pi1551_detect). Sticky flags: do not clear on "00, OK".
+	jsr iec_note_drive_class
 	bcs .try_parallel		; no device -> parallel attempt then ROM
-
-	jsr status_has_sd2iec
-	bcs +
-	lda iec_drive_flags
-	ora #%00000001
-	sta iec_drive_flags
-+	jsr status_has_jiffydos
-	bcs +
-	lda iec_drive_flags
-	ora #%00000010
-	sta iec_drive_flags
-+
 	; SD2IEC -> SJL (unless host_jd)
 	lda host_jd
 	bne .try_parallel
@@ -505,33 +488,37 @@ iec_load:
 	beq .try_parallel
 	jsr datasette_blocks_sjl	; C=1 datasette conflict → skip SJL
 	bcs .try_parallel
+	lda #<iec_sd2iec_txt
+	ldy #>iec_sd2iec_txt
+	jsr print_msg
 	jmp SJL_load
 
 .try_parallel:
-	lda #<iec_load_txt3
-	ldy #>iec_load_txt3
-	jsr print_msg_always
 	jsr par1541_detect
 	sta $d0
 	bit $d0
 	bpl .try_drive_jd
 	and #%01111111
 	beq .try_drive_jd
-	lda #<iec_load_txt4
-	ldy #>iec_load_txt4
-	jsr print_msg_always
+	lda #<iec_parallel_txt
+	ldy #>iec_parallel_txt
+	jsr print_msg
 	lda $d0
 	jmp SpeedDOS_load
 
 .try_drive_jd:
 	lda host_jd
-	bne .to_rom
+	bne .host_jd_rom
 	lda iec_drive_flags
 	and #%00000010
 	beq .to_rom
 	jsr datasette_blocks_sjl
 	bcs .to_rom
 	jmp SJL_load
+.host_jd_rom:
+	lda #<host_jd_txt
+	ldy #>host_jd_txt
+	jsr print_msg
 .to_rom:
 	jmp load_rom
 
@@ -544,11 +531,11 @@ iec_load_txt:
 					;  tcbm_device_txt is followed by TCBM2SD /
 					;  1551 HYPALOAD / 1551 RAMBOARD
 
-iec_load_txt3:
-	!text "1541/PARALLEL TEST",13,0
+iec_parallel_txt:
+	!text "1541/PARALLEL",13,0
 
-iec_load_txt4:
-	!text "1541/PARALLEL TEST PASSED",13,0
+iec_sd2iec_txt:
+	!text "SD2IEC, ",0		; then SJL_load appends "SJL264"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -658,27 +645,26 @@ tcbm2sd_load_error_txt:
 startup_txt:
 	!text " PAROBEK ON KEY F",0
 host_jd_txt:
-	!text "HOST JIFFYDOS, NO WEDGE",13,0
+	!text "HOST JIFFYDOS",13,0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 print_msg:
 		bit RAM_MSGFLG
-		bmi +
-		rts
+		bpl print_msg_done	; $00 program: silent; $80 direct: print
 print_msg_always:
 		sta RAM_ZPVEC1
 		sty RAM_ZPVEC1+1
 		ldy #0
 -		lda (RAM_ZPVEC1),y
-		beq +
+		beq print_msg_done
 		jsr ROM_CHROUT
 		inc RAM_ZPVEC1
 		bne -
 		inc RAM_ZPVEC1+1
 		bne -
 		jmp -
-+
+print_msg_done:
 		rts
 
 ;--------------------------------------------------

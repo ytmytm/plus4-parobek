@@ -67,17 +67,11 @@
 NotCIA:
 	lda #$80
 	sta load_status		; not handled -> fall back to ROM load
-	lda #<cia_not_present
-	ldy #>cia_not_present
-	jmp print_msg
+	rts
 
 CIAFound:
         lda #$81
 	sta ciabase+14		; start timer A, serial IN, TOD 50Hz
-
-	lda #<iec_type_txt	; append the device type to "IEC DEVICE, "
-	ldy #>iec_type_txt	;  (hardware is present - this is the silent
-	jsr print_msg		;   detection point, same idea as t2sd_detect)
 
 	jsr eF160		;print "SEARCHING" ; XXX too early - will show "SEARCHING" twice if device is not burst capable
 
@@ -129,6 +123,9 @@ CIAFound:
 	bne +
 	jmp NotFast		; device doesn't handle burst
 +
+	lda #<iec_type_txt
+	ldy #>iec_type_txt
+	jsr print_msg
 	jsr eF189		; print LOADING, uses CHROUT will CLI again
 	sei			; loader starts here
 	jsr eE2B8		; serial clock on == clk line low
@@ -209,9 +206,7 @@ NotFast:			; device doesn't handle burst
 				;  this ,8 behaved like ,8,1
 	lda #$80
 	sta load_status		; not handled -> pass to ROM load
-	lda #<not_burst
-	ldy #>not_burst
-	jmp print_msg
+	rts
 
 HandleStat:
 	jsr GetByte		; Get a byte (and toggle clk to start the
@@ -258,12 +253,5 @@ BCMD:	!byte $1f, $30, $55	; 'U0',$1F == Burst Fastload command
 
 ;
 iec_type_txt:
-		!text "CIA BURST",0	; no trailing CR - whatever prints next
-				;  (SEARCHING, NOT BURST CAPABLE, a BASIC error)
-				;  brings its own leading CR
-cia_not_present:
-                !text "CIA NOT PRESENT",13,0
-not_burst:
-		!text 13,"NOT BURST CAPABLE",13,0
-
+		!text "CIA BURST",13,0
 }

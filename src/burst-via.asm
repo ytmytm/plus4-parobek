@@ -82,9 +82,7 @@ via_ier		= viabase+14
 NotVIA:
         lda #$80
 		sta load_status
-	lda #<via_not_present
-	ldy #>via_not_present
-	jmp print_msg
+	rts
 
 VIAFound:
 	lda #%00000001
@@ -92,10 +90,6 @@ VIAFound:
 	lda via_sr			; reset sr
 	lda #%00001100		; shift in under CB2
 	sta via_acr
-
-	lda #<iec_type_txt	; append the device type to "IEC DEVICE, "
-	ldy #>iec_type_txt	;  (hardware is present - this is the silent
-	jsr print_msg		;   detection point, same idea as t2sd_detect)
 
 	lda RAM_FNLEN		; preserve the filename length
 	pha
@@ -145,6 +139,9 @@ VIAFound:
 	bne +
 	jmp NotFast		; device doesn't handle burst
 +
+	lda #<iec_type_txt	; chosen loader: append to "IEC DEVICE, "
+	ldy #>iec_type_txt
+	jsr print_msg
 	jsr eF160		; print "SEARCHING"
 	jsr eF189		; print "LOADING", uses CHROUT will CLI again
 	sei			; loader starts here
@@ -226,9 +223,7 @@ NotFast:			; device doesn't handle burst
 				;  this ,8 behaved like ,8,1
 	lda #$80
 	sta load_status		; return and pass to ROM load
-	lda #<not_burst
-	ldy #>not_burst
-	jmp print_msg
+	rts
 
 HandleStat:
 	jsr GetByte		; Get a byte (and toggle clk to start the
@@ -275,12 +270,5 @@ BCMD:	!byte $1f, $30, $55	; 'U0',$1F == Burst Fastload command
 
 ;
 iec_type_txt:
-		!text "VIA BURST",0	; no trailing CR - whatever prints next
-				;  (SEARCHING, NOT BURST CAPABLE, a BASIC error)
-				;  brings its own leading CR
-via_not_present:
-                !text "VIA NOT PRESENT",13,0
-not_burst:
-		!text 13,"NOT BURST CAPABLE",13,0
-
+		!text "VIA BURST",13,0
 }
