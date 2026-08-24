@@ -37,10 +37,22 @@ Launch one case (opens VICE interactively):
 
 | Case | Host | Drive | Datasette | Pass criteria (manual) |
 |------|------|-------|-----------|------------------------|
-| `stock+jd1541` | Stock kernal | JiffyDOS 1541 | — | After menu option **3**, a LOAD shows **SJL264** |
-| `stock+stock1541` | Stock kernal | Stock 1541 | — | No **SJL264**; parallel fastload or **ROM LOAD** |
-| `stock+jd+tape` | Stock kernal | JiffyDOS 1541 | Attached (`-1 empty.tap`) | **DATASETTE, SKIP SJL** then ROM/parallel load |
-| `hostjd+jd1541` | JiffyDOS host kernal | JiffyDOS 1541 | — | **HOST JIFFYDOS, NO WEDGE**; no **SJL264** |
+| `stock+jd1541` | Stock kernal | JiffyDOS 1541 | — | Menu **3**, then `LOAD"HELLO",8` shows **SJL264** |
+| `stock+stock1541` | Stock kernal | Stock 1541 | — | `LOAD"HELLO",8` — no **SJL264**; parallel or **ROM LOAD** |
+| `stock+jd+tape` | Stock kernal | JiffyDOS 1541 | Attached (`-1 empty.tap`) | **DATASETTE, SKIP SJL** then ROM/parallel |
+| `hostjd+jd1541` | JiffyDOS host kernal | JiffyDOS 1541 | — | **HOST JIFFYDOS, NO WEDGE**; `LOAD"HELLO",8` — no **SJL264** |
+
+All cases attach **`smoke-test.d64`** on unit #8 (`-8`), which contains PRG `HELLO` (BASIC 3.5 hello world).
+
+## Disk image
+
+Sources: `hello.bas` → `petcat -w3` → `hello.prg` → `c1541` → `smoke-test.d64`.
+
+Regenerate:
+
+```bash
+./tests/vice/rebuild-disk.sh
+```
 
 ## Notes
 
