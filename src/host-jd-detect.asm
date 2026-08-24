@@ -1,6 +1,8 @@
 ; Scan host kernal for "JIFFYDOS". Sets host_jd (lowmem).
 ; Call only after lowmem trampoline is copied.
-; Uses $d0-$d3 as scan/compare pointers; does not touch the drive.
+; Uses $d0-$d3: $d0/$d1 candidate pointer, $d2/$d3 compare pointer.
+; Candidates $E000..$FFF8 only (8-byte needle; >=$FFF9 would wrap into ZP).
+; Does not touch the drive.
 
 detect_host_jiffydos:
 	!zone HostJD_Detect {
@@ -11,6 +13,13 @@ detect_host_jiffydos:
 		lda #>$e000
 		sta $d1
 .loop:
+		lda $d1
+		cmp #$ff
+		bne .scan
+		lda $d0
+		cmp #$f9
+		bcs .done
+.scan:
 		ldx #0
 		lda $d0
 		sta $d2
@@ -36,8 +45,8 @@ detect_host_jiffydos:
 		inc $d0
 		bne .loop
 		inc $d1
-		lda $d1
 		bne .loop
+.done:
 		rts
 .sig:
 		!text "JIFFYDOS", 0
