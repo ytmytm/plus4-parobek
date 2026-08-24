@@ -1,34 +1,78 @@
+; SJL264 receive path — ROM-resident, no self-mod.
+; Sequence matches upstream loader_routine after rom_iec_open:
+;   set CPU-port DDR → TALK/$60 → busin addr → UNTALK → TALK/$61 → transfer
+
 SJL_highcode:
 !zone SJL_LoaderHighcode {
 		sei
+
 		lda $01
 		and #%00001000
 		bne .motor_ok
-		jsr ROM_UNTLK
 		jsr ROM_IEC_CLOSE_SETUP
 		lda #$80
 		sta load_status
 		jmp .return_error
 
 .motor_ok:
-		; shared_rom_check used KERNAL TALK/$60/ACPTR — end that with ROM
-		;  UNTALK, then switch CPU port to SJL bitbang before JD SA $61.
-		;  (Calling sjl_untalk here hung in .waitclk: DDR was still KERNAL's.)
-		jsr ROM_UNTLK
-
 		lda #%00001000
-		sta $01			; release IEC lines / cass. RD low
+		sta $01			; IEC released, cass. RD driven low
 		lda #%00011111
-		sta $00			; DDR: include cass. RD as output (Plus/4 JD hack)
+		sta $00			; DDR: ATN/CLK/DAT/cass.RD out (upstream hack)
 
-		lda #$61
-		sta RAM_SA
 		lda #0
 		sta RAM_STATUS
 
+		; --- address phase on channel 0 (SA $60), SJL bitbang ---
 		lda RAM_FA
 		jsr sjl_talk
-		lda RAM_SA
+		lda #$60
+		jsr sjl_sectalk
+		jsr sjl_busin
+		sta $9d
+		lda RAM_STATUS
+		lsr
+		lsr
+		bcc .filefound
+
+.filenotfound:
+		jsr sjl_untalk
+		jsr ROM_IEC_CLOSE_SETUP
+		lda #4
+		sta load_status
+		jmp .return_error
+
+.filefound:
+		jsr sjl_busin
+		sta $9e
+		jsr sjl_untalk
+
+		; SA==0 → relocate to caller's address
+		lda load_sa
+		bne .have_addr
+		lda RAM_MEMUSS
+		sta $9d
+		lda RAM_MEMUSS+1
+		sta $9e
+
+.have_addr:
+		lda $9e
+		cmp #$0a
+		bcs .ldaddrokay
+		jsr ROM_IEC_CLOSE_SETUP
+		lda #$80
+		sta load_status
+		jmp .return_error
+
+.ldaddrokay:
+		jsr eF189			; LOADING / VERIFYING
+
+		; --- JD fastload phase (SA $61) ---
+		lda #$61
+		sta RAM_SA
+		lda RAM_FA
+		jsr sjl_talk
+		lda #$61
 		jsr sjl_sectalk
 
 		ldy #$00
