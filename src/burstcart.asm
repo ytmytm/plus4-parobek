@@ -480,7 +480,7 @@ iec_load:
 	bne .try_parallel
 	jsr status_has_sd2iec
 	bcs .try_parallel
-	jsr datasette_blocks_sjl	; Task 3: for now always clc (not blocking)
+	jsr datasette_blocks_sjl	; C=1 datasette conflict → skip SJL
 	bcs .try_parallel
 	jmp SJL_load
 
