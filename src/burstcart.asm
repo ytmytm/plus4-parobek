@@ -206,6 +206,14 @@ install_fastload:
 	sta RAM_ILOAD+1
 +
 
+	jsr detect_host_jiffydos
+	lda host_jd
+	beq .install_wedge
+	lda #<host_jd_txt
+	ldy #>host_jd_txt
+	jsr print_msg_always
+	jmp .after_wedge
+.install_wedge:
 	; install wedge
 	lda RAM_ICRNCH
 	cmp #<mywedgelow
@@ -218,7 +226,7 @@ install_fastload:
 	lda #>mywedgelow
 	sta RAM_ICRNCH+1
 +
-
+.after_wedge:
 	; init VIA/CIA/CPLD and CIA TOD clock too
 	+InitBurst
 
@@ -336,6 +344,7 @@ load_iftype:	!byte 0		; parallel interface type (PPI/PIO/CIA/VIA bitmask)
 				;  NOT safe: print_msg uses $03/$04 as its own string
 				;  pointer, so any message printed between the save
 				;  and the use wiped them out
+host_jd:	!byte 0		; <>0 = host kernal is JiffyDOS (set at install)
 
 myloadlow:
 	sta RAM_VERFCK		; remember A
@@ -397,6 +406,8 @@ wedgerom:
 	} ; pseudopc
 
 lowmem_trampoline_end:
+
+!source "host-jd-detect.asm"
 
 ; OUT:
 ; load_status = 0 - loaded, then:
@@ -585,6 +596,8 @@ tcbm2sd_load_error_txt:
 
 startup_txt:
 	!text " PAROBEK ON KEY F",0
+host_jd_txt:
+	!text "HOST JIFFYDOS, NO WEDGE",13,0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
