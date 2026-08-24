@@ -360,6 +360,10 @@ load_iftype:	!byte 0		; parallel interface type (PPI/PIO/CIA/VIA bitmask)
 				;  pointer, so any message printed between the save
 				;  and the use wiped them out
 host_jd:	!byte 0		; <>0 = host kernal is JiffyDOS (set at install)
+iec_drive_flags: !byte 0	; from the one post-burst status read (before parallel
+				;  clobbers $0200 / the error channel):
+				;  %xxxxxxx1 = status contained "SD2IEC"
+				;  %xxxxxx1x = status contained "JIFFYDOS"
 
 myloadlow:
 	sta RAM_VERFCK		; remember A
@@ -472,14 +476,30 @@ iec_load:
 	bmi +
 	rts
 
-+	jsr iec_read_status
++	lda #0
+	sta iec_drive_flags
+	jsr iec_read_status
 	bcs .try_parallel		; no device -> parallel attempt then ROM
 
+	; Classify once before parallel M-R / trampoline reuse of $0200
+	;  (same as status_buffer) and before the error channel becomes "00, OK".
+	jsr status_has_sd2iec
+	bcs +
+	lda iec_drive_flags
+	ora #%00000001
+	sta iec_drive_flags
++	jsr status_has_jiffydos
+	bcs +
+	lda iec_drive_flags
+	ora #%00000010
+	sta iec_drive_flags
++
 	; SD2IEC -> SJL (unless host_jd)
 	lda host_jd
 	bne .try_parallel
-	jsr status_has_sd2iec
-	bcs .try_parallel
+	lda iec_drive_flags
+	and #%00000001
+	beq .try_parallel
 	jsr datasette_blocks_sjl	; C=1 datasette conflict → skip SJL
 	bcs .try_parallel
 	jmp SJL_load
@@ -503,8 +523,9 @@ iec_load:
 .try_drive_jd:
 	lda host_jd
 	bne load_rom
-	jsr status_has_jiffydos
-	bcs load_rom
+	lda iec_drive_flags
+	and #%00000010
+	beq load_rom
 	jsr datasette_blocks_sjl
 	bcs load_rom
 	jmp SJL_load
