@@ -23,7 +23,13 @@ SJL_load:
 		lda TED_FF06
 		sta RAM_TED_FF06_BACKUP
 		and #$ef
-		sta TED_FF06			; screen off
+		sta TED_FF06			; screen off (may allow 2 MHz)
+
+		; SJL bitbang is cycle-counted for 1 MHz — force single clock
+		lda TED_FF13
+		sta RAM_TED_FF13_BACKUP
+		ora #%00000010
+		sta TED_FF13
 
 		jmp SJL_highcode
 

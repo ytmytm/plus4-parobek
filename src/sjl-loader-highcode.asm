@@ -177,6 +177,8 @@ sjl_restore:
 		sta TED_BORDER
 		lda RAM_TED_FF06_BACKUP
 		sta TED_FF06
+		lda RAM_TED_FF13_BACKUP
+		sta TED_FF13
 		lda #$0f
 		sta $00
 		jmp ROM_CBMSER_DAT_HIZ

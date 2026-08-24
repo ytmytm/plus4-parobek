@@ -55,6 +55,7 @@ RAM_CURBNK	= $FB	; current ROM bank
 RAM_TED_BORDER_BACKUP = $E6	; backup of TED_BORDER
 RAM_TED_FF06_BACKUP = $E7	; backup of TED_FF06
 RAM_SA_BACKUP = $E8	; backup of RAM_SA
+RAM_TED_FF13_BACKUP = $E9	; backup of TED $FF13 (single/double clock)
 
 
 RAM_ICRNCH  = $0304 ; Indirect Crunch (Tokenization Routine) 
@@ -79,6 +80,7 @@ LEF3B           = $EF3B
 LF211           = $F211
 
 TED_FF06        = $FF06
+TED_FF13        = $FF13		; bit1 = single clock (SJL bitbang needs 1 MHz)
 TED_BACK        = $FF15
 TED_COL1        = $FF16
 TED_COL2        = $FF17
