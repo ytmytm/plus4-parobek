@@ -87,7 +87,20 @@ status_has_jiffydos:
 	jmp scan_status_for
 .sig_jd:	!text "JIFFYDOS", 0
 
-; Task 3 placeholder: datasette block check before SJL load.
+; C=1 → do not run SJL (datasette conflict). C=0 → SJL allowed.
 datasette_blocks_sjl:
-	clc
-	rts
+	!zone DatasetteGate {
+		lda $01
+		and #%00001000
+		beq .block
+		clc
+		rts
+.block:
+		lda #<datasette_txt
+		ldy #>datasette_txt
+		jsr print_msg
+		sec
+		rts
+datasette_txt:
+		!text "DATASETTE, SKIP SJL",13,0
+	}
