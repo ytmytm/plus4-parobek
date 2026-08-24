@@ -22,26 +22,35 @@ source "$ROM_ENV"
 XPLUS4="${XPLUS4:-/usr/local/bin/xplus4}"
 EMPTY_TAP="${EMPTY_TAP:-$SCRIPT_DIR/empty.tap}"
 
+# Plus/4 VICE often keeps unit #8 as 1551 from defaults/saved settings.
+# -dos1541 only swaps the ROM image; drive *type* must be forced explicitly.
+# ROMs in roms.env are 1541-II images → type 1542. True-drive required for JD.
+DRIVE8_ARGS=(-drive8type 1542 -drive8truedrive -drive9type 0)
+
 make -C "$REPO_ROOT/src" via
 
 cmd_stock_jd1541() {
-	printf '%s -default -kernal %q -basic %q -dos1541 %q -c1lo %q' \
-		"$XPLUS4" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1541_JD" "$PAROBEK_BIN"
+	printf '%s -default -kernal %q -basic %q -dos1541 %q %s -c1lo %q' \
+		"$XPLUS4" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1541_JD" \
+		"${DRIVE8_ARGS[*]}" "$PAROBEK_BIN"
 }
 
 cmd_stock_stock1541() {
-	printf '%s -default -kernal %q -basic %q -dos1541 %q -c1lo %q' \
-		"$XPLUS4" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1541_STOCK" "$PAROBEK_BIN"
+	printf '%s -default -kernal %q -basic %q -dos1541 %q %s -c1lo %q' \
+		"$XPLUS4" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1541_STOCK" \
+		"${DRIVE8_ARGS[*]}" "$PAROBEK_BIN"
 }
 
 cmd_stock_jd_tape() {
-	printf '%s -default -kernal %q -basic %q -dos1541 %q -c1lo %q -1 %q' \
-		"$XPLUS4" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1541_JD" "$PAROBEK_BIN" "$EMPTY_TAP"
+	printf '%s -default -kernal %q -basic %q -dos1541 %q %s -c1lo %q -1 %q' \
+		"$XPLUS4" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1541_JD" \
+		"${DRIVE8_ARGS[*]}" "$PAROBEK_BIN" "$EMPTY_TAP"
 }
 
 cmd_hostjd_jd1541() {
-	printf '%s -default -kernal %q -basic %q -dos1541 %q -c1lo %q' \
-		"$XPLUS4" "$HOST_KERNAL_JD" "$HOST_BASIC_STOCK" "$DRIVE_1541_JD" "$PAROBEK_BIN"
+	printf '%s -default -kernal %q -basic %q -dos1541 %q %s -c1lo %q' \
+		"$XPLUS4" "$HOST_KERNAL_JD" "$HOST_BASIC_STOCK" "$DRIVE_1541_JD" \
+		"${DRIVE8_ARGS[*]}" "$PAROBEK_BIN"
 }
 
 expect_stock_jd1541='After menu "3", load shows SJL264'
