@@ -6,7 +6,7 @@
 
 ;; this must run *after* tcbm2sd detect to avoid exiting sd card image
 
-status_buffer = $0200 ; can't use tape buffer because of directory browser loader
+; status_buffer ($0200) defined in t2s-detect.asm
 
 ; return C=0 - device is PI1551, C=1 - device is not PI1551 (1551 with or without RAMBOard)
 

@@ -454,28 +454,45 @@ iec_load:
 	sta load_status
 	jsr iecburst_load
 	bit load_status
-	bmi +			    ; was not loaded, try 1541/parallel
-	rts			    ; loaded (or failed with an error code that
-				    ;  BASIC reports) - the device type was already
-				    ;  printed on the "IEC DEVICE, " line, so there
-				    ;  is nothing left to say here
+	bmi +
+	rts
 
-+	lda #<iec_load_txt3
-    ldy #>iec_load_txt3
-    jsr print_msg
++	jsr iec_read_status
+	bcs .try_parallel		; no device -> parallel attempt then ROM
 
+	; SD2IEC -> SJL (unless host_jd)
+	lda host_jd
+	bne .try_parallel
+	jsr status_has_sd2iec
+	bcs .try_parallel
+	jsr datasette_blocks_sjl	; Task 3: for now always clc (not blocking)
+	bcs .try_parallel
+	jmp SJL_load
+
+.try_parallel:
+	lda #<iec_load_txt3
+	ldy #>iec_load_txt3
+	jsr print_msg
 	jsr par1541_detect
 	sta $d0
 	bit $d0
-	bpl load_rom		; not 1541 -> fall back on ROM
+	bpl .try_drive_jd
 	and #%01111111
-	beq load_rom	    ; 1541 but no parallel cable -> fall back on ROM
+	beq .try_drive_jd
 	lda #<iec_load_txt4
-    ldy #>iec_load_txt4
-    jsr print_msg
+	ldy #>iec_load_txt4
+	jsr print_msg
 	lda $d0
 	jmp SpeedDOS_load
-;	jmp par1541_load ; XXX
+
+.try_drive_jd:
+	lda host_jd
+	bne load_rom
+	jsr status_has_jiffydos
+	bcs load_rom
+	jsr datasette_blocks_sjl
+	bcs load_rom
+	jmp SJL_load
 
 load_rom_txt:
 	!text "ROM LOAD",13,0
@@ -505,6 +522,9 @@ iecburst_load:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 !source "speeddos-loader.asm"
+
+!source "sjl-detect.asm"
+!source "sjl-loader.asm"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
