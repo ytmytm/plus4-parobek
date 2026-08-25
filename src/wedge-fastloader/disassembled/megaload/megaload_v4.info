@@ -1,0 +1,9 @@
+        # Initial whole-PRG disassembly. Refine segments as protocol analysis proceeds.
+        GLOBAL {
+            OUTPUTNAME      "megaload_v4.s";
+            INPUTNAME       "megaload_v4.prg";
+            INPUTOFFS       2;
+            STARTADDR       $1001;
+            PAGELENGTH      0;
+            CPU             "6502";
+        };
