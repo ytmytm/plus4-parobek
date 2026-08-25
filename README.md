@@ -32,7 +32,7 @@ Requires the [Burstcart](https://github.com/ytmytm/plus4-burstcart) interface.
 
 #### 1541 IEC
 
-Not done yet. When implemented it must support both original CPU as well as 6502/6510 replacements.
+For stock 1541 drives without a parallel cable, Parobek uses a **1541 SERIAL** fastloader (`fast1541iec`) after burst, SJL/JiffyDOS, and parallel paths. Transfer uses CLK/DATA only (no ATN data protocol). JiffyDOS and SD2IEC drives continue to use SJL264. Replacement 6502/6510 CPUs in the drive may need further tuning; original CPUs are the primary target.
 
 #### IEC JiffyDOS / SD2IEC (SJL264)
 

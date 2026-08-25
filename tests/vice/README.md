@@ -47,7 +47,7 @@ Launch one case (opens VICE interactively):
 | Case | Host | Drive | Datasette | Pass criteria (manual) |
 |------|------|-------|-----------|------------------------|
 | `stock+jd1541` | Stock kernal | JiffyDOS 1541 | — | Menu **3**, then `LOAD"HELLO",8` shows **SJL264** |
-| `stock+stock1541` | Stock kernal | Stock 1541 | — | `LOAD"HELLO",8` — no **SJL264**; parallel or **ROM LOAD** |
+| `stock+stock1541` | Stock kernal | Stock 1541 | — | Menu **3**, then `LOAD"HELLO",8` shows **1541 SERIAL** then HELLO |
 | `stock+jd+tape` | Stock kernal | JiffyDOS 1541 | Attached (`-1 empty.tap`) | **DATASETTE, SKIP SJL** then ROM/parallel |
 | `hostjd+jd1541` | JiffyDOS host kernal | JiffyDOS 1541 | — | `LOAD"HELLO",8` shows **HOST JIFFYDOS** then **ROM LOAD**; no **SJL264** |
 | `stock+jd1581` | Stock kernal | JiffyDOS 1581 | — | Menu **3**, then `LOAD"HELLO",8` shows **SJL264** |

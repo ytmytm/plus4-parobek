@@ -91,7 +91,7 @@ cmd_hostjd_jd1581() {
 }
 
 expect_stock_jd1541='Menu "3", then LOAD"HELLO",8 — expect SJL264'
-expect_stock_stock1541='Menu "3", LOAD"HELLO",8 — no SJL264; parallel or ROM LOAD'
+expect_stock_stock1541='Menu "3", LOAD"HELLO",8 — expect 1541 SERIAL then HELLO'
 expect_stock_jd_tape='LOAD"HELLO",8 — DATASETTE, SKIP SJL then ROM/parallel'
 expect_hostjd_jd1541='LOAD"HELLO",8 — HOST JIFFYDOS then ROM LOAD; no SJL264'
 expect_stock_jd1581='Menu "3", then LOAD"HELLO",8 — expect SJL264 (1581 JD)'
