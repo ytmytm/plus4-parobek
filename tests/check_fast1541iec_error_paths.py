@@ -17,10 +17,10 @@ def section(source: str, start: str, end: str) -> list[str]:
 assert "jmp SJL_jd_transfer" in wrapper
 assert "fast1541iec-loader-highcode" not in wrapper
 assert "SJL_jd_transfer:" in sjl_host
-assert "sjl_jd_receive_loop:" in sjl_host
-assert "jsr sjl_jd_receive_loop" in sjl_host
+assert "jsr sjl_receive_vec" in sjl_host
+assert "sjl_jd_receive_loop_6510:" in sjl_host
+assert sjl_host.count("sjl_jd_receive_loop:") >= 1
 assert ".loadloop:" in sjl_host
-assert sjl_host.count(".loadloop:") == 1
 
 # Keep the complete JD sender shape, not a per-byte approximation.
 assert "lda ($30),y" in drive

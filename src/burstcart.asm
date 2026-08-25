@@ -225,6 +225,18 @@ install_fastload:
 
 	jsr detect_host_jiffydos
 	jsr detect_cpu_port_type
+	lda #<sjl_jd_receive_loop
+	sta sjl_receive_vec+1
+	lda #>sjl_jd_receive_loop
+	sta sjl_receive_vec+2
+	lda cpu_port_type
+	cmp #1
+	bne +
+	lda #<sjl_jd_receive_loop_6510
+	sta sjl_receive_vec+1
+	lda #>sjl_jd_receive_loop_6510
+	sta sjl_receive_vec+2
++
 	lda host_jd
 	bne .after_wedge		; host JD: keep LOAD hook, skip DOS wedge
 .install_wedge:

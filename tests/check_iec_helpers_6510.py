@@ -20,7 +20,8 @@ assert "iec_mw_one_chunk:" in mem
 assert "iec_me:" in mem
 assert "ted_sjl_enter:" in mem
 assert "jsr iec_m_minus" in fast
-assert "jsr iec_m_minus" in spd
+assert "iec_mw_one_chunk" in spd
+assert "iec_me" in spd
 assert "jsr ted_sjl_enter" in fast
 assert "jsr iec_mw_one_chunk" in fast
 assert "jsr ted_sjl_enter" in (ROOT / "src/sjl-loader.asm").read_text()

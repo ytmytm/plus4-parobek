@@ -115,7 +115,6 @@ SpeedDOS_load:  !zone SpeedDOS_Loader {
         lda     #$1E            ; chunk size
         jsr     iec_mw_one_chunk
         ; ignore C — SpeedDOS does not treat RAM_STATUS & $83 as upload fail
-        ; (jsr iec_m_minus is inside iec_mw_one_chunk / iec_me)
         clc
         lda     $03
         adc     #$1E            ; next chunk address
