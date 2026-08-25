@@ -3,3 +3,6 @@ src/labels-*.txt
 tests/vice/roms.env
 .superpowers/sdd/
 SJL264-*.tar.bz2
+
+# Agent design/plan scratch — not part of the shipped tree
+docs/superpowers/
