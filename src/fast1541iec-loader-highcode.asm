@@ -19,13 +19,17 @@ fast1541iec_highcode:
 .loadloop:
 	lda #%00001000
 	sta $01
+	ldx #$00			; 16-bit bounded wait; zero means 256
+	stx $d0
 .wait_clk_drive:
 	bit $01
-	bvc .wait_clk_drive
+	bvc .wait_clk_pending
 	bmi .loadendover
+	ldx #$00
+	stx $d0
 .wait_data_drive:
 	bit $01
-	bpl .wait_data_drive
+	bpl .wait_data_pending
 
 .transferbyte:
 	nop
@@ -71,6 +75,26 @@ fast1541iec_highcode:
 	bne .transferbyte
 	inc $9e
 	jmp .transferbyte
+
+.wait_clk_pending:
+	dex
+	bne .wait_clk_drive
+	dec $d0
+	bne .wait_clk_drive
+	jmp .transfer_timeout
+
+.wait_data_pending:
+	dex
+	bne .wait_data_drive
+	dec $d0
+	bne .wait_data_drive
+
+.transfer_timeout:
+	lda #%00000010			; serial timeout
+	jsr ROM_SET_STATUS_HELPER
+	jsr sjl_untalk
+	jsr ROM_IEC_CLOSE_SETUP
+	jmp .file_error
 
 .loadendover:
 	ldx #$64

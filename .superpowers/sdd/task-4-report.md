@@ -95,3 +95,21 @@ sequence and all drive `$1800` writes keep ATNA clear.
 - Test-first static checks failed on both reviewed paths before the changes and
   passed afterward.
 - `cd src && make via` and a forced `make -B via` rebuild pass; ACME exits 0.
+
+## Whole-branch Critical/Important fixes
+
+- Both host handshake waits now use nested `$d0`/X counters. Their pending
+  branches contain `dex` retry paths and converge on `.transfer_timeout`, so a
+  drive READ error that holds CLK asserted can no longer lock the host forever.
+- The counter work is outside the successful ready path: the existing
+  `bit`/branch sequence and cycle-counted `.transferbyte` body are unchanged.
+- Transfer timeout sets serial timeout status, performs SJL UNTALK and IEC
+  close cleanup, restores all saved machine state, and returns
+  `load_status=$04` with carry set.
+- File-not-found and rejected low load-address exits now issue KERNAL UNTALK
+  and IEC close cleanup before returning the same `$04` failure status.
+- Added `tests/check_fast1541iec_error_paths.py`; it failed first on the absent
+  timeout section, then passed with both bounded waits and cleanup exits.
+- `cd src && make via` and `make -B via` pass; `git diff --check` passes.
+- Remaining concern: no interactive VICE or physical-drive read-error
+  injection was run, so recovery is covered structurally and by assembly only.

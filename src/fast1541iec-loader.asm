@@ -10,14 +10,14 @@ fast1541iec_load:
 
 		jsr shared_rom_check
 		bcc +
-		jmp .fail
+		jmp .fail_open
 +
 
 		; Do not permit the fast receiver to overwrite KERNAL/I/O space.
 		lda $9e
 		cmp #$0a
 		bcs +
-		jmp .fail
+		jmp .fail_open
 +
 
 		; Finish the KERNAL channel used to obtain the load address.  The
@@ -113,6 +113,11 @@ fast1541iec_load:
 		jsr ROM_CIOUT
 		pla
 		jmp ROM_CIOUT
+
+.fail_open:
+		jsr ROM_UNTLK
+		jsr ROM_IEC_CLOSE_SETUP
+		jmp .fail
 
 .fail:
 		lda #$04
