@@ -147,6 +147,7 @@ par1541_detect:
 ;875c
             jsr delay
 
+!if burst = 3 {
             lda ppibase
             cmp #$55
             bne +
@@ -155,7 +156,24 @@ par1541_detect:
             cmp #$55
             bne +
             inc $d4
-+           lda ciabase+1
++
+}
+!if burst = 1 {
+            lda ciabase+1
+            cmp #$55
+            bne +
+            inc $d5
++
+}
+!if burst = 2 {
+            lda viabase+1
+            cmp #$55
+            bne +
+            inc $d6
++
+}
+!if burst = 3 {
+            lda ciabase+1
             cmp #$55
             bne +
             inc $d5
@@ -164,6 +182,7 @@ par1541_detect:
             bne +
             inc $d6
 +
+}
 
             !if par1541_debug = 1 {
                 lda #<.via1_testaa_txt
@@ -181,6 +200,7 @@ par1541_detect:
 
             jsr delay
 
+!if burst = 3 {
             lda ppibase
             cmp #$aa
             bne +
@@ -189,7 +209,24 @@ par1541_detect:
             cmp #$aa
             bne +
             inc $d4
-+           lda ciabase+1
++
+}
+!if burst = 1 {
+            lda ciabase+1
+            cmp #$aa
+            bne +
+            inc $d5
++
+}
+!if burst = 2 {
+            lda viabase+1
+            cmp #$aa
+            bne +
+            inc $d6
++
+}
+!if burst = 3 {
+            lda ciabase+1
             cmp #$aa
             bne +
             inc $d5
@@ -198,6 +235,7 @@ par1541_detect:
             bne +
             inc $d6
 +
+}
 
             !if par1541_debug = 1 {
                 lda #<.via1_input_txt
@@ -224,25 +262,40 @@ par1541_detect:
                 sta $0c00+43
             }
 
-            ; gather results
-            ; CIA/VIA: present vote + $55 + $AA → need 3
-            ; PPI/PIO (CPLD only): $55 + $AA only → need 2 (no open-bus "present")
+            ; gather results — only interfaces probed for this build can win
             lda #$80
-            ldx #2
+!if burst = 3 {
+            ldx #2              ; PPI/PIO: $55+$AA only
             cpx $d3
             bne +
-            ora #%01000000  ; PPI connected
+            ora #%01000000
 +           cpx $d4
             bne +
-            ora #%00100000  ; PIO connected
-+           ldx #3
+            ora #%00100000
++           ldx #3              ; CIA/VIA: present+$55+$AA
             cpx $d5
             bne +
-            ora #%00010000  ; CIA connected
+            ora #%00010000
 +           cpx $d6
             bne +
-            ora #%00001000  ; VIA connected
-+           sta $d7
+            ora #%00001000
++
+}
+!if burst = 1 {
+            ldx #3
+            cpx $d5
+            bne +
+            ora #%00010000      ; CIA only
++
+}
+!if burst = 2 {
+            ldx #3
+            cpx $d6
+            bne +
+            ora #%00001000      ; VIA only
++
+}
+            sta $d7
 
 ; check if YTM's 1541 TrackCache ROM is installed - 'RAM' at $a000
 ; only if it's CIA or VIA because hardware handshake is required
