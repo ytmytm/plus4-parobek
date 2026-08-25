@@ -269,8 +269,32 @@ sjl_jd_receive_loop_6510:
 		pha
 		nop
 		nop
-		lda $01			; S3
-		jsr sjl_fold4_6510
+		lda $01			; S3 in A; S2/S1/S0 on stack (no JSR frame)
+		jsr sjl_pair6510
+		asl
+		asl
+		asl
+		asl
+		asl
+		asl
+		sta $95
+		pla
+		jsr sjl_pair6510
+		asl
+		asl
+		asl
+		asl
+		ora $95
+		sta $95
+		pla
+		jsr sjl_pair6510
+		asl
+		asl
+		ora $95
+		sta $95
+		pla
+		jsr sjl_pair6510
+		ora $95
 		eor #$00		; idle debris none (type-1 $01 outputs 0)
 
 		ldx $9e
@@ -301,36 +325,8 @@ sjl_jd_receive_loop_6510:
 		rts
 }
 
-; Fold four type-1 $01 samples (S3 in A, S2/S1/S0 on stack) into an 8501-order
-; JD byte: each pair is DATA (bit 0) in pair MSB, CLK (bit 5) in pair LSB.
-sjl_fold4_6510:
-		jsr sjl_pair6510
-		asl
-		asl
-		asl
-		asl
-		asl
-		asl
-		sta $95
-		pla
-		jsr sjl_pair6510
-		asl
-		asl
-		asl
-		asl
-		ora $95
-		sta $95
-		pla
-		jsr sjl_pair6510
-		asl
-		asl
-		ora $95
-		sta $95
-		pla
-		jsr sjl_pair6510
-		ora $95
-		rts
-
+; Pair fold lives inlined in sjl_jd_receive_loop_6510 .transferbyte (PLA is
+; samples S2/S1/S0). Do not JSR a PLA-based fold — that would pop the return.
 sjl_pair6510:
 		tax
 		and #%00100000

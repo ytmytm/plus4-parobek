@@ -41,4 +41,12 @@ assert burst.find("cmp #2") < sjl_jmp
 assert burst.find("cmp #2") < fast_jmp
 assert "lda cpu_port_type" in sjl_det
 assert "$f30c" in cpu.lower() or "$F30C" in cpu
+# Type-1 JD fold must be inlined/fall-through: JSR into a PLA-based fold
+# pops the return address as S2 and yields garbage bytes.
+assert "jsr sjl_fold4" not in sjl_hi
+jd6510 = sjl_hi.split("sjl_jd_receive_loop_6510:")[1]
+xfer = jd6510.split(".transferbyte:")[1].split(".loadendover:")[0]
+assert "jsr sjl_pair6510" in xfer
+assert "eor #$00" in xfer
+assert xfer.find("eor #$00") < xfer.find("sta ($9d),y")
 print("iec helpers / 6510 contracts OK")
