@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# VICE smoke matrix for Parobek SJL264 IEC paths.
+# VICE smoke matrix for Parobek IEC / TCBM paths.
 # Usage:
 #   ./run-matrix.sh list              — print all case commands
 #   ./run-matrix.sh <case>            — build and launch one case
@@ -32,8 +32,10 @@ VICE_COMMON_ARGS=(+sound)
 # For type 1542 the DOS image flag is -dos1541II (NOT -dos1541 — that only
 # affects classic 1541 and leaves the 1541-II on stock "DOS 2.6").
 # For type 1581 use -dos1581 and attach a .d81 (not .d64).
+# For type 1551 use -dos1551 and attach a .d64 (TCBM, not IEC).
 DRIVE8_1541_ARGS=(-drive8type 1542 -drive8truedrive -drive9type 0)
 DRIVE8_1581_ARGS=(-drive8type 1581 -drive8truedrive -drive9type 0)
+DRIVE8_1551_ARGS=(-drive8type 1551 -drive8truedrive -drive9type 0)
 
 require_disk() {
 	local image="$1"
@@ -55,6 +57,12 @@ cmd_stock_stock1541() {
 	printf '%s -default %s -kernal %q -basic %q -dos1541II %q %s -c1lo %q -8 %q' \
 		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1541_STOCK" \
 		"${DRIVE8_1541_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE"
+}
+
+cmd_stock_stock1551() {
+	printf '%s -default %s -kernal %q -basic %q -dos1551 %q %s -c1lo %q -8 %q' \
+		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1551_STOCK" \
+		"${DRIVE8_1551_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE"
 }
 
 cmd_stock_jd_tape() {
@@ -95,6 +103,7 @@ cmd_hostjd_jd1581() {
 
 expect_stock_jd1541='Menu "3", then LOAD"HELLO",8 — expect SJL264'
 expect_stock_stock1541='Menu "3", LOAD"HELLO",8 — expect 1541 SERIAL then HELLO'
+expect_stock_stock1551='Menu "3", LOAD"HELLO",8 — expect TCBM DEVICE, 1551 HYPALOAD then HELLO'
 expect_stock_jd_tape='LOAD"HELLO",8 — DATASETTE, SKIP SJL then ROM/parallel'
 expect_hostjd_jd1541='LOAD"HELLO",8 — HOST JIFFYDOS then ROM LOAD; no SJL264'
 expect_stock_jd1581='Menu "3", then LOAD"HELLO",8 — expect SJL264 (1581 JD)'
@@ -117,6 +126,7 @@ list_cases() {
 	require_disk "$DISK_IMAGE_1581"
 	print_case stock+jd1541 "$expect_stock_jd1541" "$(cmd_stock_jd1541)"
 	print_case stock+stock1541 "$expect_stock_stock1541" "$(cmd_stock_stock1541)"
+	print_case stock+stock1551 "$expect_stock_stock1551" "$(cmd_stock_stock1551)"
 	print_case stock+jd+tape "$expect_stock_jd_tape" "$(cmd_stock_jd_tape)"
 	print_case hostjd+jd1541 "$expect_hostjd_jd1541" "$(cmd_hostjd_jd1541)"
 	print_case stock+jd1581 "$expect_stock_jd1581" "$(cmd_stock_jd1581)"
@@ -138,6 +148,11 @@ run_case() {
 		require_disk "$DISK_IMAGE"
 		expect="$expect_stock_stock1541"
 		cmd="$(cmd_stock_stock1541)"
+		;;
+	stock+stock1551)
+		require_disk "$DISK_IMAGE"
+		expect="$expect_stock_stock1551"
+		cmd="$(cmd_stock_stock1551)"
 		;;
 	stock+jd+tape)
 		require_disk "$DISK_IMAGE"
@@ -171,7 +186,7 @@ run_case() {
 		;;
 	*)
 		echo "Unknown case: $name" >&2
-		echo "Valid cases: stock+jd1541 stock+stock1541 stock+jd+tape hostjd+jd1541 stock+jd1581 stock+stock1581 stock+jd1581+tape hostjd+jd1581" >&2
+		echo "Valid cases: stock+jd1541 stock+stock1541 stock+stock1551 stock+jd+tape hostjd+jd1541 stock+jd1581 stock+stock1581 stock+jd1581+tape hostjd+jd1581" >&2
 		exit 1
 		;;
 	esac
@@ -193,6 +208,9 @@ Cases (1541-II / .d64):
   stock+stock1541  stock host kernal + stock 1541 ROM
   stock+jd+tape    stock host + JiffyDOS 1541 + datasette image
   hostjd+jd1541    JiffyDOS host kernal + JiffyDOS 1541 drive
+
+Cases (1551 TCBM / .d64):
+  stock+stock1551  stock host kernal + stock 1551 ROM
 
 Cases (1581 / .d81):
   stock+jd1581       stock host kernal + JiffyDOS 1581 drive

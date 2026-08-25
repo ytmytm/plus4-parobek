@@ -1,8 +1,10 @@
 ; Sets cpu_port_type in the RAM trampoline. Clobbers A/X.
-; 0 = 7501/8501: DATA-out bit0 follows DATA-in bit7; bit5 reads 0
+; 0 = 7501/8501: DATA-in bit7 is inverted vs DATA-out bit0; bit5 reads 0
 ; 1 = 6510, $F30C DDR init ≠ $0F (Hackjunk patched)
 ; 2 = 6510, $F30C == $0F (stock KERNAL)
 ; 3 = unknown
+; Polarity matches siziolib detect/detect.inc (bpl then bmi). Same-polarity
+; follow classifies VICE 8501 as type 3 and skips SJL / 1541 SERIAL.
 KERNAL_CPU_DIR_INIT = $f30c
 
 detect_cpu_port_type:
@@ -11,19 +13,16 @@ detect_cpu_port_type:
 	sta cpu_port_type
 	lda $01
 	pha
-	; Try 8501: drive DATA-out low (clear bit 0), require bit 7 follow
+	; Release DATA-out (clear bit 0): line high → DATA-in bit7 must be 1
 	and #%11111110
 	sta $01
 	lda $01
-	and #%10000000
-	bne .not_8501		; bit7 still high while bit0 low → not 8501 DATA pair
-	lda $01
+	bpl .not_8501
+	; Pull DATA-out (set bit 0): line low → DATA-in bit7 must be 0
 	ora #%00000001
 	sta $01
-	lda $01
-	and #%10000000
-	beq .not_8501
-	lda $01
+	bit $01
+	bmi .not_8501
 	and #%00100000
 	bne .not_8501		; 8501 bit5 stuck 0
 	lda #0

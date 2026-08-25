@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,6 +42,23 @@ assert burst.find("cmp #2") < sjl_jmp
 assert burst.find("cmp #2") < fast_jmp
 assert "lda cpu_port_type" in sjl_det
 assert "$f30c" in cpu.lower() or "$F30C" in cpu
+# 8501 DATA-in (bit 7) is inverted vs DATA-out (bit 0): 1 on out pulls the
+# line low, which reads as 0 on in. siziolib therefore does bpl after
+# releasing bit 0 (bit7 must be 1) and bmi after pulling bit 0 (bit7 must
+# be 0). Same-polarity follow misclassifies VICE xplus4 as type 3 and
+# skips SJL + 1541 SERIAL (ROM LOAD).
+_8501, _, _rest = cpu.partition("and #%11111110")
+_probe, _, _ = _rest.partition(".not_8501:")
+_br = re.findall(r"\b(bpl|bmi|bne|beq) \.not_8501\b", _probe)
+assert _br, "8501 probe must branch to .not_8501"
+assert _br[0] in ("bpl", "beq"), (
+    "after releasing DATA-out, bit7=0 is not-8501 (siziolib bpl); "
+    f"got {_br[0]}"
+)
+assert len(_br) >= 2 and _br[1] in ("bmi", "bne"), (
+    "after pulling DATA-out, bit7=1 is not-8501 (siziolib bmi); "
+    f"got {_br}"
+)
 # Type-1 JD fold must be inlined/fall-through: JSR into a PLA-based fold
 # pops the return address as S2 and yields garbage bytes.
 assert "jsr sjl_fold4" not in sjl_hi

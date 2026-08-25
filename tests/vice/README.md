@@ -1,6 +1,6 @@
 # VICE smoke matrix (SJL264)
 
-Manual smoke tests for Parobek IEC fastloader paths under VICE `xplus4`. These scripts document expected `xplus4` invocations for host × drive × datasette combinations (1541-II and 1581). No automated pass/fail assertions yet — verify behavior visually in the emulator.
+Manual smoke tests for Parobek IEC and TCBM fastloader paths under VICE `xplus4`. These scripts document expected `xplus4` invocations for host × drive × datasette combinations (1541-II, 1551, and 1581). No automated pass/fail assertions yet — verify behavior visually in the emulator.
 
 ## Setup
 
@@ -34,6 +34,7 @@ Launch one case (opens VICE interactively):
 ```bash
 ./tests/vice/run-matrix.sh stock+jd1541
 ./tests/vice/run-matrix.sh stock+stock1541
+./tests/vice/run-matrix.sh stock+stock1551
 ./tests/vice/run-matrix.sh stock+jd+tape
 ./tests/vice/run-matrix.sh hostjd+jd1541
 ./tests/vice/run-matrix.sh stock+jd1581
@@ -48,6 +49,7 @@ Launch one case (opens VICE interactively):
 |------|------|-------|-----------|------------------------|
 | `stock+jd1541` | Stock kernal | JiffyDOS 1541 | — | Menu **3**, then `LOAD"HELLO",8` shows **SJL264** |
 | `stock+stock1541` | Stock kernal | Stock 1541 | — | Menu **3**, then `LOAD"HELLO",8` shows **1541 SERIAL** then HELLO |
+| `stock+stock1551` | Stock kernal | Stock 1551 | — | Menu **3**, then `LOAD"HELLO",8` shows **TCBM DEVICE, 1551 HYPALOAD** then HELLO |
 | `stock+jd+tape` | Stock kernal | JiffyDOS 1541 | Attached (`-1 empty.tap`) | **DATASETTE, SKIP SJL** then ROM/parallel |
 | `hostjd+jd1541` | JiffyDOS host kernal | JiffyDOS 1541 | — | `LOAD"HELLO",8` shows **HOST JIFFYDOS** then **ROM LOAD**; no **SJL264** |
 | `stock+jd1581` | Stock kernal | JiffyDOS 1581 | — | Menu **3**, then `LOAD"HELLO",8` shows **SJL264** |
@@ -55,7 +57,7 @@ Launch one case (opens VICE interactively):
 | `stock+jd1581+tape` | Stock kernal | JiffyDOS 1581 | Attached (`-1 empty.tap`) | **DATASETTE, SKIP SJL** then ROM |
 | `hostjd+jd1581` | JiffyDOS host kernal | JiffyDOS 1581 | — | `LOAD"HELLO",8` shows **HOST JIFFYDOS** then **ROM LOAD**; no **SJL264** |
 
-1541 cases attach **`smoke-test.d64`** on unit #8; 1581 cases attach **`smoke-test.d81`**. Both contain PRG `HELLO` and, when the source exists, `AMAUROTE` (`~/Maciejdev/plus4/amaurote/amaurote/output/amaurote-intro-plain.prg`).
+1541 and 1551 cases attach **`smoke-test.d64`** on unit #8; 1581 cases attach **`smoke-test.d81`**. Both contain PRG `HELLO` and, when the source exists, `AMAUROTE` (`~/Maciejdev/plus4/amaurote/amaurote/output/amaurote-intro-plain.prg`).
 
 ## Disk images
 
@@ -72,6 +74,7 @@ Regenerate:
 - 1541 cases force **`-drive8type 1542 -drive8truedrive -drive9type 0`** and load the DOS image with **`-dos1541II`**. Using `-dos1541` only affects classic 1541 and leaves a 1541-II on stock **DOS 2.6**.
 - Drive type `1542` is CBM 1541-II (matches the stock/`JiffyDOS_1541-II` ROM images in `roms.env.example`).
 - 1581 cases force **`-drive8type 1581 -drive8truedrive -drive9type 0`** and load the DOS image with **`-dos1581`**. Attach a **`.d81`**, not a `.d64`.
+- 1551 cases force **`-drive8type 1551 -drive8truedrive -drive9type 0`** and load the DOS image with **`-dos1551`**. Attach a **`.d64`** (TCBM, not IEC).
 - `stock+jd+tape` / `stock+jd1581+tape` attach `tests/vice/empty.tap` by default (zero-byte placeholder; VICE accepts it for datasette attach).
 - `PAROBEK_BIN` in `roms.env.example` resolves via `git rev-parse --show-toplevel`.
 - `tests/vice/roms.env` is gitignored; do not commit local paths.
