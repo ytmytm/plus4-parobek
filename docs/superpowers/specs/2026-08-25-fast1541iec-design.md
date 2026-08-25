@@ -2,7 +2,7 @@
 
 Date: 2026-08-25  
 Branch: `feature-fast1541iec` (from `feature-sjl264`)  
-Status: design approved — research spike next  
+Status: design approved — protocol chosen: `jiffy2bit`
 
 ## Goal
 
