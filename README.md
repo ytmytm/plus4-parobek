@@ -54,6 +54,12 @@ Requires the [Burstcart](https://github.com/ytmytm/plus4-burstcart) interface.
 
 When the drive status contains `SD2IEC` or `JIFFYDOS` (and the host is not already JiffyDOS), Parobek uses an **SJL264**-derived serial fastloader: cycle-timed 2-bit CLK/DATA receive on the Plus/4 CPU port, ROM-safe (no self-mod).
 
+At install, Parobek probes the host CPU port once and stores **`cpu_port_type`** in the LOAD trampoline (same lifetime as the rest of the install RAM). That value selects how SJL receives:
+
+- **8501** (stock Plus/4 CPU): existing receive loop; a connected datasette still blocks this path.
+- **Hackjunk 6510 + patched KERNAL** ([8501→6510 conversion](https://hackjunk.com/2017/06/23/commodore-16-plus-4-8501-to-6510-cpu-conversion/)): a second receive loop, with DATA in bit 0 and CLK in bit 5. The cassette motor gate does not apply.
+- **6510 + stock KERNAL** (and unknown ports): SJL is skipped; the load falls through to ROM IEC.
+
 **Sources / references**
 
 - Upstream: [SJL264 Light](https://bsz.amigaspirit.hu/sjl264/index_en.html) (BSZ) — load-only path ported into `src/sjl-loader*.asm`; reference tree under `third_party/sjl264/`
@@ -63,12 +69,15 @@ When the drive status contains `SD2IEC` or `JIFFYDOS` (and the host is not alrea
 
 For a stock 1541 **without** parallel and **without** drive JiffyDOS/SD2IEC, Parobek uploads drive code that speaks the same JiffyDOS LOAD bit timing, then receives with the shared **`SJL_jd_transfer`** entry (same loop as SJL264). CLK/DATA only — no ATN-as-data.
 
+Host handling is the same `cpu_port_type` value set at install:
+
+- **Hackjunk 6510 + patched KERNAL**: same second receive loop as SJL264 (DATA in bit 0, CLK in bit 5). Cassette motor gate does not apply.
+- **6510 + stock KERNAL**: this path is skipped; the load uses ROM IEC.
+
 **Sources / references (drive sender)**
 
 - Disassembled 1541 JiffyDOS LOAD routines: [`docs/1541EJD.a65`](docs/1541EJD.a65) (from [Ruud Baltissen’s source codes](http://www.baltissen.org/newhtm/sourcecodes.htm)
 - Protocol notes: [Open ROMs — Protocol-JiffyDOS](https://github.com/MEGA65/open-roms/blob/master/doc/Protocol-JiffyDOS.md), [pagetable 2-bit transfer](https://www.pagetable.com/?p=568)
-
-Replacement 6502 CPU in the computer needs additional work due to switched serial lines on CPU port.
 
 #### 1541 with parallel cable
 
