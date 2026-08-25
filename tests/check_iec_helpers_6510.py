@@ -22,7 +22,22 @@ assert "ted_sjl_enter:" in mem
 assert "jsr iec_m_minus" in fast
 assert "jsr iec_m_minus" in spd
 assert "jsr ted_sjl_enter" in fast
-assert sjl_det.count("iec_send_ui") == 1
+assert "jsr iec_mw_one_chunk" in fast
+assert "jsr ted_sjl_enter" in (ROOT / "src/sjl-loader.asm").read_text()
+assert sjl_det.count("jsr iec_send_ui") == 1
+assert [
+    p.name
+    for p in (ROOT / "src").glob("*.asm")
+    if "jsr iec_send_ui" in p.read_text()
+] == ["sjl-detect.asm"]
+# type 2/3 skip: cmp #2 must appear before SJL and 1541 SERIAL jmp paths
+assert "jmp SJL_load" in burst
+assert "jmp fast1541iec_load" in burst
+assert "cmp #2" in burst
+sjl_jmp = burst.find("jmp SJL_load")
+fast_jmp = burst.find("jmp fast1541iec_load")
+assert burst.find("cmp #2") < sjl_jmp
+assert burst.find("cmp #2") < fast_jmp
 assert "lda cpu_port_type" in sjl_det
 assert "$f30c" in cpu.lower() or "$F30C" in cpu
 print("iec helpers / 6510 contracts OK")
