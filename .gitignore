@@ -1,6 +1,8 @@
 src/bin/*.bin
 src/labels-*.txt
 tests/vice/roms.env
+tests/yape/roms.env
+tests/yape/roms/
 .superpowers/sdd/
 SJL264-*.tar.bz2
 

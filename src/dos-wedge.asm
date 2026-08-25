@@ -227,9 +227,24 @@ dos_send_command_end:
 dos_display_status:
         lda RAM_FA
         beq dos_status_end
-        ; Print ch15 and OR sticky flags into cmd_text (not $0200 / BASIC BUF).
-        jsr iec_print_drive_status
-        jmp dos_wedge_end
+        jsr ROM_TALK
+        jsr ROM_READST
+        and #%11000000          ; device not present?
+        bne dos_display_status_end
+        lda #$6F
+        jsr ROM_TKSA
+        jsr ROM_READST
+        and #%11000000          ; device not present?
+        bne dos_display_status_end
+-       jsr ROM_ACPTR
+        bcs dos_display_status_end
+        cmp #$0D
+        beq +
+        jsr ROM_CHROUT
+        jmp -
++       jsr ROM_CHROUT
+dos_display_status_end:
+        jsr ROM_UNTLK
 
 dos_status_end:
         jmp dos_wedge_end
