@@ -1,84 +1,72 @@
-# Task 4 Report: Port SJL264 receive path (ROM-safe, load only)
+# Task 4 Report: fast1541iec upload and jiffy2bit transfer
 
-**Branch:** `feature-sjl264`  
-**Commit:** `ef7b7ec` - Port SJL264 receive path as ROM-safe loader backend.  
-**Status:** DONE
+**Branch:** `feature-fast1541iec`  
+**Base:** `f168d4a`  
+**Status:** DONE_WITH_CONCERNS
 
 ## Summary
 
-Replaced the `SJL264 STUB` path with a real, load-only SJL264 receive implementation split into a wrapper (`SJL_load`) and ROM-resident highcode (`SJL_highcode`). The new path keeps Parobek's `load_status` contract, uses `shared_rom_check`, honors ROM-safety limits (`$0000` wrap and `$FD00+` skip-store), and restores TED/UI state on every return path.
+Replaced the fast1541iec stubs with a seven-chunk `M-W` upload, `M-E $0300`,
+a stock-1541 DOS job reader, and the Plus/4 SJL/Jiffy-style two-bit receive
+loop. The normal EOF path implements the binding `$08 -> $00 -> $08` EOI
+sequence and all drive `$1800` writes keep ATNA clear.
 
-## Changes
+## Implementation
 
-### `src/sjl-loader.asm`
+- `fast1541iec-loader.asm`
+  - Uses `shared_rom_check` for file lookup and load-address selection.
+  - Closes logical file 1 following the existing SpeedDOS pattern.
+  - Uploads exactly 224 bytes to `$0300-$03df` as seven 32-byte `M-W`
+    commands, checks IEC timeout/device status, then executes `M-E $0300`.
+  - Saves the TED border, disables the screen, and forces 1 MHz before
+    entering the timed receiver.
+- `fast1541iec-drivecode.asm`
+  - Uses AAY1541's documented buffer-4 API: job `$04`, T/S `$0e/$0f`,
+    buffer `$0700`, and READ jobcode `$80` (success `$01`).
+  - Follows the file chain beginning at DOS `$18/$19`.
+  - Converts each least-significant-first bit pair through the complete safe
+    `$0a/$02/$08/$00` VIA image table.
+  - Arms CLK while preparing each byte so a premature host probe returns to
+    `.loadloop`; timed output stores are spaced 9/10/10 drive cycles.
+- `fast1541iec-loader-highcode.asm`
+  - Reuses the SJL/Jiffy `$00/$01` handshake and reconstruction sequence.
+  - Discards the raw sector stream's first two PRG load-address bytes.
+  - Rejects initial addresses below `$0a00`; during transfer it skips page
+    `$00` and pages at/above `$fd`, returns the end address in X/Y, and
+    restores TED, RAM SA, CPU-port DDR, and the exact saved `$01`.
+  - Sets `load_status=$00` on clean EOF or `4` on host serial/close error.
 
-- Replaced stub with real `SJL_load` wrapper.
-- Calls `shared_rom_check`; returns `load_status=4` on file-not-found.
-- Enforces load-only ROM-safe gate: if load address high byte `< $0A`, closes serial context and returns `load_status=$80` (fall back to ROM).
-- Backs up `TED_BORDER` and `TED_FF06`, turns screen off, and jumps to highcode.
-- Sources `sjl-loader-highcode.asm`.
+## References checked
 
-### `src/sjl-loader-highcode.asm` (new)
-
-- Added `SJL_highcode` receive loop, plus `sjl_talk`, `sjl_sectalk`, `sjl_untalk`, and `sjl_busin` helper ports from upstream.
-- Uses JD data channel secondary address `$61` after the ROM setup/open phase.
-- Ported timing-critical byte transfer loop with no self-modifying code.
-- Replaced opcode patching with explicit store policy:
-  - skip store when `$9E == $00` (wrap to `$0000`)
-  - skip store when `$9E >= $FD` (ROM / I/O range)
-- Preserves border activity (`inc TED_BORDER`) and restores `RAM_TED_BORDER_BACKUP` + `RAM_TED_FF06_BACKUP` on all exits.
-- Restores `RAM_SA` from `RAM_SA_BACKUP`, sets `load_status=0` on success, `4` on SJL transfer/close error, `$80` on not-handled motor conflict.
-
-### `src/burstcart.asm`
-
-- Added named KERNAL serial helper equates from `_system.ain` (`ROM_CBMSER_*`, `ROM_IEC_*_SETUP`, `ROM_SET_STATUS_HELPER`) used by SJL code.
-
-### `src/Makefile`
-
-- Added `sjl-loader-highcode.asm` to `SRCS` so `make via cpld` tracks the new source dependency.
+- AAY1541 job-code and buffer table (`$04`, `$0e/$0f`, `$0700`, `$80`).
+- siziolib `serial_1bit_1541.asm`, `serial_1bit_core.inc`, `core.inc`, and
+  `loadercode/serial_1bit.inc` for 1541 VIA and Plus/4 CPU-port conventions.
+- In-repo SpeedDOS disk/file flow and SJL highcode timing/EOI structure.
 
 ## Verification
 
-```bash
-cd src && make via cpld
-```
+- Test-first static protocol check: initially failed on the stubs, then passed
+  after implementation (upload calls, VIA setup/images, host store, bounded
+  EOI confirmation).
+- `cd src && make -B via && make via`: pass, ACME exit 0.
+- Drive image labels: `$994d-$9a2d`, exactly `$e0` (224) ROM bytes; executable
+  cartridge guard below `$c000` passes.
+- `git diff --check`: pass.
+- `timeout 15s ./tests/vice/run-matrix.sh stock+stock1541`: VICE launched with
+  the configured stock ROM and disk, then timed out because the smoke requires
+  manual menu selection and `LOAD"HELLO",8`.
 
-Result: **pass** (ACME exit code 0 for both targets).  
-Executable limit guard (`!if * > $C000`) remains silent/passing.
+## Self-review and concerns
 
-Sample symbols from `labels-via.txt`:
-
-- `SJL_load = $A457`
-- `SJL_highcode = $A495`
-- `sjl_talk = $A565`
-- `sjl_untalk = $A5F4`
-
-All executable entry points remain below `$C000`.
-
-## Self-review (timing/protocol fidelity vs ROM-safety)
-
-### What matches upstream intent
-
-- Kept upstream receive-path structure and protocol helpers (`talk/sectalk/untalk/busin`).
-- Preserved the JD transfer handshake and status/EOI handling shape.
-- Preserved load-address semantics from `shared_rom_check` + existing `RAM_SA` flow.
-
-### ROM-safety and project constraints
-
-- **No self-modifying code**: removed opcode pokes and self-mod border restore.
-- **Load-only**: no BASIC installer/F1/checksum patch/overlay/LOADING eraser behaviors.
-- **ROM-executed highcode**: runs in-place from cartridge image; no runtime RAM copy.
-- **Store-guard policy**: explicit address checks replace write-opcode mutation.
-
-### Concerns / follow-ups
-
-1. **Cycle margin risk**: transfer loop timing is ported from upstream but now executes in a different assembled context; this may need VICE/hardware validation (Task 5) and possibly a fixed RAM copy of just the hot loop if edges appear.
-2. **Fallback cleanup assumptions**: the `$80` not-handled paths now issue `UNTLK` + internal close setup before returning to ROM fallback; this is intentional but should be confirmed against all host-drive states.
-3. **Uncommitted build artifacts**: `src/bin/parobek-via.bin`, `src/bin/parobek-cpld.bin`, and generated labels were rebuilt locally but intentionally left out of commit scope.
-
-## Critical Task 4 follow-up (review fix)
-
-- Added missing `jsr sjl_untalk` in `src/sjl-loader-highcode.asm` immediately before switching to JD data SA `$61` and reissuing `sjl_talk`/`sjl_sectalk`.
-- This enforces the required `UNTALK -> TALK $61` transition after `shared_rom_check` has already consumed the load address.
-- Verified return paths remain unchanged: both `.return_ok` and `.return_error` call `sjl_restore`, which restores `RAM_SA`, `TED_BORDER`, `TED_FF06`, and serial line state through `ROM_CBMSER_DAT_HIZ`.
-- Rebuilt with `cd src && make via cpld` (pass).
+- Confirmed no timed payload or handshake state uses ATN as data; PB4 is zero
+  in every complete output image.
+- Confirmed normal EOF follows arm `$08`, present `$00` for more than 16 drive
+  cycles, then confirm `$08`, matching host `.loadendover/.end_check`.
+- Confirmed generated labels remain below `$c000` and unrelated untracked
+  SJL/archive/label files are outside commit scope.
+- Remaining risk: no completed interactive VICE or hardware transfer was
+  possible, so cycle alignment is assembled and reasoned but not empirically
+  validated.
+- Remaining risk: a drive READ-job error currently terminates with normal EOI
+  because the binding wire protocol defines no drive-to-host error status;
+  such an error can therefore appear as a short successful load.
