@@ -1,0 +1,25 @@
+ What's new in AAY1541?
+--------------------------------------------------------------------------
+Version 0.23:  (May 2006)
+               - VIA6522 Specs (finally!)
+               - Full Cross-Reference for RAM-Area and VIAs
+               - completed Zeropage information
+               - minor improvements and bugfixes
+
+Version 0.22:  - KERNAL jump-reference added
+               - cosmetic changes
+
+Version 0.21:  - Seperated from AAY64 and AAY1581
+               - bugfixes
+
+--------------------------------------------------------------------------
+ What might be new in AAY1541 somewhen?
+
+  - ROM-Diffs (somebody got a good source?)
+  - your suggestions
+
+--------------------------------------------------------------------------
+
+If you find a bug, have an idea how to improve AAY1541 or simply want to
+encourage me, please send a mail to:  ninja@the-dreams.de
+
