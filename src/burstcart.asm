@@ -224,6 +224,7 @@ install_fastload:
 +
 
 	jsr detect_host_jiffydos
+	jsr detect_cpu_port_type
 	lda host_jd
 	bne .after_wedge		; host JD: keep LOAD hook, skip DOS wedge
 .install_wedge:
@@ -365,6 +366,9 @@ iec_drive_flags: !byte 0	; sticky across loads (cleared only when trampoline
 				;  %xxxxxx1x = saw "JIFFYDOS"
 				; After a successful load the channel is often
 				;  "00, OK" without those strings — do not clear.
+cpu_port_type:	!byte 0		; 0=8501, 1=6510+patched KERNAL, 2=6510+stock, 3=unknown
+sjl_receive_vec:
+		jmp sjl_jd_receive_loop	; install may retarget to sjl_jd_receive_loop_6510
 
 myloadlow:
 	sta RAM_VERFCK		; remember A
@@ -428,6 +432,7 @@ wedgerom:
 lowmem_trampoline_end:
 
 !source "host-jd-detect.asm"
+!source "cpu-port-detect.asm"
 
 ; OUT:
 ; load_status = 0 - loaded, then:
