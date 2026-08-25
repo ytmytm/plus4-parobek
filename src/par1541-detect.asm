@@ -49,81 +49,73 @@ par1541_detect:
             rts
 
 +
-; now check if there's a parallel cable connected and where 
+; now check if there's a parallel cable connected and where
+;
+; Open-bus trap: on Plus/4, unmapped I/O like $FE00/$FD10 often returns the
+; same value twice (lda/cmp "presence") and can echo recent bus data, so a
+; bare PPI/PIO probe false-positives a cable. That selected SpeedDOS, uploaded
+; to $0303, and JAMed the drive with no cable present. Only probe host chips
+; that exist for this Burstcart build; still require $55+$AA readback.
 
             lda #0
-            sta $d3             ; PPI
+            sta $d3             ; PPI match count
             sta $d4             ; PIO
             sta $d5             ; CIA
             sta $d6             ; VIA
 
-            ; check if PPI is connected
-            lda ppibase
-            cmp ppibase
-            bne +
-            inc $d3
-            lda #$90
-            sta ppibase+3      ; set port A to input
-            !if par1541_debug = 1 {
-                lda #<.ppi_present
-                ldy #>.ppi_present
-                jsr print_msg
-            }
-
-+           ; check if PIO is connected
-            lda piobase
-            cmp piobase
-            bne +
-            inc $d4
-            lda #$ff
-            sta piobase        ; set port to input
-            !if par1541_debug = 1 {
-                lda #<.pio_present
-                ldy #>.pio_present
-                jsr print_msg
-            }
-
-+           ; check if CIA is connected
+!if burst = 1 {
+            ; CIA Burstcart: only CIA parallel makes sense
             lda ciabase+3
             cmp ciabase+3
-            bne +
+            bne .par_no_hostchip
             inc $d5
             lda #$00
-            sta ciabase+3      ; set port B to input
-            !if par1541_debug = 1 {
-                lda #<.cia_present
-                ldy #>.cia_present
-                jsr print_msg
-            }
+            sta ciabase+3       ; set port B to input
+            jmp .par_host_ok
+.par_no_hostchip:
+            lda #$80            ; 1541 but no parallel host chip
+            rts
+.par_host_ok:
+}
 
-+           ; check if VIA is connected
+!if burst = 2 {
+            ; VIA Burstcart: only VIA parallel makes sense
             lda viabase
             cmp viabase
-            bne +
+            bne .par_no_hostchip
             inc $d6
             lda #$00
-            sta viabase+3      ; set port A to input (same as on 1541 side)
-            !if par1541_debug = 1 {
-                lda #<.via_present
-                ldy #>.via_present
-                jsr print_msg
-            }
-+
-            lda $d3
-            ora $d4
-            ora $d5
-            ora $d6
-            bne +               ; continue only if at least one interface is connected
-
-            !if par1541_debug = 1 {
-                lda #<.no_parallel
-                ldy #>.no_parallel
-                jsr print_msg
-            }
-
-            lda #$80            ; device is 1541 but no parallel cable connected
+            sta viabase+3       ; set port A to input (same as on 1541 side)
+            jmp .par_host_ok
+.par_no_hostchip:
+            lda #$80
             rts
-+
+.par_host_ok:
+}
+
+!if burst = 3 {
+            ; CPLD: allow PPI/PIO without open-bus "present" vote (counts
+            ; start at 0; $55+$AA below must both match → need 2). Also try
+            ; CIA/VIA if those chips decode.
+            lda #$90
+            sta ppibase+3
+            lda #$ff
+            sta piobase
+            lda ciabase+3
+            cmp ciabase+3
+            bne .par_cpld_via
+            inc $d5
+            lda #$00
+            sta ciabase+3
+.par_cpld_via:
+            lda viabase
+            cmp viabase
+            bne .par_host_ok
+            inc $d6
+            lda #$00
+            sta viabase+3
+.par_host_ok:
+}
 
             !if par1541_debug = 1 {
                 lda #<.via1output_txt
@@ -233,15 +225,18 @@ par1541_detect:
             }
 
             ; gather results
+            ; CIA/VIA: present vote + $55 + $AA → need 3
+            ; PPI/PIO (CPLD only): $55 + $AA only → need 2 (no open-bus "present")
             lda #$80
-            ldx #3          ; 3 tests passed: port stable, $55, $aa
+            ldx #2
             cpx $d3
             bne +
             ora #%01000000  ; PPI connected
 +           cpx $d4
             bne +
             ora #%00100000  ; PIO connected
-+           cpx $d5
++           ldx #3
+            cpx $d5
             bne +
             ora #%00010000  ; CIA connected
 +           cpx $d6
