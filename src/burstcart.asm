@@ -567,7 +567,6 @@ iecburst_load:
 !source "sjl-detect.asm"
 !source "sjl-loader.asm"
 
-!source "fast1541iec-detect.asm"
 !source "fast1541iec-loader.asm"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
