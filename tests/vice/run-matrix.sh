@@ -24,6 +24,9 @@ EMPTY_TAP="${EMPTY_TAP:-$SCRIPT_DIR/empty.tap}"
 DISK_IMAGE="${DISK_IMAGE:-$SCRIPT_DIR/smoke-test.d64}"
 DISK_IMAGE_1581="${DISK_IMAGE_1581:-$SCRIPT_DIR/smoke-test.d81}"
 
+# VICE: +option disables a boolean resource. Keep smoke launches quiet.
+VICE_COMMON_ARGS=(+sound)
+
 # Plus/4 VICE often keeps unit #8 as 1551 from defaults/saved settings.
 # Drive type must be forced. True-drive required for JD.
 # For type 1542 the DOS image flag is -dos1541II (NOT -dos1541 — that only
@@ -43,50 +46,50 @@ require_disk() {
 make -C "$REPO_ROOT/src" via
 
 cmd_stock_jd1541() {
-	printf '%s -default -kernal %q -basic %q -dos1541II %q %s -c1lo %q -8 %q' \
-		"$XPLUS4" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1541_JD" \
+	printf '%s -default %s -kernal %q -basic %q -dos1541II %q %s -c1lo %q -8 %q' \
+		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1541_JD" \
 		"${DRIVE8_1541_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE"
 }
 
 cmd_stock_stock1541() {
-	printf '%s -default -kernal %q -basic %q -dos1541II %q %s -c1lo %q -8 %q' \
-		"$XPLUS4" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1541_STOCK" \
+	printf '%s -default %s -kernal %q -basic %q -dos1541II %q %s -c1lo %q -8 %q' \
+		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1541_STOCK" \
 		"${DRIVE8_1541_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE"
 }
 
 cmd_stock_jd_tape() {
-	printf '%s -default -kernal %q -basic %q -dos1541II %q %s -c1lo %q -8 %q -1 %q' \
-		"$XPLUS4" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1541_JD" \
+	printf '%s -default %s -kernal %q -basic %q -dos1541II %q %s -c1lo %q -8 %q -1 %q' \
+		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1541_JD" \
 		"${DRIVE8_1541_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE" "$EMPTY_TAP"
 }
 
 cmd_hostjd_jd1541() {
-	printf '%s -default -kernal %q -basic %q -dos1541II %q %s -c1lo %q -8 %q' \
-		"$XPLUS4" "$HOST_KERNAL_JD" "$HOST_BASIC_STOCK" "$DRIVE_1541_JD" \
+	printf '%s -default %s -kernal %q -basic %q -dos1541II %q %s -c1lo %q -8 %q' \
+		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_JD" "$HOST_BASIC_STOCK" "$DRIVE_1541_JD" \
 		"${DRIVE8_1541_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE"
 }
 
 cmd_stock_jd1581() {
-	printf '%s -default -kernal %q -basic %q -dos1581 %q %s -c1lo %q -8 %q' \
-		"$XPLUS4" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1581_JD" \
+	printf '%s -default %s -kernal %q -basic %q -dos1581 %q %s -c1lo %q -8 %q' \
+		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1581_JD" \
 		"${DRIVE8_1581_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE_1581"
 }
 
 cmd_stock_stock1581() {
-	printf '%s -default -kernal %q -basic %q -dos1581 %q %s -c1lo %q -8 %q' \
-		"$XPLUS4" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1581_STOCK" \
+	printf '%s -default %s -kernal %q -basic %q -dos1581 %q %s -c1lo %q -8 %q' \
+		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1581_STOCK" \
 		"${DRIVE8_1581_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE_1581"
 }
 
 cmd_stock_jd1581_tape() {
-	printf '%s -default -kernal %q -basic %q -dos1581 %q %s -c1lo %q -8 %q -1 %q' \
-		"$XPLUS4" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1581_JD" \
+	printf '%s -default %s -kernal %q -basic %q -dos1581 %q %s -c1lo %q -8 %q -1 %q' \
+		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1581_JD" \
 		"${DRIVE8_1581_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE_1581" "$EMPTY_TAP"
 }
 
 cmd_hostjd_jd1581() {
-	printf '%s -default -kernal %q -basic %q -dos1581 %q %s -c1lo %q -8 %q' \
-		"$XPLUS4" "$HOST_KERNAL_JD" "$HOST_BASIC_STOCK" "$DRIVE_1581_JD" \
+	printf '%s -default %s -kernal %q -basic %q -dos1581 %q %s -c1lo %q -8 %q' \
+		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_JD" "$HOST_BASIC_STOCK" "$DRIVE_1581_JD" \
 		"${DRIVE8_1581_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE_1581"
 }
 
