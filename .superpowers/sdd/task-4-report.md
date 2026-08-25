@@ -49,7 +49,7 @@ sequence and all drive `$1800` writes keep ATNA clear.
   after implementation (upload calls, VIA setup/images, host store, bounded
   EOI confirmation).
 - `cd src && make -B via && make via`: pass, ACME exit 0.
-- Drive image labels: `$994d-$9a2d`, exactly `$e0` (224) ROM bytes; executable
+- Drive image labels: `$995f-$9a3f`, exactly `$e0` (224) ROM bytes; executable
   cartridge guard below `$c000` passes.
 - `git diff --check`: pass.
 - `timeout 15s ./tests/vice/run-matrix.sh stock+stock1541`: VICE launched with
