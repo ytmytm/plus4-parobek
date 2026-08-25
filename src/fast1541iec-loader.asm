@@ -76,6 +76,19 @@ fast1541iec_load:
 		cmp #>fast1541iec_drivecode_end
 		bne .upload_loop
 
+		; Prepare timed receive BEFORE M-E so we enter the bitbang loop
+		; immediately after UNLISTEN (drive must not hold CLK during that).
+		lda TED_BORDER
+		sta RAM_TED_BORDER_BACKUP
+		lda TED_FF06
+		sta RAM_TED_FF06_BACKUP
+		and #$ef
+		sta TED_FF06
+		lda TED_FF13
+		sta RAM_TED_FF13_BACKUP
+		ora #%00000010
+		sta TED_FF13			; force 1 MHz for timed receive
+
 		lda #'E'
 		jsr .send_m_command
 		lda #$00
@@ -88,17 +101,6 @@ fast1541iec_load:
 		beq +
 		jmp .fail
 +
-
-		lda TED_BORDER
-		sta RAM_TED_BORDER_BACKUP
-		lda TED_FF06
-		sta RAM_TED_FF06_BACKUP
-		and #$ef
-		sta TED_FF06
-		lda TED_FF13
-		sta RAM_TED_FF13_BACKUP
-		ora #%00000010
-		sta TED_FF13			; force 1 MHz for timed receive
 		jmp fast1541iec_highcode
 
 .send_m_command:

@@ -15,8 +15,13 @@ fast1541iec_drivecode:
 .start:
 	lda #$1a
 	sta $1802			; PB1 DATA, PB3 CLK, PB4 ATNA outputs
-	lda #$08
-	sta $1800			; not ready: CLK asserted, DATA released
+	; Keep IEC released through host UNLISTEN after M-E. Asserting CLK
+	; here deadlocks KERNAL (ROM_CBMSER_READLINES) vs .wait_host_ready.
+	lda #$00
+	sta $1800
+.wait_atn_clear:
+	bit $1800			; bit7=1 while ATN asserted (inverted bus)
+	bmi .wait_atn_clear
 
 .read_sector:
 	lda $18
