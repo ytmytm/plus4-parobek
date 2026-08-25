@@ -1,6 +1,6 @@
 # VICE smoke matrix (SJL264)
 
-Manual smoke tests for Parobek IEC fastloader paths under VICE `xplus4`. These scripts document expected `xplus4` invocations for four host × drive × datasette combinations. No automated pass/fail assertions yet — verify behavior visually in the emulator.
+Manual smoke tests for Parobek IEC fastloader paths under VICE `xplus4`. These scripts document expected `xplus4` invocations for host × drive × datasette combinations (1541-II and 1581). No automated pass/fail assertions yet — verify behavior visually in the emulator.
 
 ## Setup
 
@@ -11,10 +11,15 @@ Manual smoke tests for Parobek IEC fastloader paths under VICE `xplus4`. These s
 cp tests/vice/roms.env.example tests/vice/roms.env
 ```
 
-3. Ensure host kernal, BASIC, and 1541 ROM files exist at the paths in `roms.env`.
+3. Ensure host kernal, BASIC, and drive ROM files exist at the paths in `roms.env`.
 4. Build Parobek (the matrix script runs `make -C src via` automatically).
+5. Build disk images (`.d64` and `.d81`):
 
-Optional: set `XPLUS4` or `EMPTY_TAP` in `roms.env` to override defaults.
+```bash
+./tests/vice/rebuild-disk.sh
+```
+
+Optional: set `XPLUS4`, `EMPTY_TAP`, `DISK_IMAGE`, or `DISK_IMAGE_1581` in `roms.env` to override defaults.
 
 ## Usage
 
@@ -31,6 +36,10 @@ Launch one case (opens VICE interactively):
 ./tests/vice/run-matrix.sh stock+stock1541
 ./tests/vice/run-matrix.sh stock+jd+tape
 ./tests/vice/run-matrix.sh hostjd+jd1541
+./tests/vice/run-matrix.sh stock+jd1581
+./tests/vice/run-matrix.sh stock+stock1581
+./tests/vice/run-matrix.sh stock+jd1581+tape
+./tests/vice/run-matrix.sh hostjd+jd1581
 ```
 
 ## Matrix
@@ -40,13 +49,17 @@ Launch one case (opens VICE interactively):
 | `stock+jd1541` | Stock kernal | JiffyDOS 1541 | — | Menu **3**, then `LOAD"HELLO",8` shows **SJL264** |
 | `stock+stock1541` | Stock kernal | Stock 1541 | — | `LOAD"HELLO",8` — no **SJL264**; parallel or **ROM LOAD** |
 | `stock+jd+tape` | Stock kernal | JiffyDOS 1541 | Attached (`-1 empty.tap`) | **DATASETTE, SKIP SJL** then ROM/parallel |
-| `hostjd+jd1541` | JiffyDOS host kernal | JiffyDOS 1541 | — | **HOST JIFFYDOS, NO WEDGE**; `LOAD"HELLO",8` — no **SJL264** |
+| `hostjd+jd1541` | JiffyDOS host kernal | JiffyDOS 1541 | — | `LOAD"HELLO",8` shows **HOST JIFFYDOS** then **ROM LOAD**; no **SJL264** |
+| `stock+jd1581` | Stock kernal | JiffyDOS 1581 | — | Menu **3**, then `LOAD"HELLO",8` shows **SJL264** |
+| `stock+stock1581` | Stock kernal | Stock 1581 | — | `LOAD"HELLO",8` — no **SJL264**; **ROM LOAD** |
+| `stock+jd1581+tape` | Stock kernal | JiffyDOS 1581 | Attached (`-1 empty.tap`) | **DATASETTE, SKIP SJL** then ROM |
+| `hostjd+jd1581` | JiffyDOS host kernal | JiffyDOS 1581 | — | `LOAD"HELLO",8` shows **HOST JIFFYDOS** then **ROM LOAD**; no **SJL264** |
 
-All cases attach **`smoke-test.d64`** on unit #8 (`-8`), which contains PRG `HELLO` (BASIC 3.5 hello world).
+1541 cases attach **`smoke-test.d64`** on unit #8; 1581 cases attach **`smoke-test.d81`**. Both contain PRG `HELLO` and, when the source exists, `AMAUROTE` (`~/Maciejdev/plus4/amaurote/amaurote/output/amaurote-intro-plain.prg`).
 
-## Disk image
+## Disk images
 
-Sources: `hello.bas` → `petcat -w3` → `hello.prg` → `c1541` → `smoke-test.d64`.
+Sources: `hello.bas` → `petcat -w3` → `hello.prg`, plus optional `amaurote-intro-plain.prg` → `c1541` → `smoke-test.d64` and `smoke-test.d81`.
 
 Regenerate:
 
@@ -56,8 +69,9 @@ Regenerate:
 
 ## Notes
 
-- Every case forces **`-drive8type 1542 -drive8truedrive -drive9type 0`** and loads the DOS image with **`-dos1541II`** (required for 1541-II). Using `-dos1541` only affects classic 1541 and leaves a 1541-II on stock **DOS 2.6**.
+- 1541 cases force **`-drive8type 1542 -drive8truedrive -drive9type 0`** and load the DOS image with **`-dos1541II`**. Using `-dos1541` only affects classic 1541 and leaves a 1541-II on stock **DOS 2.6**.
 - Drive type `1542` is CBM 1541-II (matches the stock/`JiffyDOS_1541-II` ROM images in `roms.env.example`).
-- `stock+jd+tape` attaches `tests/vice/empty.tap` by default (zero-byte placeholder; VICE accepts it for datasette attach).
+- 1581 cases force **`-drive8type 1581 -drive8truedrive -drive9type 0`** and load the DOS image with **`-dos1581`**. Attach a **`.d81`**, not a `.d64`.
+- `stock+jd+tape` / `stock+jd1581+tape` attach `tests/vice/empty.tap` by default (zero-byte placeholder; VICE accepts it for datasette attach).
 - `PAROBEK_BIN` in `roms.env.example` resolves via `git rev-parse --show-toplevel`.
 - `tests/vice/roms.env` is gitignored; do not commit local paths.
