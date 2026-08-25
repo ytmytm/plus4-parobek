@@ -20,7 +20,7 @@ fast1541iec_load:
 		; End shared_rom_check TALK, then snapshot T/S before CLOSE
 		jsr ROM_UNTLK
 		lda #'R'
-		jsr .send_m_command
+		jsr iec_m_minus
 		lda #$18
 		jsr ROM_CIOUT
 		lda #$00
@@ -51,25 +51,9 @@ fast1541iec_load:
 		sta $06
 
 .upload_loop:
-		lda #'W'
-		jsr .send_m_command
-		lda $05
-		jsr ROM_CIOUT
-		lda $06
-		jsr ROM_CIOUT
 		lda #$20
-		jsr ROM_CIOUT
-		ldy #$00
-.upload_chunk:
-		lda ($03),y
-		jsr ROM_CIOUT
-		iny
-		cpy #$20
-		bne .upload_chunk
-		jsr ROM_UNLISTEN
-		lda RAM_STATUS
-		and #$83
-		beq +
+		jsr iec_mw_one_chunk
+		bcc +
 		jmp .fail
 +
 		clc
@@ -93,7 +77,7 @@ fast1541iec_load:
 
 		; Seed drive $20/$21 with M-R'd T/S
 		lda #'W'
-		jsr .send_m_command
+		jsr iec_m_minus
 		lda #$20
 		jsr ROM_CIOUT
 		lda #$00
@@ -111,16 +95,7 @@ fast1541iec_load:
 		jmp .fail
 +
 
-		lda TED_BORDER
-		sta RAM_TED_BORDER_BACKUP
-		lda TED_FF06
-		sta RAM_TED_FF06_BACKUP
-		and #$ef
-		sta TED_FF06
-		lda TED_FF13
-		sta RAM_TED_FF13_BACKUP
-		ora #%00000010
-		sta TED_FF13			; force 1 MHz for timed receive
+		jsr ted_sjl_enter
 
 		; TED only applies DEN=0 at a frame boundary.  SJL spends a full
 		; command/address phase here; this M-E path did not, so display DMA
@@ -150,32 +125,18 @@ fast1541iec_load:
 		beq .wait_second_high
 .screen_stable:
 
-		lda #'E'
-		jsr .send_m_command
 		lda #$00
-		jsr ROM_CIOUT
+		sta $d6
 		lda #$03
-		jsr ROM_CIOUT
-		jsr ROM_UNLISTEN
+		sta $d7
+		jsr iec_me
 		lda RAM_STATUS
 		and #$83
 		beq +
+		jsr sjl_restore
 		jmp .fail
 +
 		jmp SJL_jd_transfer
-
-.send_m_command:
-		pha
-		lda RAM_FA
-		jsr ROM_LISTEN
-		lda #$6f
-		jsr ROM_SECOND
-		lda #'M'
-		jsr ROM_CIOUT
-		lda #'-'
-		jsr ROM_CIOUT
-		pla
-		jmp ROM_CIOUT
 
 .fail_open:
 		jsr ROM_UNTLK

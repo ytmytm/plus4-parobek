@@ -3,7 +3,7 @@
 SRCS = burstcart.asm burst-cpld.asm burst-via.asm \
 	t2s-detect.asm host-jd-detect.asm cpu-port-detect.asm \
 	sjl-detect.asm sjl-loader.asm sjl-loader-highcode.asm \
-	fast1541iec-loader.asm fast1541iec-drivecode.asm
+	iec-memcmd.asm fast1541iec-loader.asm fast1541iec-drivecode.asm
 
 all: via cpld
 

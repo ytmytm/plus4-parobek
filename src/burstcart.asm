@@ -578,6 +578,7 @@ iecburst_load:
 !source "par1541-detect.asm"
 !source "par1541-loader.asm"
 
+!source "iec-memcmd.asm"
 !source "sjl-detect.asm"
 !source "sjl-loader.asm"
 

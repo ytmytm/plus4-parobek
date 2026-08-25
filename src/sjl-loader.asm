@@ -18,18 +18,7 @@ SJL_load:
 		sta RAM_SA
 		jsr ROM_IEC_OPEN_SETUP		; open channel 0 (like upstream rom_iec_open)
 
-		lda TED_BORDER
-		sta RAM_TED_BORDER_BACKUP
-		lda TED_FF06
-		sta RAM_TED_FF06_BACKUP
-		and #$ef
-		sta TED_FF06			; screen off (may allow 2 MHz)
-
-		; SJL bitbang is cycle-counted for 1 MHz — force single clock
-		lda TED_FF13
-		sta RAM_TED_FF13_BACKUP
-		ora #%00000010
-		sta TED_FF13
+		jsr ted_sjl_enter
 
 		jmp SJL_highcode
 

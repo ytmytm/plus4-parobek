@@ -112,21 +112,10 @@ SpeedDOS_load:  !zone SpeedDOS_Loader {
         sta     $05
         stx     $06
 .sendcodeloop:
-        lda     #'W'
-        jsr     .SpeedDOS_SendMCommand
-        ldy     #$00
-        lda     $05
-        jsr     ROM_CIOUT
-        lda     $06
-        jsr     ROM_CIOUT
         lda     #$1E            ; chunk size
-        jsr     ROM_CIOUT
--       lda     ($03),y         ; this must be in ROM, in lower 16k
-        jsr     ROM_CIOUT
-        iny
-        cpy     #$1E
-        bcc     -
-        jsr     ROM_UNLISTEN
+        jsr     iec_mw_one_chunk
+        ; ignore C — SpeedDOS does not treat RAM_STATUS & $83 as upload fail
+        ; (jsr iec_m_minus is inside iec_mw_one_chunk / iec_me)
         clc
         lda     $03
         adc     #$1E            ; next chunk address
@@ -144,29 +133,10 @@ SpeedDOS_load:  !zone SpeedDOS_Loader {
         bcc     .sendcodeloop
 
 .SpeedDOS_SendMemoryExec
-        lda     #'E'
-        jsr     .SpeedDOS_SendMCommand
-        lda     $d6
-        jsr     ROM_CIOUT
-        lda     $d7
-        jsr     ROM_CIOUT
-        jsr     ROM_UNLISTEN
+        jsr     iec_me
         lda     #$00
         sta     load_status
         jmp     ($0007)         ; jump to loader
-
-.SpeedDOS_SendMCommand:
-        pha
-        lda     RAM_FA
-        jsr     ROM_LISTEN
-        lda     #$6F
-        jsr     ROM_SECOND
-        lda     #'M'
-        jsr     ROM_CIOUT
-        lda     #'-'
-        jsr     ROM_CIOUT
-        pla
-        jmp     ROM_CIOUT
 
 ;.trackcache_rom_txt:
 ;        !text "TRACKCACHE ROM",13,0

@@ -38,7 +38,9 @@ assert ".send_byte:" not in drive
 assert "$0f,$07,$0d,$05" in drive.replace(" ", "")
 
 # Screen blanking must cross a frame boundary before timed M-E transfer.
-assert "sta TED_FF06" in wrapper
+assert "jsr ted_sjl_enter" in wrapper
+assert "sta TED_FF06" in (ROOT / "src/iec-memcmd.asm").read_text()
+assert "jsr sjl_restore" in wrapper
 assert ".wait_second_low:" in wrapper
 assert ".wait_second_high:" in wrapper
 
