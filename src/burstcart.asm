@@ -498,12 +498,14 @@ iec_load:
 	lda #0
 	sta fast1541iec_candidate
 	jsr par1541_detect
-	sta $d0
+	sta $d0			; keep flags in A and $d0
 	cmp #$80
 	bne .par1541_check_cable
-	lda #1
-	sta fast1541iec_candidate	; 1541, no parallel bits
+	; A must stay $80: lda #1 here made and #$7f → 1 and
+	; falsely selected 1541/PARALLEL / SpeedDOS.
+	inc fast1541iec_candidate	; 1541, no parallel bits
 .par1541_check_cable:
+	lda $d0			; restore flags (A may be $80 or other)
 	bit $d0
 	bpl .try_drive_jd
 	and #%01111111

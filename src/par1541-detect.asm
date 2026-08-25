@@ -49,73 +49,81 @@ par1541_detect:
             rts
 
 +
-; now check if there's a parallel cable connected and where
-;
-; Open-bus trap: on Plus/4, unmapped I/O like $FE00/$FD10 often returns the
-; same value twice (lda/cmp "presence") and can echo recent bus data, so a
-; bare PPI/PIO probe false-positives a cable. That selected SpeedDOS, uploaded
-; to $0303, and JAMed the drive with no cable present. Only probe host chips
-; that exist for this Burstcart build; still require $55+$AA readback.
+; now check if there's a parallel cable connected and where 
 
             lda #0
-            sta $d3             ; PPI match count
+            sta $d3             ; PPI
             sta $d4             ; PIO
             sta $d5             ; CIA
             sta $d6             ; VIA
 
-!if burst = 1 {
-            ; CIA Burstcart: only CIA parallel makes sense
-            lda ciabase+3
-            cmp ciabase+3
-            bne .par_no_hostchip
-            inc $d5
-            lda #$00
-            sta ciabase+3       ; set port B to input
-            jmp .par_host_ok
-.par_no_hostchip:
-            lda #$80            ; 1541 but no parallel host chip
-            rts
-.par_host_ok:
-}
-
-!if burst = 2 {
-            ; VIA Burstcart: only VIA parallel makes sense
-            lda viabase
-            cmp viabase
-            bne .par_no_hostchip
-            inc $d6
-            lda #$00
-            sta viabase+3       ; set port A to input (same as on 1541 side)
-            jmp .par_host_ok
-.par_no_hostchip:
-            lda #$80
-            rts
-.par_host_ok:
-}
-
-!if burst = 3 {
-            ; CPLD: allow PPI/PIO without open-bus "present" vote (counts
-            ; start at 0; $55+$AA below must both match → need 2). Also try
-            ; CIA/VIA if those chips decode.
+            ; check if PPI is connected
+            lda ppibase
+            cmp ppibase
+            bne +
+            inc $d3
             lda #$90
-            sta ppibase+3
+            sta ppibase+3      ; set port A to input
+            !if par1541_debug = 1 {
+                lda #<.ppi_present
+                ldy #>.ppi_present
+                jsr print_msg
+            }
+
++           ; check if PIO is connected
+            lda piobase
+            cmp piobase
+            bne +
+            inc $d4
             lda #$ff
-            sta piobase
+            sta piobase        ; set port to input
+            !if par1541_debug = 1 {
+                lda #<.pio_present
+                ldy #>.pio_present
+                jsr print_msg
+            }
+
++           ; check if CIA is connected
             lda ciabase+3
             cmp ciabase+3
-            bne .par_cpld_via
+            bne +
             inc $d5
             lda #$00
-            sta ciabase+3
-.par_cpld_via:
+            sta ciabase+3      ; set port B to input
+            !if par1541_debug = 1 {
+                lda #<.cia_present
+                ldy #>.cia_present
+                jsr print_msg
+            }
+
++           ; check if VIA is connected
             lda viabase
             cmp viabase
-            bne .par_host_ok
+            bne +
             inc $d6
             lda #$00
-            sta viabase+3
-.par_host_ok:
-}
+            sta viabase+3      ; set port A to input (same as on 1541 side)
+            !if par1541_debug = 1 {
+                lda #<.via_present
+                ldy #>.via_present
+                jsr print_msg
+            }
++
+            lda $d3
+            ora $d4
+            ora $d5
+            ora $d6
+            bne +               ; continue only if at least one interface is connected
+
+            !if par1541_debug = 1 {
+                lda #<.no_parallel
+                ldy #>.no_parallel
+                jsr print_msg
+            }
+
+            lda #$80            ; device is 1541 but no parallel cable connected
+            rts
++
 
             !if par1541_debug = 1 {
                 lda #<.via1output_txt
@@ -147,7 +155,6 @@ par1541_detect:
 ;875c
             jsr delay
 
-!if burst = 3 {
             lda ppibase
             cmp #$55
             bne +
@@ -156,24 +163,7 @@ par1541_detect:
             cmp #$55
             bne +
             inc $d4
-+
-}
-!if burst = 1 {
-            lda ciabase+1
-            cmp #$55
-            bne +
-            inc $d5
-+
-}
-!if burst = 2 {
-            lda viabase+1
-            cmp #$55
-            bne +
-            inc $d6
-+
-}
-!if burst = 3 {
-            lda ciabase+1
++           lda ciabase+1
             cmp #$55
             bne +
             inc $d5
@@ -182,7 +172,6 @@ par1541_detect:
             bne +
             inc $d6
 +
-}
 
             !if par1541_debug = 1 {
                 lda #<.via1_testaa_txt
@@ -200,7 +189,6 @@ par1541_detect:
 
             jsr delay
 
-!if burst = 3 {
             lda ppibase
             cmp #$aa
             bne +
@@ -209,24 +197,7 @@ par1541_detect:
             cmp #$aa
             bne +
             inc $d4
-+
-}
-!if burst = 1 {
-            lda ciabase+1
-            cmp #$aa
-            bne +
-            inc $d5
-+
-}
-!if burst = 2 {
-            lda viabase+1
-            cmp #$aa
-            bne +
-            inc $d6
-+
-}
-!if burst = 3 {
-            lda ciabase+1
++           lda ciabase+1
             cmp #$aa
             bne +
             inc $d5
@@ -235,7 +206,6 @@ par1541_detect:
             bne +
             inc $d6
 +
-}
 
             !if par1541_debug = 1 {
                 lda #<.via1_input_txt
@@ -262,40 +232,22 @@ par1541_detect:
                 sta $0c00+43
             }
 
-            ; gather results — only interfaces probed for this build can win
+            ; gather results
             lda #$80
-!if burst = 3 {
-            ldx #2              ; PPI/PIO: $55+$AA only
+            ldx #3          ; 3 tests passed: port stable, $55, $aa
             cpx $d3
             bne +
-            ora #%01000000
+            ora #%01000000  ; PPI connected
 +           cpx $d4
             bne +
-            ora #%00100000
-+           ldx #3              ; CIA/VIA: present+$55+$AA
-            cpx $d5
+            ora #%00100000  ; PIO connected
++           cpx $d5
             bne +
-            ora #%00010000
+            ora #%00010000  ; CIA connected
 +           cpx $d6
             bne +
-            ora #%00001000
-+
-}
-!if burst = 1 {
-            ldx #3
-            cpx $d5
-            bne +
-            ora #%00010000      ; CIA only
-+
-}
-!if burst = 2 {
-            ldx #3
-            cpx $d6
-            bne +
-            ora #%00001000      ; VIA only
-+
-}
-            sta $d7
+            ora #%00001000  ; VIA connected
++           sta $d7
 
 ; check if YTM's 1541 TrackCache ROM is installed - 'RAM' at $a000
 ; only if it's CIA or VIA because hardware handshake is required
