@@ -109,16 +109,20 @@ fast1541iec_drivecode:
 
 	lda #$02			; byte announce: CLK high, DATA low
 	sta $1800
-	ldx #$04
-.announce_hold:
-	dex
-	bne .announce_hold
-	lda #$00			; byte ready
+	; Hold $02 long enough that the host .loadloop sample cannot
+	; miss it and only see the later $00 (CLK+DATA high = false EOI →
+	; sjl_untalk while we sit in .wait_host_ready).
+	ldy #$40
+--	ldx #$00
+-	dex
+	bne -
+	dey
+	bne --
+	lda #$00			; DATA high → host leaves .wait_data
 	sta $1800
 	lda #$01
-.wait_host_ready:
-	bit $1800			; host asserts DATA with $01=$09
-	bne .wait_host_ready
+-	bit $1800			; host asserts DATA with $01=$09
+	bne -
 
 	lda $10
 	sta $1800
