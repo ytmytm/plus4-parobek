@@ -492,6 +492,9 @@ iec_load:
 	lda iec_drive_flags
 	and #%00000001
 	beq .try_parallel
+	lda cpu_port_type
+	cmp #2
+	bcs .try_parallel
 	jsr datasette_blocks_sjl	; C=1 datasette conflict → skip SJL
 	bcs .try_parallel
 	lda #<iec_sd2iec_txt
@@ -527,6 +530,9 @@ iec_load:
 	lda iec_drive_flags
 	and #%00000010
 	beq .try_fast1541iec
+	lda cpu_port_type
+	cmp #2
+	bcs .try_fast1541iec
 	jsr datasette_blocks_sjl
 	bcs .try_fast1541iec
 	jmp SJL_load
@@ -536,6 +542,9 @@ iec_load:
 	jsr print_msg
 	jmp load_rom
 .try_fast1541iec:
+	lda cpu_port_type
+	cmp #2
+	bcs .to_rom
 	lda fast1541iec_candidate
 	beq .to_rom
 	jsr datasette_blocks_sjl

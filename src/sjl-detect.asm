@@ -183,6 +183,11 @@ iec_note_drive_class:
 ; C=1 → do not run SJL. C=0 → SJL allowed.
 datasette_blocks_sjl:
 	!zone DatasetteGate {
+		lda cpu_port_type
+		beq .check_motor
+		clc
+		rts
+.check_motor:
 		lda $01
 		and #%00001000
 		beq .block
