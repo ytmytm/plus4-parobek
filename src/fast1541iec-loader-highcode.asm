@@ -80,7 +80,10 @@ fast1541iec_highcode:
 	dex
 	bne .end_check
 	lda #%01000010			; timeout + serial end
-	!byte $2c			; skip next LDA
+	jsr ROM_SET_STATUS_HELPER
+	jsr sjl_untalk
+	jsr ROM_IEC_CLOSE_SETUP
+	jmp .file_error
 .end_ok:
 	lda #%01000000			; serial end
 	jsr ROM_SET_STATUS_HELPER

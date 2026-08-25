@@ -31,7 +31,7 @@ fast1541iec_drivecode:
 	bmi .wait_job
 	sei
 	cmp #$01
-	bne .send_eoi			; no wire error byte in this protocol
+	bne .read_error			; never report a failed READ as clean EOF
 
 	lda $0700			; next track
 	beq .last_sector
@@ -57,6 +57,11 @@ fast1541iec_drivecode:
 	bne .send_loop
 	lda $0700
 	bne .read_sector
+
+.read_error:
+	lda #$08			; hold CLK asserted so host never sees EOF
+	sta $1800
+	bne .read_error
 
 .send_eoi:
 	lda #$08			; arm: force host probe back to loadloop

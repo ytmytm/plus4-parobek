@@ -70,3 +70,16 @@ sequence and all drive `$1800` writes keep ATNA clear.
 - Remaining risk: a drive READ-job error currently terminates with normal EOI
   because the binding wire protocol defines no drive-to-host error status;
   such an error can therefore appear as a short successful load.
+
+## Correctness fixes before review
+
+- A failed drive READ job now enters `.read_error`, continuously holding CLK
+  asserted with the safe `$08` VIA image. It can no longer run the successful
+  EOI sequence or appear to the host as a clean short load.
+- A host EOI-confirmation timeout now records serial timeout/end status, closes
+  the IEC channel, and unconditionally returns through `.file_error` with
+  `load_status=$04` and carry set. Clean confirmed EOI behavior is unchanged.
+- Test-first static error-path check: failed before the fixes on the READ-job
+  branch and host timeout fall-through, then passed after both fixes.
+- `cd src && make -B via`: pass, ACME exit 0; the drivecode remains within the
+  enforced 224-byte `$0300-$03df` upload budget.
