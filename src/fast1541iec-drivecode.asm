@@ -57,6 +57,7 @@ fast1541iec_drivecode:
 	bne .send_loop
 	lda $0700
 	bne .read_sector
+	beq .send_eoi
 
 .read_error:
 	lda #$08			; hold CLK asserted so host never sees EOF

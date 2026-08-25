@@ -83,3 +83,15 @@ sequence and all drive `$1800` writes keep ATNA clear.
   branch and host timeout fall-through, then passed after both fixes.
 - `cd src && make -B via`: pass, ACME exit 0; the drivecode remains within the
   enforced 224-byte `$0300-$03df` upload budget.
+
+## Critical/Important review fixes
+
+- Successful last-sector transfer now branches explicitly to `.send_eoi`;
+  mid-file sectors still branch to `.read_sector`, while a non-`$01` READ-job
+  result still hangs in `.read_error` with CLK held at `$08`.
+- Upload, channel, and `M-E` failures now return `load_status=$04` with carry
+  set. The committed fast1541iec path no longer requests the ROM double-load
+  fallback status `$80`.
+- Test-first static checks failed on both reviewed paths before the changes and
+  passed afterward.
+- `cd src && make via` and a forced `make -B via` rebuild pass; ACME exits 0.

@@ -115,8 +115,9 @@ fast1541iec_load:
 		jmp ROM_CIOUT
 
 .fail:
-		lda #$80
+		lda #$04
 		sta load_status
+		sec
 		rts
 
 fast1541iec_txt:
