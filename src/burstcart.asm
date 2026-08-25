@@ -358,6 +358,7 @@ load_iftype:	!byte 0		; parallel interface type (PPI/PIO/CIA/VIA bitmask)
 				;  pointer, so any message printed between the save
 				;  and the use wiped them out
 host_jd:	!byte 0		; <>0 = host kernal is JiffyDOS (set at install)
+fast1541iec_candidate:	!byte 0	; ≠0 = 1541 without parallel (from par1541_detect=$80)
 iec_drive_flags: !byte 0	; sticky across loads (cleared only when trampoline
 				;  is (re)installed). OR'd from error-channel scans:
 				;  %xxxxxxx1 = saw "SD2IEC"
@@ -494,8 +495,15 @@ iec_load:
 	jmp SJL_load
 
 .try_parallel:
+	lda #0
+	sta fast1541iec_candidate
 	jsr par1541_detect
 	sta $d0
+	cmp #$80
+	bne .par1541_check_cable
+	lda #1
+	sta fast1541iec_candidate	; 1541, no parallel bits
+.par1541_check_cable:
 	bit $d0
 	bpl .try_drive_jd
 	and #%01111111
@@ -511,14 +519,21 @@ iec_load:
 	bne .host_jd_rom
 	lda iec_drive_flags
 	and #%00000010
-	beq .to_rom
+	beq .try_fast1541iec
 	jsr datasette_blocks_sjl
-	bcs .to_rom
+	bcs .try_fast1541iec
 	jmp SJL_load
 .host_jd_rom:
 	lda #<host_jd_txt
 	ldy #>host_jd_txt
 	jsr print_msg
+	jmp load_rom
+.try_fast1541iec:
+	lda fast1541iec_candidate
+	beq .to_rom
+	jsr datasette_blocks_sjl
+	bcs .to_rom
+	jmp fast1541iec_load
 .to_rom:
 	jmp load_rom
 
@@ -528,7 +543,7 @@ load_rom_txt:
 iec_load_txt:
 	!text "IEC DEVICE, ",0		; no CR; chosen loader completes the line
 					;  (VIA/CIA/CPLD BURST, SD2IEC+SJL264,
-					;  1541/PARALLEL, HOST JIFFYDOS, ROM LOAD)
+					;  1541/PARALLEL, 1541 SERIAL, HOST JIFFYDOS, ROM LOAD)
 					;  the way TCBM prints TCBM2SD / 1551
 
 iec_parallel_txt:
@@ -546,6 +561,9 @@ iecburst_load:
 
 !source "par1541-detect.asm"
 !source "par1541-loader.asm"
+
+!source "fast1541iec-detect.asm"
+!source "fast1541iec-loader.asm"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
