@@ -1,6 +1,7 @@
 ; SJL264 receive path — ROM-resident, no self-mod.
 ; Sequence matches upstream loader_routine after rom_iec_open:
 ;   set CPU-port DDR → TALK/$60 → busin addr → UNTALK → TALK/$61 → transfer
+; SJL_jd_transfer: shared JD .loadloop entry for fast1541iec (no $61).
 
 SJL_highcode:
 !zone SJL_LoaderHighcode {
@@ -75,6 +76,51 @@ SJL_highcode:
 		lda #$61
 		jsr sjl_sectalk
 
+		jsr sjl_jd_receive_loop
+		jsr sjl_untalk
+		jsr ROM_IEC_CLOSE_SETUP
+		bcs .file_error
+
+		lda #0
+		sta load_status
+		ldx $9d
+		ldy $9e
+		jmp .return_ok
+
+.file_error:
+		lda #4
+		sta load_status
+		ldx $9d
+		ldy $9e
+		jmp .return_error
+
+.return_ok:
+		jsr sjl_restore
+		clc
+		rts
+
+.return_error:
+		jsr sjl_restore
+		sec
+		rts
+
+; Entry for fast1541iec after M-E: address already in $9D/$9E, TED already
+; blanked/1MHz, no TALK/$61. Must not untalk/close (channel already CLOSED).
+SJL_jd_transfer:
+		sei
+		lda #%00001000
+		sta $01
+		lda #%00011111
+		sta $00
+		jsr sjl_jd_receive_loop
+		lda #0
+		sta load_status
+		ldx $9d
+		ldy $9e
+		jmp .return_ok
+
+; Timed JD receive only (delay + loadloop + EOI status). Caller handles bus teardown.
+sjl_jd_receive_loop:
 		ldy #$00
 		ldx #231
 .wait1:
@@ -143,31 +189,6 @@ SJL_highcode:
 .end_ok:
 		lda #%01000000
 		jsr ROM_SET_STATUS_HELPER
-		jsr sjl_untalk
-		jsr ROM_IEC_CLOSE_SETUP
-		bcs .file_error
-
-		lda #0
-		sta load_status
-		ldx $9d
-		ldy $9e
-		jmp .return_ok
-
-.file_error:
-		lda #4
-		sta load_status
-		ldx $9d
-		ldy $9e
-		jmp .return_error
-
-.return_ok:
-		jsr sjl_restore
-		clc
-		rts
-
-.return_error:
-		jsr sjl_restore
-		sec
 		rts
 
 sjl_restore:
