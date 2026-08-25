@@ -112,6 +112,10 @@ SJL_jd_transfer:
 		sta $01
 		lda #%00011111
 		sta $00
+		; sync: replace busy wait full SJL gets from sjl_sectalk
+.wait_busy:
+		bit $01			; sync: drive CLK low (busy)
+		bvs .wait_busy
 		jsr sjl_jd_receive_loop
 		lda #0
 		sta load_status
