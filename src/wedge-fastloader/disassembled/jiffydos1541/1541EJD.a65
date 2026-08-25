@@ -1,0 +1,1756 @@
+;******************************************************************************
+;
+;				      1541
+;
+;	This source code generates the ROM for the 1541 in the address
+;	range $E000-$FFFF. The code for this version is:
+;
+;				  JiffyDOS 6.01
+;
+
+
+.ba $E5B6
+;** jiffydos 5.0 1541
+.by $73					; 73
+.tz 'JIFFYDOS 5.0 1541'
+
+
+
+.ba $E781
+J_E781:
+	jsr	Delay2			; 				[FEF6]
+
+	asl	A			; rotate bit6 -> bit7, write byte?
+	bpl	A_E78A			; yes, ->
+
+	jmp	J_FF2D			; $FF2D
+
+;**  Write a byte in JD mode
+A_E78A:
+	jsr	CheckREL		; $E78A , $D125
+	tax
+	beq	A_E79C
+
+	cmp	#$03
+	bcs	A_E79C
+
+	lda	DIRLST
+	bne	A_E79C
+
+	jmp	J_FB33			; $FB33
+
+A_E79C:
+	sec
+	ror	CONT
+
+	jmp	J_FB3B			; $FB3B
+
+; left over
+	rts
+
+
+
+.ba $E85E
+	sta	CONT
+	sta	LSNACT			; erase flag for LISTEN
+	sta	TLKACT			; erase flag for TALK
+	sta	ATNPND			; erase flag for 'ATN received'
+
+	ldx	#$45
+	txs
+
+	bit	PortB1			; ATN active?
+	bpl	ClrATN2			; no, ->
+
+	ldy	#$80
+	sty	EOIFLG
+	sty	ATNMOD
+
+	lda	#$12
+	sta	PortB1			; Data out H, ATN out H
+
+	jsr	Delay2			; 				[FEF6]
+A_E87C:					;				[E87C]
+	jsr	GetByteFromBus
+	bne	A_E883
+
+	sta	CONT
+A_E883:					;				[E883]
+	cmp	#$3F			; unlisten?
+	beq	A_E891			; yes, ->
+
+	cmp	#$5F			; untalk
+	beq	A_E89B			; yes, ->
+
+	cmp	TLKADR
+	bne	A_E895
+
+	sty	TLKACT			; Y = $80 -> sets flag
+A_E891:					;				[E891]
+	stx	LSNACT			; X = 0 -> clears flag
+	beq	A_E8C5			; always ->
+
+A_E895:					;				[E895]
+	cmp	LSNADR
+	bne	A_E89F
+
+	sty	LSNACT			; Y = $80 -> sets flag
+A_E89B:					;				[E89B]
+	stx	TLKACT			; X = 0 -> clears flag
+	beq	A_E8C5			; always ->
+
+A_E89F:					;				[E89F]
+	cmp	#$61			; use JD mode?
+	bne	A_E8AB			; no, ->
+
+	ldx	TLKACT
+	beq	A_E8AB
+
+	lda	#$60			; write a byte in JD mode
+	sta	CONT
+A_E8AB:					;				[E8AB]
+	tax
+	and	#$60
+	cmp	#$60			; secondary address?
+	bne	A_E8EC			; no, ->
+
+	stx	ORGSA
+
+	txa
+	and	#$0F
+	sta	SA
+
+	txa
+	and	#$F0
+	cmp	#$E0			; CLOSE ?
+	bne	A_E8F7			; no, ->
+
+	cli
+
+	jsr	CloseFileSA
+
+	sei
+A_E8C5:					;				[E8C5]
+	lda	PortB1			; ATN active?
+	bmi	A_E87C			; yes, -> read next byte
+ClrATN2:					;				[rATN]
+	ldx	#$00			; no, end ATN mode
+	stx	ATNMOD
+
+	and	#$EF
+	sta	PortB1
+
+	lda	LSNACT			; LISTEN?
+	beq	A_E8DD			; no ->
+
+	jsr	ReceiveData
+	jmp	WaitLoop1		; $EBE7
+
+A_E8DD:					;				[E8DD]
+	lda	TLKACT
+	beq	A_E8E9
+
+	lda	#$08
+	sta	PortB1			; Clock out H
+
+	jsr	P_E909			; $E909
+A_E8E9:					;				[E8E9]
+	jmp	WaitLoop0		; $E8E9 , $EA4E
+
+A_E8EC:					;				[E8EC]
+	lda	LSNACT
+	ora	TLKACT
+	bne	A_E8F7
+
+	lda	#$10
+	sta	PortB1			; ATN out H
+A_E8F7:					;				[E8F7]
+	lda	PortB1			; ATN active?
+	bpl	ClrATN2			; no, ->
+
+	bmi	A_E8F7			; yes, ->
+
+J_E8FE:					;				[E8FE]
+	jsr	P_F910			; $E8FE , $F910
+	jmp	J_F418			; $F418
+
+
+; Needed by JiffyDOS
+A_E904:					;				[E904]
+.by $0A, $0A, $0B, $0C, $F9		; .....
+
+;**  Read or write a byte with JD protocol
+P_E909:					;				[E909]
+	sei
+
+	jsr	OpenChan4Read		; $D0EB
+	bcs	A_E96C
+J_E90F:					;				[E90F]
+	lda	CONT			; use JD routines?
+	beq	J_E918			; no, -> original ones
+
+	ldx	#$46
+	jmp	J_E781			; $E781
+
+;**  "Original" IEC routines
+J_E918:					;				[E918]
+	ldx	CURCHN
+	ldy	REWRFLzp,X
+	bpl	A_E96C
+
+	lda	PortB1
+	and	#$F7
+	sta	PortB1			; Clock out L
+
+	lsr	A
+	bcc	A_E931
+
+	jsr	P_E96D			; $E96D
+	tya
+	and	#$08
+	bne	A_E934
+A_E931:					;				[E931]
+	jsr	P_E966			; $E931 , $E966
+A_E934:					;				[E934]
+	jsr	ClkOut_H
+	jsr	P_E96D			; $E96D
+
+	ldy	#$08			; bit counter ???
+A_E93C:					;				[E93C]
+	ldx	CURCHN
+	ror	OUTREG,X
+
+	jsr	DataOut_L
+	bcs	A_E948
+
+	ora	#$02			; Data out H
+A_E948:					;				[E948]
+	jsr	OutPortB1		; $E948 , $E9A1
+	jsr	ClkOut_L2		; $E9BA
+
+	ldx	#$0B
+A_E950:					;				[E950]
+	dex
+	bne	A_E950
+
+	ora	#$08			; Clock out H
+	jsr	DataOut_L2		; $E99F
+
+	dey
+	bne	A_E93C
+
+	jsr	P_E966			; $E966
+
+	cli
+
+	jsr	GetByte2
+
+	sei
+
+	jmp	J_E918			; $E918
+
+P_E966:					;				[E966]
+	jsr	Check4EOI		;				[EA59]
+	ror	A
+	bcc	P_E966
+A_E96C:					;				[E96C]
+	rts
+P_E96D:					;				[E96D]
+	jsr	Check4EOI		;				[EA59]
+	ror	A
+	bcs	P_E96D
+
+	rts
+P_E974:					;				[E974]
+	lda	(BUFTABzp,X)
+	sta	TRACK
+
+	inc	BUFTABzp,X
+
+	lda	(BUFTABzp,X)
+	sta	SECTOR
+
+	jsr	P_FB64			; $FB64
+	jsr	WriteBlock2		; $D0D3
+	jsr	ReadBlk2Buf2		; $D0A4
+A_E987:					;				[E987]
+	ldx	TRACK
+	bne	A_E98E
+
+	sta	OUTREG+6,Y
+A_E98E:					;				[E98E]
+	rts
+; JiffyDOS <==
+
+
+
+.ba $E9CB
+	sta	TMP
+A_E9CD:					;				[E9CD]
+	jsr	Check4EoiClk		;				[EA17]
+	bne	A_E9CD			; if CLK active, -> wait
+
+	jsr	DataOut_L
+	jsr	PATCH2			; $FF20
+
+	ldx	#$90
+A_E9DA:					;				[E9DA]
+	jsr	Check4EoiClk		;				[EA17]
+	bne	A_E9EC
+
+	dex
+	bmi	A_E9DA
+
+	jsr	P_F683			; $F683
+	stx	EOIFLG
+A_E9E7:					;				[E9E7]
+	jsr	Check4EoiClk		;				[EA17]
+	beq	A_E9E7
+A_E9EC:					;				[E9EC]
+	ldx	#$0C
+A_E9EE:					;				[E9EE]
+	lda	PortB1
+	sta	WORK
+
+	and	#$04			; Clock in H ?
+	beq	A_E9FF
+
+	dex
+	bne	A_E9EE
+
+	jsr	P_F674			; $F674
+	beq	A_E9EE			; always ->
+
+A_E9FF:					;				[E9FF]
+	lda	WORK
+	eor	#$01
+	lsr	A
+
+	ror	DATA
+A_EA06:					;				[EA06]
+	jsr	Check4EoiClk		;				[$EA17]
+	beq	A_EA06
+
+	dec	TMP			; 8 bits done ?
+	bne	A_E9EC
+
+	jsr	DataOut_H
+
+	ldx	#$00
+	lda	DATA
+
+	rts
+
+Check4EoiClk:				;				[EA17]
+	jsr	Check4EOI		;				[EA59]
+	and	#$04			; Clock
+
+	rts
+
+
+A_EA1D:					;				[EA1D]
+.by $0F, $07, $0D, $05, $0B, $03, $09
+.by $01, $0E, $06, $0C, $04, $0A, $02
+.by $08, $00
+
+
+
+.ba $EA44
+A_EA44:					;				[EA44]
+	jsr	P_FBC1			; $EA44 , $FBC1
+	nop
+	jsr	P_F769			; $F769
+
+
+
+.ba $EA6B
+A_EA6B:					;				[EA6B]
+	jmp	ClrATN2			; reset ATN			[E8D7]
+
+
+
+.ba $EBCD
+	lda	#0			; interleave 0
+
+
+
+.ba $EDF3
+	jsr	ReadBlk2Buf2		; $D0A4
+
+	lda	TRACK
+	bne	A_EDFD
+
+	jmp	CloseChannel		; $D227
+A_EDFD:					;				[EDFD]
+	jsr	AllocSector
+
+	sei
+
+	jsr	P_FB64			; $FB64
+
+	cli
+
+	jmp	J_EDEE			; $EDEE
+
+; left over from original DOS
+.by $4D, $D4
+
+
+
+.ba $EF62
+	bne	A_EF85
+
+	lda	(BMPNT),Y		; bit model of BAM
+	ora	PowersOf2,X		; set bit X, marker for free
+	sta	(BMPNT),Y
+
+	jsr	SetBamChanged		; set flag for BAM changed
+
+	ldy	TEMP0
+	clc
+	lda	(BMPNT),Y
+	adc	#$01			; increment number of free blocks/track
+	sta	(BMPNT),Y
+
+	lda	TRACK			; track
+	cmp	#$12			; equal to 18?
+	beq	A_EFBA			; then skip
+
+	inc	NDBL,X			; increment number of free blocks in
+					;  disk
+	bne	A_EF85
+
+	inc	NDBH,X			; increment number of blocks hi
+A_EF85:					;				[EF85]
+	jmp	J_F7D9			; $EF85 , $F7D9
+
+
+
+.ba $F12D
+FindAllocSec2:				;				[F12D]
+	jsr	FindBamField		; $F12D , $F011
+
+	lda	(BMPNT),Y
+	bne	A_F173
+
+	lda	SECTOR
+	sta	SECTOR
+
+	ldx	#$12
+	cpx	TRACK
+	beq	A_F15A
+
+	bcs	A_F151
+
+	inc	TRACK
+
+	lda	TRACK
+	cmp	#$24
+	bne	FindAllocSec2
+
+	dex
+A_F149:					;				[F149]
+	stx	TRACK
+	dec	TEMP0
+	bne	FindAllocSec2
+
+	beq	A_F15A
+A_F151:					;				[F151]
+	dec	TRACK
+	bne	FindAllocSec2
+
+	inx
+	bne	A_F149
+
+	nop
+	nop
+A_F15A:					;				[F15A]
+	lda	#$72
+	jsr	OutputErrorMsg		; $C1C8
+A_F15F:					;				[F15F]
+	jsr	CheckREL		; $F15F , $D125
+	tay
+
+	lda	TRACK
+	jsr	GetMaxSectors		; $F24B
+
+	lda	#$06
+
+	nop
+
+	cpy	#$02
+	beq	A_F178
+
+	lda	A_E904,X
+.by $2C					; dummy BIT opcode
+A_F173:					;				[F173]
+	lda	SECINC
+	tax
+	beq	A_F15F
+A_F178:					;				[F178]
+	clc
+	adc	SECTOR
+	sta	SECTOR
+
+	lda	TRACK
+	jsr	GetMaxSectors		; $F24B
+	sta	BSTSEC
+	sta	CMD
+	cmp	SECTOR
+	bcs	A_F195
+
+	sec
+	lda	SECTOR
+	sbc	BSTSEC
+	sta	SECTOR
+
+	nop
+
+
+
+.ba $F306
+J_F306:                                 ;                               [F306]
+
+
+
+.ba $F339
+	jmp	J_F381
+
+
+
+.ba $F35C
+	jsr	P_FAE4			; $FAE4
+
+
+
+.ba $F37C
+;**  Bump, find track 1 (head at stop)
+A_F37C:					;				[F37C]
+	jsr	P_FAD3			; $F37C , $FAD3
+	bne	A_F390
+J_F381:					;				[F381]
+	lda	#$13
+	sta	T1LH2
+
+	jmp	J_F306			; $F306
+
+
+; left over from original DOS 
+.by $A4
+
+
+
+.ba $F4FB
+A_F4FB:					;				[F4FB]
+	lda	TMP
+	nop
+
+
+
+.ba $F5D9
+	jsr	P_F90D			;
+
+
+
+.ba $F5F2
+;**  Convert GCR data to normal data
+Gcr2Data:				;				[F5F2]
+	lda	BUFPNT+1
+	sta	NXTBF
+
+	ldx	#$01
+	stx	SAVPNT+1
+	stx	BUFPNT+1
+
+	dex
+	stx	NXTPNT
+	stx	BUFPNT
+
+	jsr	P_F927			; $F927
+	beq	A_F615
+A_F606:					;				[F606]
+	jsr	P_F7E6			; $F606 , $F7E6
+
+	ldy	BYTCNT
+	lda	BTAB0
+	sta	(BUFPNT),Y
+
+	iny
+	lda	BTAB1
+	sta	(BUFPNT),Y
+
+	iny
+A_F615:					;				[F615]
+	lda	BTAB2
+	sta	(BUFPNT),Y
+
+	iny
+	lda	BTAB3
+	sta	(BUFPNT),Y
+
+	iny
+	sty	BYTCNT
+	cpy	#$BB
+	bcc	A_F606
+
+	lda	BUFPNT+1
+	sta	SAVPNT+1
+
+	ldx	#$45
+	stx	SAVPNT
+
+	ldy	#$BB
+A_F62F:					;				[F62F]
+	dey
+
+	lda	(BUFPNT),Y
+	sta	(SAVPNT),Y
+
+	tya
+	bne	A_F62F
+
+	ldx	#$BB
+A_F639:					;				[F639]
+	lda	A_0100,X
+	sta	(BUFPNT),Y
+
+	iny
+
+	inx
+	bne	A_F639
+
+	stx	GCRFLG
+A_F644:					;				[F644]
+	rts
+
+
+A_F645:					;				[F645]
+	sty	BYTCNT
+
+	jsr	P_F7E6			; $F7E6
+
+	ldy	BYTCNT
+	lda	BTAB0
+	sta	(SAVPNT),Y
+
+	eor	TMP
+	sta	TMP
+
+	iny
+	beq	A_F644
+J_F657:					;				[F657]
+	lda	BTAB1
+	sta	(SAVPNT),Y
+
+	eor	TMP
+	sta	TMP
+
+	iny
+	lda	BTAB2
+	sta	(SAVPNT),Y
+
+	eor	TMP
+	sta	TMP
+
+	iny
+	lda	BTAB3
+	sta	(SAVPNT),Y
+
+	eor	TMP
+	sta	TMP
+
+	iny
+	bne	A_F645			; always ->
+
+
+P_F674:					;				[F674]
+	lda	DATA
+	lsr	A
+	cmp	LSNADR			; why ???
+	beq	A_F67F
+
+	cmp	TLKADR			; why ???
+	bne	A_F68C
+A_F67F:					;				[F67F]
+	inc	CONT
+
+	ldx	#$0F
+P_F683:					;				[F683]
+	jsr	DataOut_H
+A_F686:					;				[F686]
+	dex
+	bne	A_F686
+
+	jsr	DataOut_L
+A_F68C:					;				[F68C]
+	ldx	#$00
+
+	rts
+
+; left over
+.by $50
+
+
+
+.ba $F6C2
+	jmp	J_E8FE			; $E8FE
+
+
+
+.ba $F6D0
+;**  Convert 4 bytes ($52-$55) to 5 GCR bytes ($56-$5a)
+P_F6D0:					;				[F6D0]
+	ldy	GCRPNT
+
+	lda	BTAB1
+	lsr	A
+	lsr	A
+	lsr	A
+	lsr	A
+	tax
+
+	lda	A_F759,X
+	sta	GTAB4
+
+	lda	BTAB0
+	and	#$0F
+	tax
+
+	lda	A_F77F,X
+	lsr	A
+
+	ror	GTAB4
+
+	lsr	A
+
+	ror	GTAB4
+
+	sta	GTAB1
+
+	lda	BTAB0
+	lsr	A
+	lsr	A
+	lsr	A
+	lsr	A
+	tax
+
+	lda	A_F759,X
+	ora	GTAB1
+	sta	(BUFPNT),Y
+
+	iny
+	lda	BTAB1
+	and	#$0F
+	tax
+
+	lda	A_F759,X
+	asl	A
+	sta	GTAB1
+
+	lda	GTAB4
+	adc	#$00
+	sta	(BUFPNT),Y
+
+	iny
+
+	lda	BTAB2
+	lsr	A
+	lsr	A
+	lsr	A
+	lsr	A
+	tax
+
+	lda	A_F77F,X
+	lsr	A
+	ora	GTAB1
+	sta	(BUFPNT),Y
+
+	iny
+
+	lda	BTAB2
+	and	#$0F
+	tax
+
+	lda	A_F759,X
+	ror	A
+	lsr	A
+	lsr	A
+	sta	GTAB4
+
+	lda	BTAB3
+	lsr	A
+	lsr	A
+	lsr	A
+	lsr	A
+	tax
+
+	lda	A_F759,X
+	asl	A
+	rol	GTAB4
+	asl	A
+	rol	GTAB4
+	sta	GTAB1
+
+	lda	GTAB4
+	sta	(BUFPNT),Y
+
+	iny
+	bne	A_F749
+
+	lda	SAVPNT+1
+	sta	BUFPNT+1
+A_F749:					;				[F749]
+	lda	BTAB3
+	and	#$0F
+	tax
+
+	lda	A_F77F,X
+	ora	GTAB1
+	sta	(BUFPNT),Y
+
+	iny
+	sty	GCRPNT
+
+	rts
+
+
+A_F759:					;				[F759]
+.by $50, $58, $90, $98, $70, $78, $B0
+.by $B8, $48, $C8, $D0, $D8, $68, $E8
+.by $F0, $A8			
+
+P_F769:					;				[F769]
+	lda	ORGSA
+	cmp	#$6F
+	bcs	A_F774
+
+	jsr	CheckREL		; $D125
+	bcc	A_F778
+A_F774:					;				[F774]
+	cli
+	jmp	P_CFB7			; $CFB7
+A_F778:					;				[F778]
+	lda	DATA
+	jmp	J_FE3A			; $FE3A
+
+S_F77D:					;				[F77D]
+.by $34
+
+
+
+.ba $F78F
+;**  Convert 260 bytes to 325 bytes group code
+P_F78F:					;				[F78F]
+	jsr	P_F7A6			; $F78F , $F7A6
+	sta	GCRFLG
+
+	lda	DBID
+	sta	BTAB0
+
+	jsr	P_F7B9			; $F7B9
+
+	lda	CHKSUM
+	sta	BTAB1
+
+	sty	BTAB2
+	sty	BTAB3
+
+	jmp	P_F6D0			; $F6D0
+P_F7A6:					;				[F7A6]
+	lda	BUFPNT+1
+	sta	SAVPNT+1
+
+	lda	#$BB
+	sta	GCRPNT
+
+	ldx	#$01
+	stx	BUFPNT+1
+
+	ldy	#$00
+	sty	BUFPNT
+	sty	SAVPNT
+
+	rts
+P_F7B9:					;				[F7B9]
+	lda	(SAVPNT),Y
+	sta	BTAB1
+
+	iny
+	lda	(SAVPNT),Y
+	sta	BTAB2
+
+	iny
+	lda	(SAVPNT),Y
+	sta	BTAB3
+
+	iny
+	beq	A_F7D8
+
+	sty	BYTCNT
+
+	jsr	P_F6D0			; $F6D0
+
+	ldy	BYTCNT
+P_F7D1:					;				[F7D1]
+	lda	(SAVPNT),Y
+	sta	BTAB0
+
+	iny
+	bne	P_F7B9
+A_F7D8:					;				[F7D8]
+	rts
+
+
+;**  trick to replace the line "jsr RdNxtBlock" at $C8B0 with " jsr P_FB64" if
+;    the subroutine FreeSector is executed at $C8AD.
+J_F7D9:					;				[F7D9]
+	pla
+	cmp	#$AF			; return address = $xxB0 - 1 ?
+	bne	A_F7E4			; no, ->
+
+	jsr	P_FB64			; $FB64
+
+	cli
+	lda	#$93			; return address := $xx94
+A_F7E4:					;				[F7E4]
+	pha
+
+	rts
+
+P_F7E6:					;				[F7E6]
+	ldy	GCRPNT
+	lda	(BUFPNT),Y
+	tax
+
+	and	#$07
+	sta	GTAB1
+
+	txa
+	lsr	A
+	lsr	A
+	lsr	A
+	sta	GTAB0
+
+	tax
+
+	iny
+	bne	A_F7FF
+
+	lda	NXTBF
+	sta	BUFPNT+1
+
+	ldy	NXTPNT
+A_F7FF:					;				[F7FF]
+	lda	(BUFPNT),Y
+	asl	A
+	rol	GTAB1
+	asl	A
+	rol	GTAB1
+	lsr	A
+	lsr	A
+	lsr	A
+	sta	GTAB2
+
+	lda	A_F8A0,X
+	ldx	GTAB1
+	ora	A_F8C0,X
+	sta	BTAB0
+
+	iny
+	lda	(BUFPNT),Y
+	ror	A
+	lsr	A
+	lsr	A
+	lsr	A
+	sta	GTAB3
+	tax
+
+	lda	A_F8C0,X
+	ldx	GTAB2
+	ora	A_F8A0,X
+	sta	BTAB1
+
+	lda	(BUFPNT),Y
+	and	#$0F
+	sta	GTAB4
+
+	iny
+	lda	(BUFPNT),Y
+	sta	GTAB7
+
+	asl	A
+	rol	GTAB4
+	lsr	A
+	lsr	A
+	lsr	A
+	sta	GTAB5
+
+	tax
+	lda	A_F8C0,X
+	ldx	GTAB4
+	ora	A_F8A0,X
+	sta	BTAB2
+
+	iny
+	bne	A_F851
+
+	lda	NXTBF
+	sta	BUFPNT+1
+
+	ldy	NXTPNT
+A_F851:					;				[F851]
+	lda	(BUFPNT),Y
+	tax
+
+	lsr	GTAB7
+	ror	A
+	lsr	GTAB7
+	ror	A
+	lsr	A
+	lsr	A
+	lsr	A
+	sta	GTAB6
+
+	txa
+	and	#$1F
+	sta	GTAB7
+
+	tax
+	lda	A_F8C0,X
+	ldx	GTAB6
+	ora	A_F8A0,X
+	sta	BTAB3
+
+	iny
+	sty	GCRPNT
+
+	rts
+J_F873:					;				[F873]
+	jsr	P_F7E6			; $F873 , $F7E6
+
+	lda	BTAB0
+	sta	BID
+
+	ldy	BYTCNT
+
+	jmp	J_F895			; $F895
+A_F87F:					;				[F87F]
+	lda	BTAB2
+	sta	(SAVPNT),Y
+
+	iny
+	lda	BTAB3
+	sta	(SAVPNT),Y
+
+	iny
+	sty	BYTCNT
+
+	jsr	P_F7E6			; $F7E6
+
+	ldy	BYTCNT
+	lda	BTAB0
+	sta	(SAVPNT),Y
+
+	iny
+J_F895:					;				[F895]
+	lda	BTAB1
+	sta	(SAVPNT),Y
+
+	iny
+	bne	A_F87F
+
+	rts
+
+
+
+.ba $F8E0
+;**  Decode 69 GCR bytes
+P_F8E0:					;				[F8E0]
+	ldx	#$00
+	stx	BYTCNT
+	stx	GCRPNT
+	stx	SAVPNT
+	stx	TMP
+
+	inx
+	stx	NXTBF
+
+	ldx	#$BA
+	stx	NXTPNT
+
+	ldx	BUFPNT+1
+	stx	SAVPNT+1
+
+	jsr	P_F901			; $F901
+
+	ldx	BTAB1
+	stx	CHKSUM
+
+	lda	SAVPNT+1
+	sta	BUFPNT+1
+A_F900:					;				[F900]
+	rts
+P_F901:					;				[F901]
+	jsr	P_F7E6			; $F901 , $F7E6
+
+	lda	BTAB0
+	sta	BID
+
+	ldy	BYTCNT
+
+	jmp	J_F657			; $F657
+
+P_F90D:					;				[F90D]
+	jsr	Gcr2Data
+P_F910:					;				[F910]
+	tsx
+
+	lda	A_0100+4,X
+
+	ldx	JOBN
+	ldy	#$01
+
+	sec
+	sbc	#$FB
+	bne	A_F900
+
+	sta	GCRFLG
+
+	sty	JOBSZP,X
+
+	ldx	SAVSP
+	txs
+
+	jmp	J_FABE			; $FABE
+P_F927:					;				[F927]
+	stx	SAVPNT
+
+	ldy	#$BB
+	sty	BYTCNT
+	sty	GCRPNT
+
+	jmp	J_F873			; $F873
+
+; left over
+.by $31
+
+
+
+
+.ba $F98A
+	lda	#$19
+
+
+
+.ba $FA47
+	lda	#2
+
+
+
+.ba $FABA
+	lda	#2
+
+
+
+.ba $FAC9
+	bpl	A_FAF0
+
+	jsr	P_FAD3			; $FAD3
+	sta	FTNUM
+
+	jmp	LoopDiskCntrl		; $F99C
+P_FAD3:					;				[FAD3]
+	lda	#$60
+	sta	DRVST
+
+	lda	#$A4
+	sta	STEPS
+
+	lda	#$01
+	sta	DRVTRK
+
+	lda	PortB2
+	and	#$FC
+P_FAE4:					;				[FAE4]
+	sta	PortB2
+
+	lda	#$3A
+	sta	T1LH2
+
+	lda	#$01
+A_FAEE:					;				[FAEE]
+	rts
+
+
+S_FAEF:					;				[FAEF]
+.by $AA					; .
+A_FAF0:					;				[FAF0]
+	ldy	#$00
+	cmp	(HDRPNT),Y
+	beq	A_FAFB
+
+	sta	(HDRPNT),Y
+
+	jmp	LoopDiskCntrl		; $F99C
+A_FAFB:					;				[FAFB]
+	lda	#$14
+	sta	A_0620
+
+	lda	PortB2
+	and	#$10
+	bne	A_FB0C
+
+	lda	#$08
+	jmp	A_FDDB
+
+A_FB0C:					;				[FB0C]
+	jmp	J_FC3A			; $FB0C , $FC3A
+A_FB0F:					;				[FB0F]
+	ldx	CONT
+	bmi	A_FB5Cb
+
+	ldy	CURCHN
+	lda	(BUFTABzp,X)
+	sta	OUTREG,Y
+
+	lda	OUTREG+6,Y
+	beq	A_FB2C
+
+	sec
+	sbc	BUFTABzp,X
+	bne	A_FB2C
+
+	sta	BUFTABzp,X
+
+	jsr	ReadBuffer2B		; $D162
+	jmp	J_FB3B			; $FB3B
+A_FB2C:					;				[FB2C]
+	inc	BUFTABzp,X
+	bne	J_FB3B
+
+	jsr	P_E974			; $E974
+J_FB33:					;				[FB33]
+	jsr	ChkBufFree
+
+	jsr	GetBufChanNum
+	stx	CONT
+J_FB3B:					;				[FB3B]
+	ldx	CURCHN
+
+	lda	PortB1
+	and	#$6D
+	sta	WORK
+
+	and	#$61
+	sta	TLKACT
+
+	lda	REWRFLzp,X
+	bpl	A_FAEE
+
+	and	#$08
+	jsr	P_FF79			; $FF79
+	and	#$02
+	beq	A_FB0F
+
+	lda	TLKACT
+	ora	#$0D
+	jsr	P_FFDB			; $FFDB
+A_FB5Cb:					;				[FB5C]
+	cli
+
+	jsr	GetByte2
+
+	sei
+
+	jmp	J_FB3B			; $FB3B
+
+P_FB64:					;				[FB64]
+	sei
+
+	jsr	Par2DiskCtrl
+	tya
+	lsr	A
+	tax
+
+	lda	#$80
+	jsr	SetJoA__		; $D50E
+.by $2C					; dummy BIT opcode
+P_FB71:					;				[FB71]
+	lda	#$90
+P_FB73:					;				[FB73]
+	pha
+
+	txa
+	asl	A
+	tay
+
+	lda	TRASECab,Y
+	cmp	DRVTRK
+	beq	A_FB83
+
+	lda	#$B0
+	jsr	P_FBA4			; $FBA4
+A_FB83:					;				[FB83]
+	pla
+	pha
+	sta	JOBSZP,X
+
+	stx	JOBN
+
+	lda	PCR2
+	ora	#$0E
+	sta	PCR2
+
+	jsr	InitPntr2Buf		; $F393
+	txa
+	pha
+
+	lda	JOBSZP,X
+	jsr	P_FBAD			; $FBAD
+
+	pla
+	tax
+
+	lda	JOBSZP,X
+	cmp	#$02
+
+	pla
+	bcc	A_FBAC
+P_FBA4:					;				[FBA4]
+	jsr	SetJoA__		; $FBA4 , $D50E
+
+	cli
+
+	jsr	VerifyExec
+
+	sei
+A_FBAC:					;				[FBAC]
+	rts
+P_FBAD:					;				[FBAD]
+	tsx
+	stx	SAVSP
+
+	and	#$30
+	bne	A_FBB7
+
+	jmp	A_F4D1
+
+A_FBB7:					;				[FBB7]
+	and	#$20
+	bne	A_FBBE
+
+	jmp	A_F575
+
+A_FBBE:					;				[FBBE]
+	jmp	A_F698
+
+
+;**  Fast routine to get byte from bus
+P_FBC1:					;				[FBC1]
+	lda	CONT
+	bne	A_FBC8
+A_FBC5:					;				[FBC5]
+	jmp	GetByteFromBus
+
+A_FBC8:					;				[FBC8]
+	lda	PortB1
+	and	#$04			; filter Clock in
+	sta	PortB1
+A_FBD0:					;				[FBD0]
+	bit	PortB1
+	bne	A_FBD0
+
+	pha
+
+	pla				; why ???  timing issue?
+
+	lda	PortB1
+	asl	A
+	pha
+
+	pla
+	ora	PortB1
+	and	#$0F
+	tax
+
+	ldy	TLKACT
+
+	lda	PortB1
+	asl	A
+	pha
+
+	pla
+	ora	PortB1
+	and	#$0F
+	ora	A_FC08,X
+	sta	DATA
+
+	lda	PortB1
+	ora	#$02
+	sta	PortB1
+	bmi	A_FBC5
+
+	and	#$04
+	bne	A_FC05
+
+	sty	EOIFLG
+A_FC05:					;				[FC05]
+	lda	DATA
+
+	rts
+
+
+A_FC08:					;				[FC08]
+.by $00, $80, $20, $A0, $40, $C0, $60
+.by $E0, $10, $90, $30, $B0, $50, $D0
+.by $70, $F0			
+
+
+P_FC18:					;				[FC18]
+	lda	PCR2
+	and	#$1F
+	ora	#$C0
+	sta	PCR2
+
+	lda	#$FF
+	sta	DDRA2
+
+	rts
+
+P_FC28:					;				[FC28]
+	lda	#$FF
+	ldx	#$05
+.by $2C					; dummy BIT opcode
+P_FC2D:					;				[FC2D]
+	lda	#$55
+A_FC2F:					;				[FC2F]
+	bvc	A_FC2F
+
+	clv
+	sta	PortA2
+
+	dex
+	bne	A_FC2F
+
+	rts
+
+S_FC39:					;				[FC39]
+.by $28
+
+J_FC3A:					;				[FC3A]
+	sty	A_0628
+
+
+
+.ba $FCAA
+A_FCAA:					;				[FCAA]
+	lda	DRVTRK
+	jsr	GetMaxSectors		; $F24B
+
+	lda	A_FD1A,X
+	tax
+.by $2C					; dummy BIT opcode
+J_FCB4:					;				[FCB4]
+	ldx	A_0626
+	dex
+	cpx	#$04
+	bcc	A_FCAA
+
+	stx	A_0626
+
+	jsr	P_FC18			; $FC18
+	tax
+
+	jsr	P_FC2D			; $FC2D
+	stx	HDRPNT
+
+	lda	SECCNT
+	sta	A_0628
+
+	lda	#$05
+	sta	BUFPNT+1
+A_FCD1:					;				[FCD1]
+	jsr	P_FC28			; $FCD1 , $FC28
+
+	ldx	#$0A
+	ldy	HDRPNT
+A_FCD8:					;				[FCD8]
+	bvc	A_FCD8
+
+	clv
+
+	lda	BUF0,Y
+	sta	PortA2
+
+	iny
+
+	dex
+	bne	A_FCD8
+
+	ldx	#$09
+	jsr	P_FC2D			; $FC2D
+
+	jsr	P_FC28			; $FC28
+
+	ldy	#$BB
+A_FCEF:					;				[FCEF]
+	bvc	A_FCEF
+
+	clv
+
+	lda	A_0100,Y
+	sta	PortA2
+
+	iny
+	bne	A_FCEF
+A_FCFB:					;				[FCFB]
+	bvc	A_FCFB
+
+	clv
+
+	lda	(BUFPNT),Y
+	sta	PortA2
+
+	iny
+	bne	A_FCFB
+
+	ldx	A_0626
+	jsr	P_FC2D			; $FC2D
+
+	lda	HDRPNT
+	clc
+	adc	#$0A
+	sta	HDRPNT
+
+	dec	A_0628
+	bne	A_FCD1
+
+	beq	A_FD1E			; alway ->
+
+A_FD1A:
+	.by $08, $0B, $10, $06
+
+
+
+.ba $FDB5
+	ldx	#8			; 8
+
+
+
+.ba $FDD8
+	jmp	J_FCB4
+
+
+
+.ba $FE22
+	ldx	#$08
+
+
+
+.ba $FE30
+;**  Convert header in buffer 0 to GCR code
+P_FE30:					;				[FE30]
+	jsr	P_F7A6			; $FE30 , $F7A6
+	jsr	P_F7D1			; $F7D1
+	jmp	P_F6D0			; $F6D0
+
+
+S_FE39:					;				[FE39]
+.by $BB					; .
+
+
+J_FE3A:					;				[FE3A]
+	jsr	Write2Buf
+	bne	A_FE66
+
+	jsr	ChkBufferFree
+	bne	A_FE49
+
+	cli
+
+	jsr	Look4FreeBuf
+
+	sei
+A_FE49:					;				[FE49]
+	and	#$07
+	tax
+
+	lda	JOBSZP,X
+	bpl	A_FE53
+
+	jsr	P_FB73			; $FB73
+A_FE53:					;				[FE53]
+	cli
+
+	jsr	FindAllocSec		; $F11E
+
+	sei
+
+	jsr	Buffer2Disk2		; $D1A9
+
+	ldx	ActBufNum
+	jsr	P_FB71			; $FB71
+
+	ldx	ActBufNum
+	lda	#$A0
+	sta	JOBSZP,X
+A_FE66:					;				[FE66]
+	rts
+
+
+
+.ba $FEE6
+.by $BB
+
+
+
+.ba $FF2C
+	rts
+
+;**  Read a byte in JD mode
+J_FF2D:					;				[FF2D]
+	lda	BUFPNT+1
+	pha
+
+	jsr	P_E96D			; $E96D
+
+	lda	#$04
+A_FF35:					;				[FF35]
+	pha
+
+	ldy	#$01
+	lda	(BUFPNT),Y
+	sta	SECTOR
+
+	tax
+
+	dey
+	lda	(BUFPNT),Y
+	sta	TRACK
+	bne	A_FF50
+
+	pla
+	clc
+	sbc	SECTOR
+
+	inx
+	stx	BUFPNT
+	beq	A_FF4F
+
+	dec	BUFPNT+1
+A_FF4F:					;				[FF4F]
+	pha
+A_FF50:					;				[FF50]
+	pla
+	tay
+
+	jsr	P_FF8D			; $FF8D
+
+	lda	TRACK
+	beq	A_FF60
+
+	jsr	P_FB64			; $FB64
+	lda	#$02
+	bne	A_FF35
+A_FF60:					;				[FF60]
+	sta	BUFPNT
+
+	pla
+	sta	BUFPNT+1
+
+	jsr	P_FF6E			; $FF6E
+	jsr	P_FF6E			; $FF6E
+	jsr	ClkOut_H
+P_FF6E:					;				[FF6E]
+	ldx	#$14
+A_FF70:					;				[FF70]
+	dex
+	bne	A_FF70
+
+	jmp	ClkOut_L
+
+A_FF76:					;				[FF76]
+	jmp	SerialBus
+
+P_FF79:					;				[FF79]
+	bne	A_FF81
+
+	lda	TLKACT
+	ora	#$03
+	sta	WORK
+A_FF81:					;				[FF81]
+	lda	OUTREG,X
+
+	ldx	TLKACT
+	ldy	#$FF
+	stx	PortB1
+	bne	A_FFA5
+P_FF8D:					;				[FF8D]
+	lda	PortB1
+	and	#$60
+	sta	TLKACT
+
+	ora	#$0D
+	sta	WORK
+
+	jsr	DataOut_H
+	eor	#$0D
+	sta	PortB1
+
+	jsr	DelayC64
+A_FFA3:					;				[FFA3]
+	lda	(BUFPNT),Y
+A_FFA5:					;				[FFA5]
+	tax
+
+	lsr	A
+	lsr	A
+	lsr	A
+	lsr	A
+	sta	TMP
+
+	txa
+	and	#$0F
+	tax
+
+	lda	A_EA1D,X
+
+	ldx	TLKACT
+	stx	PortB1
+A_FFB8:					;				[FFB8]
+	cpx	PortB1
+	beq	A_FFB8
+
+	sta	PortB1
+
+	asl	A
+	and	#$0F
+	nop
+	sta	PortB1
+
+	ldx	TMP
+	lda	A_EA1D,X
+	sta	PortB1
+
+	asl	A
+	and	#$0F
+	iny
+	sta	PortB1
+	bne	A_FFA3
+
+	nop
+
+	lda	WORK
+P_FFDB:					;				[FFDB]
+	sta	PortB1
+A_FFDE:					;				[FFDE]
+	cmp	PortB1
+	bcc	A_FF76
+
+	bne	A_FFDE
+
+	rts
+
+
+
+;******************************************************************************

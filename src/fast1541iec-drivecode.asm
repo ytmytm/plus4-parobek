@@ -1,148 +1,152 @@
-; Stock 1541 jiffy2bit sender uploaded to $0300 with M-W.
-;
-; AAY1541 job API used here:
-;   $04     buffer-4 job queue entry
-;   $0e/$0f buffer-4 track/sector
-;   $80     READ SECTOR, result $01 means success
-;   $0700   buffer 4
-;
-; $18/$19 contain the first file track/sector after shared_rom_check, as in
-; the SpeedDOS loader.  VIA1 PB images are always complete writes with PB4
-; (ATNA) clear: $00/$02/$08/$0a only.
+; Stock 1541 JD LOAD sender @ $0300 (≤256 B).
+; Literal structure of docs/1541EJD.a65 J_FF2D/P_FF8D/A_FFA3:
+; transform pointer/Y for the final sector, then use one inline send loop until
+; Y wraps. This preserves JD's inter-byte timing (no JSR/RTS or per-byte CPY).
+; Data buffer 1 @ $0400; host seeds first T/S in $20/$21 before M-E.
 
 fast1541iec_drivecode:
 !pseudopc $0300 {
 .start:
 	lda #$1a
-	sta $1802			; PB1 DATA, PB3 CLK, PB4 ATNA outputs
-	; Keep IEC released through host UNLISTEN after M-E. Asserting CLK
-	; here deadlocks KERNAL (ROM_CBMSER_READLINES) vs .wait_host_ready.
-	lda #$00
+	sta $1802
+	lda $1800
+	and #$60
+	sta $7a
+	ora #$0d
+	sta $44
 	sta $1800
-.wait_atn_clear:
-	bit $1800			; bit7=1 while ATN asserted (inverted bus)
-	bmi .wait_atn_clear
+	lda #$00
+	sta $30
+	lda #$04
+	sta $31
+	lda #$04			; first sector: skip link + PRG address
 
 .read_sector:
-	lda $18
-	sta $0e
-	lda $19
-	sta $0f
-	cli				; DOS IRQ executes the buffer job
-	lda #$80			; AAY1541 READ job for buffer 4
-	sta $04
-.wait_job:
-	lda $04
-	bmi .wait_job
+	pha				; start offset: 4 first, 2 thereafter
+	lda $44
+	sta $1800
+	lda $20
+	sta $08
+	lda $21
+	sta $09
+	cli
+	lda #$80
+	sta $01
+-	lda $01
+	bmi -
 	sei
 	cmp #$01
-	bne .read_error			; never report a failed READ as clean EOF
+	beq +
+	jmp .read_error
++
 
-	lda $0700			; next track
-	beq .last_sector
-	sta $18
-	lda $0701			; next sector
-	sta $19
-	lda #$00			; Y wraps after byte $ff
-	beq .send_sector
-
-.last_sector:
-	lda $0701			; last used data offset
+	; J_FF2D: obtain next T/S and transform final-sector pointer so the
+	; desired byte range ends exactly when Y wraps.
+	ldy #$01
+	lda ($30),y
+	sta $21
+	tax
+	dey
+	lda ($30),y
+	sta $20
+	bne .have_y
+	pla
 	clc
-	adc #$01
+	sbc $21
+	inx
+	stx $30
+	beq +
+	dec $31
++	pha
+.have_y:
+	pla
+	tay
 
-.send_sector:
-	sta $15				; exclusive end offset
-	ldy #$02
+	; P_FF8D verbatim, using the stock-ROM helpers also used by JD.
+	lda $1800
+	and #$60
+	sta $7a
+	ora #$0d
+	sta $44
+	jsr $e9a5			; DataOut_H
+	eor #$0d
+	sta $1800
+	jsr $fef3			; DelayC64
+
+	; A_FFA3/A_FFA5 verbatim: no calls and no added pair delays.
 .send_loop:
-	lda $0700,y
-	jsr .send_byte
+	lda ($30),y
+	tax
+	lsr
+	lsr
+	lsr
+	lsr
+	sta $4b
+	txa
+	and #$0f
+	tax
+	lda .jd_nibble,x
+	ldx $7a
+	stx $1800
+-	cpx $1800
+	beq -
+	sta $1800
+	asl
+	and #$0f
+	nop
+	sta $1800
+	ldx $4b
+	lda .jd_nibble,x
+	sta $1800
+	asl
+	and #$0f
 	iny
-	cpy $15
+	sta $1800
 	bne .send_loop
-	lda $0700
-	bne .read_sector
-	beq .send_eoi
+	nop
+	lda $44
+	sta $1800
+.wait_host:
+	cmp $1800			; A_FFDE: do not start job/EOI early
+	bcc .serial_bus
+	bne .wait_host
+
+	lda $20
+	beq .do_eoi
+	lda #$02
+	jmp .read_sector
+
+	; A_FF60/P_FF6E verbatim: two CLK-low delays, CLK high, then
+	; one final delay ending with CLK low.  The ROM helper's RTS returns
+	; through the M-E command's existing stack frame.
+.do_eoi:
+	lda #$00
+	sta $30
+	jsr .delay_clk_low
+	jsr .delay_clk_low
+	jsr $e9ae			; ClkOut_H
+.delay_clk_low:
+	ldx #$14
+-	dex
+	bne -
+	jmp $e9b7			; ClkOut_L, then RTS
+
+.serial_bus:
+	jmp $e85b
 
 .read_error:
-	lda #$08			; hold CLK asserted so host never sees EOF
+	pla				; discard saved start offset
+	lda $44
 	sta $1800
 	bne .read_error
 
-.send_eoi:
-	lda #$08			; arm: force host probe back to loadloop
-	sta $1800
-	lda #$01
--	bit $1800			; wait until host DATA released (IN=0)
-	bne -
-	lda #$00			; EOI present: both lines released
-	sta $1800
-	ldx #$04			; hold for at least 16 drive cycles
--	dex
-	bne -
-	lda #$08			; EOI confirm: CLK asserted, DATA released
-	sta $1800
-	cli
-	rts
-
-; Convert four least-significant-first bit pairs to safe VIA port images,
-; then synchronize with the SJL/Jiffy host probe.  The timed stores are
-; spaced 9, 10, and 10 drive cycles to match the host's four samples.
-.send_byte:
-	sta $14
-	lda #$08			; not ready while encoding
-	sta $1800
-	ldy #$00
-.encode_pair:
-	lda $14
-	and #$03
-	tax
-	lda .pair_image,x
-	sta $10,y
-	lsr $14
-	lsr $14
-	iny
-	cpy #$04
-	bne .encode_pair
-
-	lda #$02			; byte announce: CLK high, DATA low
-	sta $1800
-	; Hold $02 long enough that the host .loadloop sample cannot
-	; miss it and only see the later $00 (CLK+DATA high = false EOI →
-	; sjl_untalk while we sit in .wait_host_ready).
-	ldy #$40
---	ldx #$00
--	dex
-	bne -
-	dey
-	bne --
-	lda #$00			; DATA high → host leaves .wait_data
-	sta $1800
-	; 1541 DATA IN is inverted vs the bus: host $01=$09 (assert) → bit0=1.
-	lda #$01
--	bit $1800
-	beq -				; wait until host asserts DATA
-
-	lda $10
-	sta $1800
-	nop
-	lda $11
-	sta $1800
-	bit $00
-	lda $12
-	sta $1800
-	bit $00
-	lda $13
-	sta $1800
-	rts
-
-; Logical CLK/DATA pairs 00,01,10,11 -> inverted PB3/PB1 images.
-.pair_image:
-	!byte $0a,$02,$08,$00
+.jd_nibble:
+	!byte $0f,$07,$0d,$05,$0b,$03,$09,$01
+	!byte $0e,$06,$0c,$04,$0a,$02,$08,$00
 }
 
-!if * > fast1541iec_drivecode+$e0 {
-	!error "FAST1541IEC DRIVECODE EXCEEDS 224-BYTE M-W BUDGET"
+!if * > fast1541iec_drivecode+$100 {
+	!error "FAST1541IEC DRIVECODE EXCEEDS 256-BYTE M-W BUDGET"
 }
-!fill fast1541iec_drivecode+$e0-*, $ea
+!fill fast1541iec_drivecode+$100-*, $ea
 fast1541iec_drivecode_end:

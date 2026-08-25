@@ -1,6 +1,6 @@
 ; Stock 1541 serial IEC fastloader wrapper (Parobek).
-; Opens the file with the KERNAL, uploads seven 32-byte M-W chunks to $0300,
-; executes them with M-E, then enters the cycle-counted jiffy2bit receiver.
+; M-R $18/$19 before CLOSE (header T/S), upload drivecode, M-W T/S into
+; drive $20/$21, M-E, then SJL264-compatible JD receiver.
 
 fast1541iec_load:
 	!zone fast1541iec_Loader {
@@ -12,16 +12,32 @@ fast1541iec_load:
 		bcc +
 		jmp .fail_open
 +
-
-		; Do not permit the fast receiver to overwrite KERNAL/I/O space.
 		lda $9e
 		cmp #$0a
 		bcs +
 		jmp .fail_open
 +
+		; End shared_rom_check TALK, then snapshot T/S before CLOSE
+		jsr ROM_UNTLK
+		lda #'R'
+		jsr .send_m_command
+		lda #$18
+		jsr ROM_CIOUT
+		lda #$00
+		jsr ROM_CIOUT
+		lda #$02
+		jsr ROM_CIOUT
+		jsr ROM_UNLISTEN
+		lda RAM_FA
+		jsr ROM_TALK
+		lda #$6f
+		jsr ROM_TKSA
+		jsr ROM_ACPTR
+		sta $07				; track
+		jsr ROM_ACPTR
+		sta $08				; sector
+		jsr ROM_UNTLK
 
-		; Finish the KERNAL channel used to obtain the load address.  The
-		; drive retains the file's first track/sector in $18/$19.
 		lda #$01
 		jsr ROM_CLOSE
 
@@ -52,11 +68,10 @@ fast1541iec_load:
 		bne .upload_chunk
 		jsr ROM_UNLISTEN
 		lda RAM_STATUS
-		and #$83			; device absent / IEC read/write timeout
+		and #$83
 		beq +
 		jmp .fail
 +
-
 		clc
 		lda $03
 		adc #$20
@@ -76,8 +91,26 @@ fast1541iec_load:
 		cmp #>fast1541iec_drivecode_end
 		bne .upload_loop
 
-		; Prepare timed receive BEFORE M-E so we enter the bitbang loop
-		; immediately after UNLISTEN (drive must not hold CLK during that).
+		; Seed drive $20/$21 with M-R'd T/S
+		lda #'W'
+		jsr .send_m_command
+		lda #$20
+		jsr ROM_CIOUT
+		lda #$00
+		jsr ROM_CIOUT
+		lda #$02
+		jsr ROM_CIOUT
+		lda $07
+		jsr ROM_CIOUT
+		lda $08
+		jsr ROM_CIOUT
+		jsr ROM_UNLISTEN
+		lda RAM_STATUS
+		and #$83
+		beq +
+		jmp .fail
++
+
 		lda TED_BORDER
 		sta RAM_TED_BORDER_BACKUP
 		lda TED_FF06
@@ -88,6 +121,34 @@ fast1541iec_load:
 		sta RAM_TED_FF13_BACKUP
 		ora #%00000010
 		sta TED_FF13			; force 1 MHz for timed receive
+
+		; TED only applies DEN=0 at a frame boundary.  SJL spends a full
+		; command/address phase here; this M-E path did not, so display DMA
+		; could still steal cycles from the supposedly cycle-counted loop.
+		; Wait for FF1C bit 0 (raster bit 8) to toggle twice, guaranteeing
+		; that a frame boundary has passed on both PAL and NTSC machines.
+		lda $ff1c
+		and #$01
+		beq .wait_raster_high
+.wait_raster_low:
+		lda $ff1c
+		and #$01
+		bne .wait_raster_low
+		beq .wait_second_high
+.wait_raster_high:
+		lda $ff1c
+		and #$01
+		beq .wait_raster_high
+.wait_second_low:
+		lda $ff1c
+		and #$01
+		bne .wait_second_low
+		beq .screen_stable
+.wait_second_high:
+		lda $ff1c
+		and #$01
+		beq .wait_second_high
+.screen_stable:
 
 		lda #'E'
 		jsr .send_m_command
