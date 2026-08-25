@@ -73,15 +73,13 @@ fast1541iec_drivecode:
 	lda #$08			; arm: force host probe back to loadloop
 	sta $1800
 	lda #$01
-.wait_host_release:
-	bit $1800			; PB0 is host DATA output
-	beq .wait_host_release
+-	bit $1800			; wait until host DATA released (IN=0)
+	bne -
 	lda #$00			; EOI present: both lines released
 	sta $1800
 	ldx #$04			; hold for at least 16 drive cycles
-.eoi_hold:
-	dex
-	bne .eoi_hold
+-	dex
+	bne -
 	lda #$08			; EOI confirm: CLK asserted, DATA released
 	sta $1800
 	cli
@@ -120,9 +118,10 @@ fast1541iec_drivecode:
 	bne --
 	lda #$00			; DATA high → host leaves .wait_data
 	sta $1800
+	; 1541 DATA IN is inverted vs the bus: host $01=$09 (assert) → bit0=1.
 	lda #$01
--	bit $1800			; host asserts DATA with $01=$09
-	bne -
+-	bit $1800
+	beq -				; wait until host asserts DATA
 
 	lda $10
 	sta $1800
