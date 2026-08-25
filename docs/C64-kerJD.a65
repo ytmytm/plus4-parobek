@@ -1,0 +1,2190 @@
+;******************************************************************************
+;******************************************************************************
+;
+;         The almost completely commented C64 BASIC ROM disassembly. 
+;                 Based on version V1.01 by Lee Davison 2012
+;
+;******************************************************************************
+;
+; start of the kernal ROM
+;
+; JiffyDOS V6.01
+;
+;
+;     The parts concerning JiffyDOS have been commented by Magnus Nyman
+;        (harlekin@fairlight.to), also known as Harlekin/FairLight. 
+;
+;                 Used with his approval, therefore my thanks!
+;
+;
+;                 The JD-specific code is (c) 2004 Mark Fellows
+;
+;                These sources will create the original binaries. 
+;           You may only use them if you have a valid JifyDOS license.
+;
+;
+
+
+.ba $E159
+jdSAVE:					;				[E159]
+
+
+
+
+.ba $E17E
+bcLOAD2:				;				[E17E]
+
+
+
+
+.ba $E1A7
+ReadyBASIC2:				;				[E1A7]
+
+
+
+
+.ba $E1DD
+	jsr	SetDevNumber		;				[F73A]
+
+
+
+.ba $E229
+jdOpenDev:				;				[E229]
+
+
+
+
+.ba $E25A
+Getfilename2:				;				[E25A]
+
+
+
+
+.ba $E394
+;******************************************************************************
+;
+; BASIC cold start entry point
+;
+BasicColdStart:				;				[E394]
+	jsr	InitJdCommands		;				[E4B7]
+
+
+
+
+.ba $E447
+;******************************************************************************
+;
+; BASIC vectors, these are copied to RAM from IERROR onwards
+;
+TblBasVectors:				;				[E447]
+.wo 	jdErrorMsg			;				[F763]
+
+
+
+
+.ba $E44B
+.wo	Text2TokenCod3			; crunch BASIC tokens		[EA64]
+
+
+
+
+.ba $E475
+.by	"       JIFFYDOS V6.01 (C)1989 CMD  "
+.by	$0D, $0D
+.by	" C-64 BASIC V2   "
+
+
+
+
+.ba $E4B7
+InitJdCommands:				;				[E4B7]
+	jsr	InitBasicVec		;				[E453]
+
+; Set up JiffyDOS function key vector to $f672
+	lda	#<TblFuncKeys
+	sta	CMPO
+
+	lda	#>TblFuncKeys
+	sta	CMPO+1
+
+; at this point X = $FF
+
+;**  Disable the function keys
+jdDisFuncKeys:				;				[E4C2]
+	inx
+	stx	PRTY			; en- or disable function keys
+
+	rts
+
+
+;**  Get input from the command channel
+InpFromCmdChan:				;				[E4C6]
+	lda	#$6F			; command channel
+	jsr	jdSetCHKIN2		;				[F0E4]
+
+	jsr	ByteFromChan		;				[FFCF]
+	cmp	#'5'
+
+	rts
+
+
+.by $AA, $AA				; left over			[E4D1]
+
+
+
+
+.ba $E50C
+; Set the cursor position
+SetCursorPosXY:				;				[E50C]
+
+
+
+
+.ba $E5E7
+A_E5E7:					;				[E5E7]
+	jsr	ChkFuncKeys		;				[F9E5]
+
+
+
+
+.ba $E938
+A_E938:					;				[E938]
+	jsr	EnableStopKey		;				[EB42]
+
+	lda	CIA1DRB			; read keyboard decode column
+	cmp	#$FB			; <CTRL> pressed?
+	bne	A_E956			; no, ->
+
+	ldx	NDX			; <CTRL> still pressed?
+	beq	A_E938			; yes, -> freeze scroll
+
+	lda	SecAddrTbl+9,X		; read character from keyboard buffer
+	sbc	#$13			; 'S' pressed?
+	bne	A_E956			; no, ->
+
+	sta	NDX			; clear keyboard buffer pointer
+A_E94F:					;				[E94F]
+	cli
+	cmp	NDX			; any new character in buffer?
+	beq	A_E94F			; no, -> still freeze scroll
+
+	sta	NDX			; clear the keyboard buffer index
+
+
+
+
+.ba $EA61
+A_EA61:					;				[EA61]
+	jmp	J_EA7B			; skip next			[EA7B]
+
+Text2TokenCod3:				;				[EA64]
+	pla				; get last stack entry
+	pha				; push back
+
+	cmp	#$98			; JiffyDOS CRNCH?
+	beq	A_EA6D			; yes, ->
+A_EA6A:					;				[EA6A]
+	jmp	Text2TokenCod2		; original CRNCH		[A57C]
+
+A_EA6D:					;				[EA6D]
+	jsr	ChkIfJdCmd		; JiffyDOS command?		[F72C]
+	bne	A_EA6A			; no, ->
+
+	ldx	TXTPTR			; position in keybordbuffer
+	ldy	#$04			; setup values for old routine
+	tya
+	jmp	S_A5E3			; back to old routine		[A5E3]
+
+; free byte 
+S_EA7A:
+.by $01					; .  $EA7A
+
+J_EA7B:					;				[EA7B]
+	jsr	ScanKeyboard2		; scan the keyboard		[EA87]
+
+
+
+
+.ba $ED19
+S_ED19:
+	jsr	jdSendByte		;				[FBFE]
+
+
+
+
+.ba $ED24
+	jsr	jdIecDataH		; JD: set data 1, and clear serial bit
+
+
+					; count				[F0ED]
+
+.ba $ED62
+	txa
+	pha
+
+	ldx	#$08
+A_ED66:					;				[ED66]
+	pha
+
+	pla
+	bit	CIA2DRA			; time out?
+	bmi	A_ED72			; no, ->
+
+	pla
+	tax
+	jmp	TimeOut			; time out error		[EDB0]
+
+A_ED72:					;				[ED72]
+	jsr	IecDataH		;				[EE97]
+
+	ror	BSOUR			; bit set?
+	bcs	A_ED7C			; yes, -> output a 1
+
+	jsr	IecDataL		;				[EEA0]
+A_ED7C:					;				[ED7C]
+	jsr	IecClockH		;				[EE85]
+
+	lda	CIA2DRA
+	and	#$DF			; set data line (H)
+	ora	#$10			; set CLK line (L)
+	php
+	pha
+
+	jsr	jdSendSerData		;				[F8EA]
+
+	pla
+	plp
+	dex				; 8 bits done?
+	bne	A_ED66			; no, ->
+
+	pla
+	tax
+; now all eight bits have been sent it's up to the peripheral to signal the
+; byte was received by pulling the serial data low. this should be done within
+; one milisecond
+
+
+
+
+.ba $EDD6
+A_EDD6:					;				[EDD6]
+	bit	CIA2DRA			; test bit6 and wait for CLK = 0. Zero?
+	bvs	A_EDD6			; no, ->
+
+
+
+
+.ba $EDE7
+	jsr	jdSendByte		;				[FBFE]
+
+
+
+
+.ba $EDF0
+	lda	CIA2DRA
+	ora	#$08
+	sta	CIA2DRA			; set ATN line (L)
+
+	jsr	IecClockL		;				[EE8E]
+
+
+
+
+.ba $EE13
+;******************************************************************************
+;
+; input a byte from the serial bus
+;
+; this routine reads a byte of data from the serial bus using full handshaking.
+; the data is returned in the accumulator. before using this routine the TALK
+; routine, CmdTALK/$FFB4, must have been called first to command the device on
+; the serial bus to send data on the bus. if the input device needs a secondary
+; command it must be sent by using the TKSA routine, $FF96, before calling
+; this routine.
+;
+; errors are returned in the status word which can be read by calling the
+; READST routine, ReadIoStatus.
+;
+IecByteIn2:				;				[EE13]
+	jmp	jdIecByteIn		;				[FBAA]
+
+IecByteIn3:				;				[EE16]
+	sta	CNTDN			; save the serial bus bit count
+
+
+
+
+.ba $F0D8
+;**  This routine disables the sprites and is called by JiffyDOS before
+;    executing timecritical routines routines that might be messed up by
+;    sprites on the screen. A loop is performed afterwards that lets sprites
+;    currently being displayd on the screen, to be finished.
+jdDisSprites:				;				[F0D8]
+	lda	#$00
+	sta	VICSPEN			; clear sprite
+A_F0DD:					;				[F0DD]
+	adc	#1			; 256 keer?		why ???
+	bne	A_F0DD			; no, -> again
+
+	rts
+
+
+;**  This routine is a new JiffyDOS routine which clears all I/O and sets up
+;    the current JiffyDOS filenumber as default inputdevice by calling CHKIN.
+jdSetCHKIN:				;				[F0E2]
+	lda	PTR2			; JiffyDOS Logical Filenumber
+jdSetCHKIN2:				;				[F0E4]
+	pha
+
+	jsr	CloseIoChannls		;				[FFCC]
+
+	pla
+	tax
+	jmp	OpenChan4Inp		;				[FFC6]
+
+
+;**  This is a patch to the original Commodore KERNAL, that clears the flag
+;    that indicates a JiffyDOS device, ($a3), before setting the serial
+;    output to 1.
+jdIecDataH:				;				[F0ED]
+	lda	#$00
+	sta	TEMPA3			; clear JiffyDOS device flag
+
+	jmp	IecDataH		;				[EE97]
+
+
+;**  This routine uses the values in (X) and (Y) to send a command to the
+;    drive. (X) contains a offset to the command, and (Y) contains the
+;    length of the command.
+jdSendDriveCmd:				;				[F0F4]
+	txa
+	pha
+
+	jsr	jdOpenChn4Outp		; open command channel for output [F7A2]
+
+	pla
+	tax
+A_F0FB:					;				[F0FB]
+	lda	TblDrvCommands,X	;				[F398]
+	jsr	OutByteChan		;				[FFD2]
+
+	inx
+
+	dey				; all chars have been sent?
+	bne	A_F0FB			; no, -> more
+
+	rts
+
+
+
+
+.ba $F159
+	bne	A_F1A9			; if not the keyboard continue
+
+
+
+
+.ba $F16A
+; the input device was the screen
+InpFromScreen:				;				[F16A]
+
+
+
+
+.ba $F179
+jdIecByteIn2:				;				[F179]
+	jsr	jdIecByteIn		;				[FBAA]
+
+	pha
+
+	bit	TEMPA3			; test bit6, device is a JD device?
+	bvc	A_F19C			; no, ->
+
+	cpx	#$00			; SA = 0?
+	bne	A_F187			; no, -> 
+
+	lda	MEMUSS+1		; load addres high
+A_F187:					;				[F187]
+	cmp	#$04			; read byte / address < 4?    why ???
+	bcc	A_F19C			; yes, -> exit
+
+	ldy	#$00
+	lda	(FNADR),Y		; current filename
+	cmp	#'$'			; directory?
+	beq	A_F19C			; yes, -> exit
+
+	inc	SA			; why ???
+	jsr	jdTalkTKSA		;				[F38B]
+
+	dec	SA
+	asl	TEMPA3			; why ???
+A_F19C:					;				[F19C]
+	pla
+	rts
+
+
+;**  Set bit 4 of the Status
+SetStatusBit4:				;				[F19E]
+	lda	#$10
+	jmp	AorIecStatus		;				[FE1C]
+
+
+;**  The following table contains three vectors that are copied to $0300 when
+;    the @Q command is executed.
+jdOrgVectors:				;				[F1A3]
+.wo	BasWarmStart3
+.wo	MainWaitLoop2
+.wo	Text2TokenCod2
+
+ 
+A_F1A9:					;				[F1A9]
+	cmp	#$04			; serial device?
+	bcc	A_F166			; no, ->
+
+
+
+
+.ba $F1B5
+A_F1B5:					;				[F1B5]
+	jmp	jdIecByteIn		;				[FBAA]
+
+
+
+
+.ba $F1E5
+	jmp	DevNotPresent2		;				[F3F1]
+
+
+;**  Open file and test if all is OK
+TstOpenFileOK:				;				[F1E8]
+	jsr	jdOpenFile		;				[F8BF]
+	jsr	InpFromCmdChan		;				[E4C6]
+
+	cmp	#$30
+	rts
+
+
+;**  Set the default device number.
+jdSetDefaultDev:			;				[F1F1]
+	jsr	GetByteParm		;				[B79B]
+	stx	FA			; current device number
+
+	jsr	jdTestDevFA		;				[F75C]
+	stx	FSBLK			; store result
+
+	rts
+
+
+
+
+.ba $F2C8
+; is not the RS232 device
+A_F2C8:					;				[F2C8]
+	pla
+	jmp	IllegalDevNum		;				[F713]
+
+
+;**  Close command channel
+jdCloseCmdChan:				;				[F2CC]
+	jsr	CloseIoChannls		;				[FFCC]
+jdCloseIfOpen:				;				[F2CF]
+	lda	#$6F
+	jsr	FindFileA		; file with number $6F open?	[F314]
+	bne	A_F30E			; no, ->
+
+	jmp	ClosFileIndxX2		;				[F2F3]
+
+
+;**  The following routine tests if a device is present. On entry (X) holds
+;    the device to be tested. Open to the device is performed, and afterwards
+;    the statusword can be read for result.
+jdTestDevNumX:				;				[F2D9]
+	stx	FA
+jdTestDevNumX2:				;				[F2DB]
+	tya
+	pha
+
+	jsr	jdOpenCmdChan		;				[F8B2]
+
+	jsr	jdOpenChn4Outp		;				[F7A2]
+	php				; save Carry flag
+
+	jsr	jdCloseCmdChan		;				[F2CC]
+
+	plp				; restore Carry flag
+
+	pla
+	tay
+
+	ldx	FA
+	rts
+
+
+.by $F2					; left over			[F2ED]
+
+
+
+
+.ba $F2F3
+ClosFileIndxX2:				;				[F2F3]
+	dec	LDTND			; decrement the open file count
+
+
+
+
+.ba $F30E
+A_F30E:					;				[F30E]
+	rts
+
+
+
+
+.ba $F384
+OpenLogFile3:				;				[F384]
+	cmp	#$01			; cassette recorder?
+	beq	A_F3F3			; yes, -> error
+
+
+
+
+.ba $F38B
+;**  This is a routine used by JiffyDOS to untalk device (A), then TALK and
+;    TKSA is executed to current device with current secondary address.
+jdTalkTKSA:				;				[F38B]
+	jsr	IecUNTALK		;				[FFAB]
+
+	lda	FA
+	jsr	CmdTALK			;				[FFB4]
+
+	lda	SA
+	jmp	SAafterTALK		;				[FF96]
+
+ 
+TblDrvCommands:				;				[F398]
+.tx 'M-W'
+.wo $0600
+.by $1C					
+; = write next 28 bytes in the memory of the drive at location $0600
+
+E_F39E:					;				[F39E]
+	lda	$0261
+	sta	$07
+
+	lda	#$12
+	sta	$06
+
+	ldx	#$00
+	stx	$f9
+
+	jsr	$d586
+
+	ldy	$0267
+	lda	($30),y
+	eor	#$40
+	sta	($30),y
+
+	jmp	$d58a
+
+ 
+S_F3BA:
+.tx 'M-E'
+.wo $0600
+; = execute the program at $0600 in the drive
+
+S_F3BF:
+.tx 'M-W'
+.wo $006A
+.by 1
+; = write the byte 1 in the memory of the drive at location $006A
+; = to control the interleave
+
+S_F3C5:
+.tx 'M-W'
+.wo $0069
+.by 1
+; = write the byte 1 in the memory of the drive at location $0069
+; = to disable the 1541's head rattle
+
+S_F3CB:
+.tx 'P'
+.wo $016E
+.by $00
+
+S_F3CF:
+.tx 'S:'
+
+
+
+
+.ba $F3F1
+DevNotPresent2:				;				[F3F1]
+	pla				; else dump calling address LB
+	pla				; dump calling address HB
+A_F3F3:					;				[F3F3]
+	jmp	DevNotPresent		; do 'device not present' error and
+					; return			[F707]
+
+
+
+
+.ba $F4B6
+	bcc	A_F4AF			; smaller, -> illegal device
+
+
+
+
+.ba $F4BC
+	jmp	jdFixfilename		;				[F659]
+
+
+
+
+.ba $F4E0
+	jsr	jdIecByteIn2		;				[F179]
+
+
+
+
+.ba $F4F0
+A_F4F0:					;				[F4F0]
+	jmp	jdLOAD			;				[FAC4]
+
+A_F4F3:					;				[F4F3]
+	jsr	ScanStopKey		; STOP key?			[FFE1]
+	bne	A_F4FB			; no, -> continue
+
+	jmp	CloseIecBus		;				[F633]
+
+A_F4FB:					;				[F4FB]
+	jsr	jdIecByteIn		;				[FBAA]
+
+	lda	STATUS
+	and	#$FD
+	cmp	STATUS			; EOI set?
+	sta	STATUS
+	bne	A_F4F3			; no, ->
+
+	ldy	#$00
+	ldx	TEMPA3			; save JiffyDOS flag
+	lda	TEMPA4
+	cpy	LoadVerify2		; VERIFY?
+	beq	A_F51A			; no, -> LOAD
+
+	cmp	(EAL),Y			; compare OK?
+	beq	A_F51C			; yes, -> continue
+
+	jsr	SetStatusBit4		; error				[F19E]
+
+	.by $2C				; dummy BIT opcode
+A_F51A:					;				[F51A]
+	sta	(EAL),Y			; store in memory
+A_F51C:					;				[F51C]
+	stx	TEMPA3			; restore JiffyDOS flag
+
+
+
+
+.ba $F528
+; close file and exit
+jdCloseFile:				;				[F528]
+	jsr	IecUNTALK2		; command serial bus to UNTALK	[EDEF]
+
+
+
+
+.ba $F533
+;******************************************************************************
+;
+; The following routine executes the @ command. First it tests if additional
+; parameters are entered.
+
+jd@Command:				;				[F533]
+	lda	FNLEN			; length of filename > 0?
+	beq	A_F546			; no, ->
+
+	lda	(FNADR),Y
+	cmp	#'$'			; directory
+	beq	A_F56C			; yes, ->
+
+	jmp	jdNo@Command		;				[FC9A]
+
+
+;**  This routine lists an ASCII file from disk. It reads one block of text
+;    from the disk (254 bytes) into the filename area. The text is then output
+;    using the 'print filename' routine.
+jdListAscFile:				;				[F540]
+	tya				; Y contains the command number
+jdListAscFile2:				;				[F541]
+	pha
+
+	jsr	jdOpenFile		;				[F8BF]
+
+	pla				; retrieve "Y"
+A_F546:					;				[F546]
+	sta	BUFPNT
+A_F548:					;				[F548]
+	jsr	jdDispAscFile		; display ASCII file, error? [F911]
+	bne	A_F568			; yes, -> exit
+
+	lda	BUFPNT			; get command number, should be 15
+S_F54F:
+	php
+	beq	A_F557			; yes, -> OK
+
+	jsr	InpFromCmdChan		; = '#' ?			[E4C6]
+	beq	A_F567			; yes, -> exit
+A_F557:					;				[F557]
+	jsr	jdPrepDrv4Cmd		;				[F79A]
+	jsr	Printfilename		; print the input buffer	[F5C1]
+
+	bit	StopKey			; <STOP> is pressed?
+	bpl	A_F567			; yes, -> exit
+
+	plp
+	bne	A_F548			; if bit 7 BUFPNT set, ->
+	bvc	A_F548			; if bit 6 BUFPNT clear, ->
+
+	.by $24				; dummy BIT opcode, skip PLP
+A_F567:					;				[F567]
+	plp
+A_F568:					;				[F568]
+	rts
+
+
+;**  The following routine reads the specifyed basic-file from disk and
+;    displays it to the screen. The entrypoint at $F56C is used for showing
+;    the directory. First, the routine opens the file specifyed. IERROR vector
+;    is changed to $F739, so a RTS command will be performed when a error
+;    occurs. Then the start address is read, and thrown away. A loop is
+;    performed that reads one block of bytes from the disk and is output
+;    through the basic LIST routine. On exit, the IERROR vector is restored.
+jdBasicDiskList:			;				[F569]
+	ldx	#$6C			; get byte for SA, list basic program
+	.by $2C				; dummy BIT opcode
+A_F56C:					; entry from @ command		[F56C]
+	ldx	#$60			; get byte for SA, list directory
+	jsr	jdOpenFile2		;				[F8C1]
+
+	lda	#<A_F739		; setup JiffyDOS IERROR vector to point
+	sta	IERROR    		; to $F739, a RTS-command
+
+	ldy	#$FC			; $FE - $FC = 2
+	jsr	jdReadByt2Buf		; read 2 bytes = start address	[FCA6]
+A_F57B:					;				[F57B]
+	ldy	#$00
+A_F57D:					;				[F57D]
+	jsr	jdReadByt2Buf		; read 254 bytes, EOI?		[FCA6]
+	bvs	A_F5A3			; yes, -> exit
+
+	cpy	#$02			; Y = 2 ?
+	beq	A_F5A3			; yes, -> exit
+
+	cpy	#$06			; < 6 ?
+	bcc	A_F57D			; yes, -> 
+
+; read vector to input buffer
+	ldx	FNADR; read vector to input buffer
+	stx	FacTempStor+8
+
+	ldx	FNADR+1
+	stx	FacTempStor+9
+
+	ldy	#$01
+	sta	(FacTempStor+8),Y
+
+	jsr	bcLIST2			; output text using BASIC LIST	[A6C3]
+	jsr	jdPrepDrv4Cmd		;				[F79A]
+	jsr	bcLIST3			; output text using BASIC LIST	[A6D4]
+
+	bit	StopKey			; <STOP> is pressed?
+	bmi	A_F57B			; no, -> continue
+A_F5A3:					;				[F5A3]
+	lda	#<jdErrorMsg		; restore JiffyDOS IERROR vector
+	sta	IERROR
+
+	rts
+
+
+
+
+.ba $F5F8
+	bcc	A_F5F1			; if < 3, then error as well
+
+
+
+
+.ba $F602
+A_F602:					;				[F602]
+	jmp	MissingFileNam		; else do 'missing filename' error and
+					; return			[F710]
+
+
+
+
+.ba $F659
+;**  The following routine is executed when a missing filename is detected in
+;    the original loader routine. If so, the filename is set to ':*', wildcard
+;    filename. On exit, a jump is made to the original loader with the new
+;    filename parameters set.
+jdFixfilename:				;				[F659]
+	lda	NDX			; # of chars in keyboard buffer = 0?
+	beq	A_F602			; yes, -> error
+
+	lda	#$02
+	sta	SA
+
+	ldx	#<(TblFuncKeys+2)
+	ldy	#>(TblFuncKeys+2)
+	jsr	Setfilename		;				[FFBD]
+
+	jmp	A_F4BF			; back to original load routine	[F4BF]
+
+
+; ???
+jdSendPcommand:				;				[F66B]
+	ldx	#$33			; set up drive command at $F3CB
+	ldy	#4			; length of command
+	jmp	jdSendDrvCmd2		;				[F932]
+
+ 
+TblFuncKeys:
+.by '@$:*', $0D, $00			; F1
+.by '/', $00				; F3
+.by '^', $00				; F5
+.by '%', $00				; F7
+.by '@D', $00				; F2 = next device
+.by '@T', $00				; F4
+.by '_', $00				; F6
+.by '@  "S:', $00			; F8
+
+
+
+
+.ba $F72B
+jdRTS:
+	rts
+
+
+;**  This routine tests if the character in the current key in the buffer
+;    is a JiffyDOS command character. Output from this routine is Y which
+;    contains the value of the selected command. Zero flag is set if a command
+;    was found.
+ChkIfJdCmd:				;				[F72C]
+	ldy	#$0C			; number of characters to test
+	jsr	CHRGOT			; read current char in buffer again
+					;				[0079]
+ChkIfJdCmd2:				;				[F731]
+	cmp	TblJdCommands,Y		; equal to JiffyDOS command?	[F7DD]
+	beq	A_F739			; yes, -> 
+
+	dey				; another one to check?
+	bpl	ChkIfJdCmd2		; yes, -> 
+A_F739:					;				[F739]
+	rts
+
+
+SetDevNumber:				;				[F73A]
+	jsr	SetAddresses		;				[FFBA]
+
+;**  This routine tests a serial disk device number to see if it is present.
+;    The routine uses $be as a internal counter for device number. A test is
+;    performed to make sure that the device number is within its limits,
+;    $08-$1f. If a device is not present, the routine continues searching for
+;    a present device. The second time we reset the counter to $08 (after
+;    reaching $1f) without finding a device, the routine exits with error #5,
+;    device not present.
+ChkDevPresent:				;				[F73D]
+	clc
+	php				; store cleared Carry
+
+	ldx	FSBLK			; internal counter for devicenumber
+	cpx	#$08			; < 8 ?
+	bcc	A_F749			; yes, -> 
+A_F745:					;				[F745]
+	cpx	#$1F			; < 31 ?
+	bcc	A_F750			; yes, -> 
+A_F749:					;				[F749]
+	plp				; Carry set (from second time)?
+	bcs	A_F761			; yes, -> 
+
+	sec
+	php				; store set Carry
+
+	ldx	#$08
+A_F750:					;				[F750]
+	stx	FSBLK
+
+	jsr	jdTestDevNumX		; device # is X present?	[F2D9]
+	bcc	A_F75A			; yes, -> OK
+
+	inx				; check next device
+	bne	A_F745			; always ->
+
+A_F75A:					;				[F75A]
+	pla				; clean stack from status byte
+A_F75B:					;				[F75B]
+	rts
+
+
+;**  Check if device FA is present
+jdTestDevFA:				;				[F75C]
+	jsr	jdTestDevNumX2		; present?			[F2DB]
+	bcc	A_F75B			; yes, -> OK
+A_F761:					;				[F761]
+	ldx	#5			; "DEVICE NOT PRESENT" error
+jdErrorMsg:				;				[F763]
+	cpx	#11			; "SYNTAX ERROR" ?
+	beq	A_F76A			; yes, -> can be JD command
+A_F767:					;				[F767]
+	jmp	BasWarmStart3		; no, normal error handling	[E38B]
+
+A_F76A:					;				[F76A]
+	jsr	ChkIfJdCmd		; JiffyDOS command?		[F72C]
+	bne	A_F767			; no, -> error
+
+	sty	RESHO+1			; temp store command number
+
+	tax				; bit 7 set?
+	bmi	A_F776			; yes, -> 
+
+; If A ain't $AC, $AD or $AE then remove a return address.   why ???
+	pla
+	pla
+A_F776:					;				[F776]
+	jsr	ChkDevPresent		;				[F73D]
+	jsr	ChkIfJdCmd3		;				[F838]
+
+	lda	RESHO+1			; retrieve command number
+
+	ldy	#$00
+	asl	A			; double the value
+	tax				; and use it as index
+
+; Load the vector of the JiffyDOS command in the JMP command at $0054
+	lda	VecJdCommands,X
+	sta	Jump0054+1
+
+	lda	VecJdCommands+1,X
+	sta	Jump0054+2
+A_F78C:					;				[F78C]
+	jsr	Jump0054		; execute the command		[0054]
+
+	jsr	bcDATA			; ignore next statement		[A8F8]
+	jsr	jdCloseCmdChan		;				[F2CC]
+
+	lda	PTR2			; JiffyDOS default filenumber
+	jsr	CloseLogFile		;				[FFC3]
+
+;**  Prepare the drive for the command
+jdPrepDrv4Cmd:				;				[F79A]
+	jsr	CloseIoChannls		;				[FFCC]
+
+	ldx	CurIoChan		; screen or keyboard?
+	beq	A_F75B			; yes, -> exit
+
+	.by $2C				; dummy BIT opcode
+jdOpenChn4Outp:				;				[F7A2]
+	ldx	#$6F			; command channel
+	jmp	OpenChan4Outp		;				[FFC9]
+
+
+;**  This is the entrypoint for £ and %, which loads machine language
+jdMlLoad:				;				[F7A7]
+	tya
+
+	iny
+
+	.by $2C				; dummy BIT opcode, skip F7AA and F7AG
+
+;**  This is the entrypoint for ´,which veryfies a file
+jdVERIFY:				;				[F7AA]
+	iny
+
+;**  This is the entrypoint for / and 'arrow up' which loads a basic program.
+;    The LOAD/VERIFY is performed. Depending on what command is executed,
+;    various end routines are performed.
+jdBasicLoad:				;				[F7AB]
+	tya
+	sty	SA
+
+	ldx	TXTTAB			; start of BASIC
+	ldy	TXTTAB+1
+	jsr	LoadRamFrmDev		;  load OK?			[FFD5]
+	bcc	A_F7C0			; yes, -> 
+
+	jmp	HndlBasIoErr		;				[E0F9]
+
+A_F7BA:					;				[F7BA]
+	jmp	ReadyBASIC		; original			[E195]
+
+A_F7BD:					;				[F7BD]
+	jmp	bcLOAD2			; original LOAD			[E17E]
+
+A_F7C0:					;				[F7C0]
+	lda	RESHO+1			; test command number
+	cmp	#11			; verify (')?
+	beq	A_F7BD			; yes, -> 
+
+	bcs	A_F78C			; if greater, ->
+
+	cmp	#$08			; load (%)?
+	beq	A_F75B			; yes, -> 
+
+	bcc	A_F7BA			; if smaller, ->
+
+; set start of BASIC variables
+	stx	VARTAB
+	sty	VARTAB+1
+
+; remove RTS return address
+	pla
+	pla
+
+	jsr	OutCRLF			;				[AAD7]
+	jsr	BindLine		; rechain basic lines		[A533]
+
+	jmp	bcRUN			;				[A871]
+
+ 
+TblJdCommands:				;				[F7DD]
+.by '@'
+.by '_'					; save
+.by '*'					; copy
+.by $AC
+.by '"'					; not implemented
+
+.by $12					; not implemented
+.by '/'					; BASIC load
+.by $AD  ; = arrow up			; BASIC load
+.by '%'					; ML load
+.by '^'					; BASIC load
+
+.by $AE					; BASIC load
+.by "'"					; verify
+.by '\'  ; = £				; ML load
+
+; The following command characters must be entered after the @-character.
+.by 'D'					; list BASIC file disk
+.by 'L'					; lock/unlock a file
+.by 'T'					; list an ASCII file
+.by '#'					; set the default device
+.by 'B'					; disable the rattle of the drive
+
+.by 'F'					; disable the function keys
+.by 'O'					; old
+.by 'P'					; list the directory to a printer
+.by 'Q'					; disable JD commands  
+.by 'X'					; set the destination drive
+
+.by 'G'					; set the gap size
+ 
+ 
+VecJdCommands:				;				[F7F5]
+.wo jd@Command				;				[F533]
+.wo jdSAVE				; _  save			[E159]
+.wo jdCOPY				; *  copy			[FA39]
+.wo jdCOPY				;				[FA39]
+.wo jdRTS				; "  RTS			[F72B]
+
+.wo jdRTS				;    RTS			[F72B]
+.wo jdBasicLoad				; /  BASIC load			[F7AB]
+.wo jdBasicLoad				;    BASIC load			[F7AB]
+.wo jdMlLoad				; %  ML load			[F7A7]
+.wo jdBasicLoad				; ^  BASIC load			[F7AB]
+
+.wo jdBasicLoad				;    BASIC load			[F7AB]
+.wo jdVERIFY				; '  verify			[F7AA]
+.wo jdMlLoad				; £  ML load			[F7A7]
+
+
+.wo jdBasicDiskList			; D  list BASIC file disk	[F569] 
+.wo jdUn_LockFile			; L  lock/unlock a file		[F8D4]
+.wo jdListAscFile			; T  list an ASCII file		[F540]
+.wo jdSetDefaultDev			; #  set the default device	[F1F1]
+.wo jdDisabRattle			; B  disable drive rattle	[F92C]
+
+.wo jdDisFuncKeys			; F  disable the function keys	[E4C2]
+.wo jdOLD				; O  old			[F825]
+.wo jdPrintDir				; P  list directory to printer	[FA97]
+.wo jdDisCommands			; Q  disable JD commands  	[FCBC]
+.wo jdSetDestDev			; X  set the destination drive	[FCA0]
+
+.wo jdSetGapSize			; G  set the gap size		[F924]
+
+
+;**  The following routine performs a basic OLD after a new or reset. The
+;    routine performs a rechain to set up correct pointers etc.
+jdOLD:					;				[F825]
+	iny
+	tya
+	sta	(TXTTAB),Y
+
+	jsr	BindLine		; rechain basic lines		[A533]
+
+	txa
+	adc	#$02
+	tax
+
+	lda	INDEX+1
+	adc	#$00
+	tay
+	
+	jmp	ReadyBASIC2		; set start of vars and restart BASIC
+					;				 [E1A7]
+
+
+;**  This routine is called from the JiffyDOS COMMAND routine and makes a test
+;    for additional command characters after the '@' character. Only the
+;    command number $0D-$17 is tested. If the text after '@' is not a JiffyDOS
+;    command (ie. a normal DOS command), or a JiffyDOS command number less than
+;    $10, a filename is expected. Tests are made for colon and quotes, the
+;    filname is evaluated, and parts of the OPEN/CLOSE routine are used to
+;    SETNAM. A test is made for an additional device number after a comma. A
+;    free line on the screen is found and some string-house keeping is done.
+;    Finally, the routine continues through to the next routine to open the
+;    command channel.
+ChkIfJdCmd3:				;				[F838]
+	tya				; @ command?
+	bne	A_F853			; no, -> 
+
+	sta	FNLEN
+
+	jsr	CHRGET			; get char from buffer, EOL?	[0073]
+	beq	A_F887			; yes, -> exit
+
+	ldy	#$17			; set pointer to valid chars
+	jsr	ChkIfJdCmd2		; valid command found?		[F731]
+	bne	A_F858			; no, -> other char
+
+	cpy	#$0D			; smaller then 13?
+	bcc	A_F858			; yes, -> char not present in 2nd table
+
+	sty	RESHO+1			; temp store command number
+
+	cpy	#$10			; > 15 ? 
+	bcs	A_F887			; yes, -> no more text expected
+
+; After @D, @L and @T text is expected
+A_F853:					;				[F853]
+	lda	#$01
+	jsr	S_A8FC			; increment TXTPTR by A	= 1	[A8FC]
+A_F858:					;				[F858]
+	ldy	#$FF
+A_F85A:					;				[F85A]
+	iny
+	lda	(TXTPTR),Y		; read char from keyb buf, terminator?
+	beq	A_F867			; yes, -> 
+
+	cmp	#'"'			; quote?
+	beq	A_F872			; yes, -> 
+
+	cmp	#':'			; colon?
+	bne	A_F85A			; no, -> next char
+A_F867:					;				[F867]
+	bit	MSGFLG			; direct mode?
+	bpl	A_F875			; no, -> 
+
+	clc
+	jsr	GetNextParm3		; print string			[AEBD]
+
+	jmp	A_F878			;				[F878]
+
+A_F872:					;				[F872]
+	jsr	bcDATA2			; increment TXTPTR by Y		[A8FB]
+A_F875:					;				[F875]
+	jsr	EvaluateValue		; evaluate expression		[AD9E]
+A_F878:					;				[F878]
+	jsr	Getfilename2		;				[E25A]
+
+	jsr	CHRGOT			;				[0079]
+	cmp	#','			; comma?
+	bne	A_F887			; no, -> 
+
+	jsr	GetByteParm		; read char after comma		[B79B]
+
+;**  Evaluate the rest of the JiffyDOS command
+jdEvalCommand:				;				[F885]
+	stx	FA
+A_F887:					;				[F887]
+	ldy	#$00
+
+	bit	MSGFLG			; direct mode?
+	bpl	A_F89A			; no, -> 
+
+; program mode
+A_F88D:					;				[F88D]
+	lda	(CurScrLine),Y		; read from screen
+	cmp	#' '			; space?
+	beq	A_F89A			; yes, -> 
+
+	lda	#$0D			; carriage return
+	jsr	OutputChar		;				[E716]
+	bne	A_F88D			; always -> read next char
+
+A_F89A:					;				[F89A]
+	jsr	jdTestDevFA		;				[F75C]
+
+	lda	#$FF
+	jsr	StringVector		;				[B475]
+
+	lda	FNLEN			; length of filename
+	ldx	FNADR			; pointer to current filename
+	ldy	FNADR+1
+	jsr	S_B4C7			; ???				[B4C7]
+
+	jsr	EvalString		; do string housekeeping	[B6A3]
+	stx	FNADR
+	sty	FNADR+1
+
+
+;**  The following routine open the command channel. A test is done to see if
+;    it is allready open. If so, the command channel is closed before opened.
+jdOpenCmdChan:				;				[F8B2]
+	jsr	jdCloseIfOpen		;				[F2CF]
+
+	lda	FNLEN
+
+	ldx	#$00
+	stx	FNLEN
+
+	ldx	#$6F			; command channel
+	bne	A_F8C3			; always -> open a file
+
+
+;**  Open a file with the current parameters 
+jdOpenFile:				;				[F8BF]
+	ldx	#$6E			; ???
+jdOpenFile2:				;				[F8C1]
+	lda	FNLEN
+A_F8C3:					;				[F8C3]
+	stx	SA
+	stx	PTR2			; JiffyDOS default file number
+jdOpenFile3:				;				[F8C7]
+	pha
+
+	stx	LA
+
+	jsr	CloseIoChannls		;				[FFCC]
+	jsr	OpenLogFile		;				[FFC0]
+
+	pla
+	sta	FNLEN
+A_F8D3:					;				[F8D3]
+	rts
+
+
+;**  This routine locks/unlocks a specified file. The file is opened and tests
+;    are made to check that everything is OK. If so, a bunch of code is
+;    transfered to the drive and executed. The code to be transfered is found
+;    at $F398, after the memory-write command. 
+jdUn_LockFile:				;				[F8D4]
+	jsr	TstOpenFileOK		; OK?				[F1E8]
+	bne	A_F8D3			; no, -> exit
+
+; write the program at $F39E in the memory of the drive at location $0600
+	ldx	#$00			; set up drive command at $F398
+	ldy	#$22			; length of command
+	jsr	jdSendDrvCmd3		;				[F8E4]
+
+; execute the program at $0600 in the drive
+	ldy	#$05			; length of command
+	ldx	#$22			; set up drive command at $F3BA
+jdSendDrvCmd3:				;				[F8E4]
+	jsr	jdSendDriveCmd		;				[F0F4]
+	jmp	CloseIoChannls		;				[FFCC]
+
+
+;**  This is the JiffyDOS version for sending data over the serial bus. 
+jdSendSerData:				;				[F8EA]
+	sta	CIA2DRA
+
+	and	#$08			; ATN line (H)?
+	beq	A_F910			; yes, -> 
+
+	lda	BSOUR			; byte to be send
+	ror	A
+	ror	A
+
+	cpx	#$02			; bit counter = 2?
+	bne	A_F910			; no, -> 
+
+	ldx	#$1E
+A_F8FB:					;				[F8FB]
+	bit	CIA2DRA			; DATA line (L)?
+	bpl	A_F905			; yes, -> 
+
+	dex				; bit counter is 0 ?
+	bne	A_F8FB			; no, -> 
+	beq	A_F90E			; always ->
+
+A_F905:					;				[F905]
+	bit	CIA2DRA			; DATA line (L)?
+	bpl	A_F905			; yes, -> wait until (H)
+
+	ora	#$40			; set bit 6 which means ...
+	sta	TEMPA3			; ... device is a JiffyDOS device
+A_F90E:					;				[F90E]
+	ldx	#$02
+A_F910:					;				[F910]
+	rts
+
+
+;**  The following routine is called by the LIST ASCII from disk. It clears the
+;    command channel and calls a routine that reads maximum 254 character from
+;    the file. This is repeated until the entire file is displayed.
+jdDispAscFile:				;				[F911]
+	ldy	#$00
+	jsr	jdSetCHKIN		;				[F0E2]
+A_F916:					;				[F916]
+	jsr	jdReadByt2Buf2		; read text into buffer, EOI?	[FCA9]
+	bvs	A_F91D			; yes, -> 
+
+	bcc	A_F916			; always ->
+
+A_F91D:					;				[F91D]
+	sty	FNLEN			; length of the text
+
+	lda	STATUS
+	and	#$82			; filter 'time out' and 'device not
+					; present'
+	rts
+
+
+;**  The following routine sets the interleave gapsize by writing the selected
+;    value to drive memory at possition $0069.
+jdSetGapSize:				;				[F924]
+	jsr	GetByteParm		;				[B79B]
+
+	txa				; transfer the gap size to A
+
+	ldx	#$2D			; set up drive command at $F3C5
+	bne	A_F930			; always ->
+
+
+;**  The following routine disables the 1541 head rattle. This is done by
+;    writing the value $85 to drivememory at position $006a.
+jdDisabRattle:				;				[F92C]
+	lda	#$85			; byte to be written
+	ldx	#$27			; set up drive command at $F3BF
+A_F930:					;				[F930]
+	ldy	#$06			; length of command
+jdSendDrvCmd2:				;				[F932]
+	pha
+
+	jsr	jdSendDriveCmd		;				[F0F4]
+
+	pla
+	jmp	OutByteChan		;				[FFD2]
+
+
+;* Toggle the copy flag (part of "Check the function keys" at $F9E5)
+; <CTRL A>,  toggle copy flag for all files
+A_F93A:					;				[F93A]
+	ldx	#$00
+	.by $2C				; dummy BIT opcode, skip next two bytes
+
+; <CTRL W>,  toggle copy flag for one files
+A_F93D:					;				[F93D]
+	ldx	#$06
+	jsr	SetBasExecPtr		; set the BASIC start pointer	[A68E]
+
+	ldy	#$05			; test the 5th character
+	lda	(TXTPTR),Y
+	cmp	#$12			; <RVS ON>?
+	bne	A_F9B0			; no, -> 
+
+	pla				; pull char read from buffer from stack
+
+	txa				; store the toggle flag on stack
+	pha
+
+	ldy	#$23			; new offset
+A_F94F:					;				[F94F]
+	ldx	#'"'
+	jsr	FindOtherChar		; search until quote found	[A917]
+
+	dey
+	jsr	bcDATA2			; add Y to offset		[A8FB]
+
+	pla				; all files toggled?
+	pha
+	beq	A_F96C			; yes, -> 
+
+	sta	LineCurCol
+
+	ldy	#$01
+A_F960:					;				[F960]
+	iny
+
+	jsr	InpFromScreen		;				[F16A]
+	cmp	(TXTPTR),Y		; compare with keyboard buffer ???
+	bne	A_F977
+
+	sbc	#'"'			; quote?
+	bne	A_F960			; no, -> 
+A_F96C:					;				[F96C]
+	tay				; Y := 0
+	lda	(TXTPTR),Y
+	eor	#$0A			; toggle between $20 (space) and $2a (*)
+	sta	(TXTPTR),Y
+
+	ldy	#$04
+	sta	(CurScrLine),Y
+A_F977:					;				[F977]
+	jsr	bcDATA			; skip line like REM		[A8F8]
+
+	ldy	#$05
+	sec
+	lda	(TXTPTR),Y
+	sbc	#'B'			; why ???
+	bne	A_F94F
+
+	ldy	#$02
+	sta	(TXTPTR),Y		; store a zero at ???
+
+	pla				; all files were marked/unmarked?
+	beq	A_F98D			; yes, -> NEW
+
+	lda	#$8D			; key code for F2 = next device
+	rts
+
+A_F98D:					;				[F98D]
+	jmp	A_A6A4			; BASIC NEW			[A6A4]
+
+
+;* Test other keys (part of "Check the function keys" at $F9E5)
+A_F990:					;				[F990]
+	bit	MSGFLG			; direct mode?
+	bpl	A_F9B0			; no, -> exit
+
+	tsx
+	ldy	STACK+7,X		; call from a certain routine ???
+	cpy	#$E1
+	bne	A_F9B0			; no, -> exit
+
+	cmp	#4			; <CTRL D>?
+	bne	A_F9B2			; no, -> continue to check other values
+
+;* increments the internal device counter and tests if it is present. The
+;  routine will return the new device number in X, which will be printed and
+;  the routine exits.
+	inc	FSBLK
+	jsr	ChkDevPresent		;				[F73D]
+
+	lda	#$00
+	jsr	PrintXAasInt		; print device number		[BDCD]
+
+	jsr	OutCRLF			;				[AAD7]
+	jsr	jdPrepDrv4Cmd		;				[F79A]
+A_F9B0:					;				[F9B0]
+	pla
+	rts
+
+
+A_F9B2:					;				[F9B2]
+	cmp	#1			; <CTRL A>?
+	beq	A_F93A			; yes, -> 
+
+	cmp	#23			; <CTRL W>?
+	beq	A_F93D			; yes, -> 
+
+	ldy	PRTY			; function keys enabled?
+	bne	A_F9B0			; no, -> exit
+
+	cmp	#$8D			; > F8 ?
+	bcs	A_F9B0			; yes, -> exit
+
+	cmp	#$85			; < F1 ?
+	bcc	A_F9B0			; yes, -> exit
+
+	pla
+	sbc	#$85			; F1..F8 -> 0..7
+	tax				; store value, F1 ?
+	beq	A_F9D5			; yes, -> 
+
+; Look for next function key in table
+A_F9CC:					;				[F9CC]
+	iny
+	lda	(CMPO),Y		; byte = 0 ?
+	bne	A_F9CC			; no, -> read next byte
+
+	dex				; skip this key?
+	bne	A_F9CC			; yes, -> look for next one
+A_F9D4:					;				[F9D4]
+	iny				; skip last read zero
+A_F9D5:					;				[F9D5]
+	lda	(CMPO),Y		; read command, final char?
+	beq	A_F9E2			; yes, -> exit
+
+	cmp	#$0D			; return?
+	beq	A_F9E4			; yes, -> exit
+
+	jsr	OutputChar		;				[E716]
+	bne	A_F9D4			; always ->
+
+A_F9E2:					;				[F9E2]
+	sta	QTSW
+A_F9E4:					;				[F9E4]
+	rts
+
+
+;**  This is a JiffyDOS routine to handle extended functions. It is called from
+;    $E5EC and starts with the original jump. The routine test the function
+;    keys and if a valid combination of <CTRL xx> is pressed. If the quote mode
+;    or insert mode is activated then this routine will exit.
+ChkFuncKeys:				;				[F9E5]
+	jsr	GetCharKeybBuf		;				[E5B4]
+	pha				; store the found key
+
+	ldx	QTSW			; quote mode is activated?
+	bne	A_FA37			; yes, -> exit
+
+	ldx	InsertCount		; insert mode is activated?
+	bne	A_FA37			; yes, -> exit
+
+	cmp	#$10			; <CTRL P> = screen dump?
+	bne	A_F990			; no, -> 
+
+;* This routine performs a screen dump when the combination <CTRL P> is
+;  pressed. It reads $D018 to determine whether the upper or lower character
+;  set is used and sends the proper SA after LISTEN. The routine stores the
+;  cursor positions on the stack, retrieves them and replaces the cursor on
+;  exit. To print a character to the serial bus, the routine uses part of the
+;  KERNAL CIOUT routine.
+	lda	#4			; printer
+	jsr	CmdLISTEN		;				[FFB1]
+
+; test upper/lower character set
+	lda	VICRAM
+	and	#$02			; upper case?
+	beq	A_FA03			; yes, -> 
+
+	lda	#$07
+A_FA03:					;				[FA03]
+	ora	#$60			; create SA
+	jsr	SAafterLISTEN		;				[FF93]
+
+	lda	LineCurCol
+	pha
+
+	lda	PhysCurRow
+	pha
+
+A_FA0E:					;				[FA0E]
+	ldy	#$00			; column counter
+	sty	QTSW			; clear quote mode
+
+	jsr	SetCursorPosXY		;				[E50C]
+
+	inc	CurLineLeng		; increment maximum screen line length
+A_FA17:					;				[FA17]
+	jsr	InpFromScreen		;				[F16A]
+
+	jsr	IecByteOut2		; send byte to printer		[EDDD]
+	cmp	#$0D			; return?
+	bne	A_FA17			; no, -> next char
+
+	inx				; increment line number
+	cpx	#25			; all 25 lines done?
+	bcs	A_FA2D			; yes, -> 
+
+	asl	CurLineLeng		; next line?
+	bpl	A_FA0E			; yes, -> 
+
+	inx
+	bne	A_FA0E			; always ->
+
+A_FA2D:					;				[FA2D]
+	jsr	IecUNLISTEN		;				[FFAE]
+
+	pla
+	tax
+
+	pla
+	tay
+
+	jsr	SetCursorPosXY		;				[E50C]
+A_FA37:					;				[FA37]
+	pla				; retrieve key code
+A_FA38:					;				[FA38]
+	rts
+
+
+;**  The following routine is executed to copy files.
+jdCOPY:					;				[FA39]
+	sty	RESHO
+
+	jsr	TstOpenFileOK		; open file OK?			[F1E8]
+	bne	A_FA38			; no, -> exit
+
+	jsr	CHRGOT			;				[0079]
+	cmp	#'R'			; ???
+	bne	A_FA5A			; no, -> 
+A_FA47:					;				[FA47]
+	dec	RESHO
+
+	lda	RESHO
+	jsr	jdSendPcommand		;				[F66B]
+
+	jsr	InpFromCmdChan		; input = 5 ?			[E4C6]
+	beq	A_FA47			; yes, -> 
+
+	lda	#$00
+	jsr	jdSendPcommand		; ???				[F66B]
+
+	lda	#'L'			; ???
+A_FA5A:					;				[FA5A]
+	pha
+
+	ldx	MYCH			; destination device
+	cpx	FA			; same?
+	beq	A_FA37			; yes, -> 
+
+	jsr	jdEvalCommand		;				[F885]
+
+	ldx	#$37			; set up drive command at $F3CF
+	ldy	#$02			; length of command
+	jsr	jdSendDriveCmd		;				[F0F4]
+
+	jsr	Printfilename		;				[F5C1]
+
+	lda	#','
+	sta	(FNADR),Y		; store comma in filename buffer
+
+	iny
+	pla
+	sta	(FNADR),Y		; store stored command
+
+	iny
+	lda	#','
+	sta	(FNADR),Y		; store comma
+
+	iny
+
+	lda	RESHO
+	pha
+	bne	A_FA83
+
+	lda	#'W'			; write command for drive ???
+A_FA83:					;				[FA83]
+	sta	(FNADR),Y
+
+	iny
+	sty	FNLEN			; update length of string
+
+	ldy	#$0C
+	jsr	P_FAB2			;				[FAB2]
+
+	jsr	ChkDevPresent		;				[F73D]
+	jsr	jdOpenCmdChan		;				[F8B2]
+
+	pla
+	jsr	jdListAscFile2		;				[F541]
+
+
+;**  The following routine toggles the printer output funktion. It reads the
+;    CHANNEL to determine if print mode is to be turned on or off.
+jdPrintDir:				;				[FA97]
+	lda	CurIoChan		; screen?
+	beq	A_FAA7			; yes, -> 
+
+	cmp	#$7F			; printer?
+	bne	A_FA38			; no, -> 
+
+	jsr	A_ABB7			; clear all channels and set CHANNL=0
+					;				[ABB7]
+	lda	#$7F
+	jmp	CloseLogFile		; close printer			[FFC3]
+
+A_FAA7:					;				[FAA7]
+	ldx	#$04
+
+	jsr	CHRGET			; what for ???			[0073]
+
+	jsr	jdOpenDev		;				[E229]
+	jsr	jdTestDevFA		;				[F75C]
+P_FAB2:					;				[FAB2]
+	sty	SA
+
+	ldx	#$7F
+	stx	CurIoChan
+
+	lda	FNLEN
+	jmp	jdOpenFile3		;				[F8C7]
+
+
+.by $AA, $D0, $CA, $A5, $B5, $F0, $0A	; 				[FABD]
+; .by $AA				; left over
+;	bne	A_FA8A
+;A_FAC0:
+;	lda	NXTBIT
+;	beq	A_FACE
+
+
+;**  This routine is a patch to the original load routine and tests is the
+;    current device is a JiffyDOS device. If not, the routine jumps back to
+;    the original loader at $F4F3. The routine disables the sprites and
+;    calculates the timing parameters to $B1. Some handshaking is done.
+jdLOAD:					;				[FAC4]
+	jsr	LoadVerifying		;				[F5D2]
+
+	tsx
+	lda	STACK+2,X
+	cmp	#$F7			; some return pointer is $F7?
+	bne	A_FAD7			; no, -> 
+
+	lda	EAL
+	sta	Jump0054+1
+
+	lda	EAL+1
+	sta	Jump0054+2
+A_FAD7:					;				[FAD7]
+	bit	TEMPA3			; JiffyDOS device?
+	bmi	A_FADE			; yes, -> continue
+
+	jmp	A_F4F3			; original load routine		[F4F3]
+
+A_FADE:					;				[FADE]
+	sei
+	ldy	#$03
+
+; save $B0, $B1, $B2 on the stack
+A_FAE1:					;				[FAE1]
+	lda	CMPO-1,Y
+	pha
+
+	dey				; saved all three bytes?
+	bne	A_FAE1			; no, -> 
+
+	lda	VICSPEN
+	sta	CMPO
+
+	jsr	jdDisSprites		;				[F0D8]
+A_FAF0:					;				[FAF0]
+	jsr	IncrClock22		; <STOP> key pressed?		[F6BC]
+	bpl	A_FB27
+
+	lda	VICCTR1			; read the vertical fine scroll
+	and	#$07
+	clc
+	adc	#$2F			; add $2F - start of the visible screen
+	sta	CMPO+1
+
+	lda	CIA2DRA
+	and	#$07			; all IEC lines (H)
+	sta	TapeBufPtr
+	sta	CIA2DRA
+
+	ora	#$20			; DATA line := (L)
+S_FB0B:
+	tax				; X := %0000 0xxx
+A_FB0C:					;				[FB0C]
+	bit	CIA2DRA			; CLK line = (H)?
+	bvc	A_FB0C			; yes, -> wait
+
+	bpl	A_FB3E			; if DATAline = (H), -> LOAD
+
+	ldx	#$64
+A_FB15:					;				[FB15]
+	bit	CIA2DRA			; EOI?
+	bvc	A_FB20			; yes, -> 
+
+	dex				; another loop?
+	bne	A_FB15			; yes, -> 
+
+	lda	#$42			; EOI & READ TIME OUT
+	.by $2C				; dummy BIT opcode
+A_FB20:					;				[FB20]
+	lda	#$40			; EOI found
+	jsr	AorIecStatus		;				[FE1C]
+
+	clc
+	.by $24				; dummy BIT opcode
+A_FB27:					;				[FB27]
+	sec
+
+	lda	CMPO
+	sta	VICSPEN			; enable sprites by using stored value
+
+; restore $B0, $B1, $B2
+	pla
+	sta	CMPO
+
+	pla
+	sta	CMPO+1
+
+	pla
+	sta	TapeBufPtr
+
+	bcs	A_FB3B			; if carry set, exit the normal way
+
+	jmp	jdCloseFile		;				[F528]
+
+A_FB3B:					;				[FB3B]
+	jmp	CloseIecBus		;				[F633]
+
+A_FB3E:					;				[FB3E]
+	bit	CIA2DRA			; DATA line = (H)?
+	bpl	A_FB3E			; no, -> wait
+
+; Wait until out of visible screen
+	sec
+A_FB44:					;				[FB44]
+	lda	VICLINE
+	sbc	CMPO+1			; visible screen
+	bcc	A_FB4F			; no, -> 
+
+	and	#$07	; why ???
+	beq	A_FB44
+A_FB4F:					;				[FB4F]
+	lda	TapeBufPtr
+
+	stx	CIA2DRA			; store %0010 0xxx, see $FB0B
+					; DATA line := (L)
+	bit	CIA2DRA			; CLK line = (H)?
+	bvc	A_FAF0			; yes, -> 
+
+	nop
+	sta	CIA2DRA			; store %0000 0xxx
+
+; read 8 bits 
+	ora	CIA2DRA
+	lsr	A
+	lsr	A
+	nop
+	ora	CIA2DRA
+	lsr	A
+	lsr	A
+	eor	TapeBufPtr
+	eor	CIA2DRA
+	lsr	A
+	lsr	A
+	eor	TapeBufPtr
+	eor	CIA2DRA
+
+	cpy	LoadVerify2		; LOAD?
+	bne	A_FB83			; no, -> VERIFY
+
+	sta	(EAL),Y			; save read byte
+A_FB7A:					;				[FB7A]
+	inc	EAL
+	bne	A_FB44
+
+	inc	EAL+1
+	jmp	A_FB44			; next byte			[FB44]
+
+; VERIFY
+A_FB83:					;				[FB83]
+	cmp	(EAL),Y			; compare OK?
+	beq	A_FB7A			; yes, -> continue
+
+	sec
+	lda	#$10			; VERIFY ERROR
+	sta	STATUS
+
+	bne	A_FB7A			; always ->
+
+
+
+
+.ba $FB97
+;**  This routine disables all the sprites on the screen and continues the
+;    loading procedure. Afterwards the sprites are enabled again.
+DisSpritInByte:				;				[FB97]
+	pha				; save VICSPEN value
+
+	jsr	jdDisSprites		;				[F0D8]
+	jsr	jdIecByteIn3		;				[FBB4]
+
+	pla
+	sta	VICSPEN			; restore original VICSPEN value
+
+	lda	TEMPA4			; byte read from IEC bus
+	rts
+
+A_FBA5:					;				[FBA5]
+	lda	#$00
+	jmp	IecByteIn3		; normal LOAD routine		[EE16]
+
+
+;**  JiffyDOS: read an IEC byte 
+jdIecByteIn:				;				[FBAA]
+	sei
+
+	bit	TEMPA3			; JiffyDOS device?
+	bvc	A_FBA5			; no, -> normal LOAD routine
+
+	lda	VICSPEN			; are there any active sprites?
+	bne	DisSpritInByte		; yes, -> use special routine
+
+;**  Read a byte from the IEC bus	
+jdIecByteIn3:				;				[FBB4]
+	lda	CIA2DRA
+	cmp	#$40			; why ???
+	bcc	jdIecByteIn3
+
+	and	#$07
+	pha
+
+;* Wait until outside the visible screen ???
+A_FBBE:					;				[FBBE]
+	lda	VICLINE
+	sbc	VICCTR1
+	and	#$07
+	cmp	#$07
+	bcs	A_FBBE
+
+	pla
+	sta	CIA2DRA			; store %0000 0xxx
+	sta	TEMPA4
+
+	ora	#$20
+	pha
+
+; read 8 bits
+	nop
+	nop
+	ora	CIA2DRA
+	lsr	A
+	lsr	A
+	nop
+	ora	CIA2DRA
+	lsr	A
+	lsr	A
+	eor	TEMPA4
+	eor	CIA2DRA
+	lsr	A
+	lsr	A
+	eor	TEMPA4
+	eor	CIA2DRA
+	sta	TEMPA4
+
+	pla
+	bit	CIA2DRA
+	sta	CIA2DRA			; store %0010 0xxx, CLK line = (H)?
+
+	bvc	A_FC22			; yes, -> 
+					; DATA line = (H)?
+	bpl	A_FC1D			; yes, -> OK
+
+	lda	#$42			; EOI & READ TIME OUT
+	jmp	SetIecStatus		;				[EDB2]
+
+
+;**  The following routine is used to send a byte to a device on ther serial
+;    bus. The routine checks if the device is a JiffyDOS device by reading
+;    $A3. If it is not a JiffyDOS device, the routine jumps back to the
+;    original load routine at $ED40.
+jdSendByte:				;				[FBFE]
+	sei
+
+	bit	TEMPA3			; JiffyDOS device?
+	bvc	A_FC14			; no, -> 
+A_FC03:					;				[FC03]
+	lda	VICSPEN			; are there any active sprites?
+	beq	jdSendByte2		; no, -> 
+
+	pha
+
+	jsr	jdDisSprites		;				[F0D8]
+	jsr	jdSendByte2		;				[FC27]
+
+	pla
+	sta	VICSPEN
+
+	rts
+
+A_FC14:					;				[FC14]
+	lda	TEMPA3			; JiffyDOS device
+	cmp	#$A0			; ???
+	bcs	A_FC03
+
+	jmp	IecByteOut22		;				[ED40]
+
+A_FC1D:					;				[FC1D]
+	lda	#$40			; set EOI
+	jsr	AorIecStatus		;				[FE1C]
+A_FC22:					;				[FC22]
+	lda	TEMPA4			; read data byte from IEC bus
+A_FC24:					;				[FC24]
+	cli
+	clc
+	rts
+
+
+jdSendByte2:				;				[FC27]
+	txa				; save X
+	pha
+
+	lda	BSOUR			; byte to be send
+	and	#$F0
+	pha				; save upper four bits
+
+	lda	BSOUR
+	and	#$0F
+	tax				; X := lower four bits of data byte
+A_FC33:					;				[FC33]
+	lda	CIA2DRA			; DATA line = (H)?
+	bpl	A_FC33			; yes, -> wait
+
+	and	#$07
+	sta	BSOUR
+
+; Bad lines are not allowed during the transfer
+	sec
+A_FC3D:					;				[FC3D]
+	lda	VICLINE
+	sbc	VICCTR1
+	and	#$07
+	cmp	#$06
+	bcs	A_FC3D
+
+	lda	BSOUR			; = % 0000 0xxx
+	sta	CIA2DRA			; all line (H)
+
+	pla				; upper four bits
+	ora	BSOUR
+	sta	CIA2DRA			; send bits 4 and 5
+
+	lsr	A
+	lsr	A
+	and	#$F0
+	ora	BSOUR
+	sta	CIA2DRA			; send bits 6 and 7
+
+	lda	jdBits,X		; "load" lower four bits
+	ora	BSOUR
+	sta	CIA2DRA			; send bits ???
+
+	lsr	A
+	lsr	A
+	and	#$F0
+	ora	BSOUR
+	sta	CIA2DRA			; send bits ???
+
+;???  for signaling EOI  ???
+	and	#$0F
+	bit	TEMPA3			; EOI needed?
+	bmi	A_FC76			; yes, -> CLK := (H)  =  signal EOI
+
+	ora	#$10			; CLK := (L)
+A_FC76:					;				[FC76]
+	sta	CIA2DRA
+
+	pla
+	tax				; restore X
+
+	lda	BSOUR
+	ora	#$10			; CLK := (L)
+	sta	CIA2DRA
+
+	bit	CIA2DRA			; DATA line = (H)?
+	bpl	A_FC24			; yes, -> continue
+
+	jmp	TimeOut			;				[EDB0]
+
+
+;**  A table of bit combinations for the lower nibble of the byte to be send
+;    to a JiffyDOS device.
+ 
+jdBits:					;				[FC8A]
+.by $00, $80, $20, $A0, $40, $C0, $60, $E0
+.by $10, $90, $30, $B0, $50, $D0, $70, $F0
+
+
+;**  No @ command found 
+jdNo@Command:				;				[FC9A]
+	jsr	jdOpenChn4Outp		;				[F7A2]
+	jmp	Printfilename		; print message			[F5C1]
+
+
+;**  The following routine sets the  destination devicenumber when using
+;    the JiffyDOS copy routine.
+jdSetDestDev:				;				[FCA0]
+	jsr	GetByteParm		; get destination device ...	[B79B]
+	stx	MYCH			; ... and save
+
+	rts
+
+
+;**  The following routine is used by the LIST ASCII and LIST BASIC routines 
+;    to read data directly from disk. It reads a number of bytes into the
+;    filename buffer area. 
+jdReadByt2Buf:				;				[FCA6]
+	jsr	jdSetCHKIN		;				[F0E2]
+jdReadByt2Buf2:				;				[FCA9]
+	jsr	ByteFromChan		;				[FFCF]
+	sta	(FNADR),Y
+
+	iny
+
+	bit	STATUS			; EOI?
+	bvs	A_FCBB			; yes, -> exit
+
+	cpy	#$FE			; buffer full?
+	bcs	A_FCBB			; yes, -> exit
+
+	cmp	#$01			; zero?
+	bcs	jdReadByt2Buf2		; no, -> read next byte
+A_FCBB:					;				[FCBB]
+	rts
+
+
+;**  The following routine is called by the @Q command and disables the
+;    function keys by restoring the IERROR, IMAIN and ICRNCH vector. 
+jdDisCommands:				;				[FCBC]
+	ldx	#$05
+A_FCBE:					;				[FCBE]
+	lda	jdOrgVectors,X
+	sta	IERROR,X
+
+	dex				; replaced 6 bytes?
+	bpl	A_FCBE			; no, -> more
+
+	stx	PRTY			; X = $FF, disable function keys
+
+	rts
+
+
+;???  Not used AFAIK and not even the original bytes  ???
+S_FCCA:					;				[FCCA]
+.by $A5, $A5, $01, $29, $FD, $85, $01	; ??? 
+
+
+
+
+.ba $FD9B
+;******************************************************************************
+;
+; tape IRQ vectors
+;
+TapeIrqVectors:				;				[FD9B]
+.wo $FC6A
+.wo $FBCD
+.wo	IRQ_vector			; $0C	normal IRQ vector
+.wo	jdDisabRattle
+
+
+
+
+.ba $FFA5
+;******************************************************************************
+;
+; input byte from serial bus
+;
+; this routine reads a byte of data from the serial bus using full handshaking.
+; the data is returned in the accumulator. before using this routine the TALK
+; routine, $FFB4, must have been called first to command the device on the
+; serial bus to send data on the bus. if the input device needs a secondary
+; command it must be sent by using the TKSA routine, $FF96, before calling
+; this routine.
+; errors are returned in the status word which can be read by calling the
+; READST routine, ReadIoStatus.
+;
+IecByteIn:				;				[FFA5]
+	jmp	jdIecByteIn		;				[FBAA]
+
+
+;******************************************************************************
+
+
