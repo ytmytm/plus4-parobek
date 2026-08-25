@@ -1,7 +1,7 @@
 ; Stock 1541 JD LOAD sender @ $0300 (≤256 B).
 ; Literal structure of docs/1541EJD.a65 J_FF2D/P_FF8D/A_FFA3:
-; transform pointer/Y for the final sector, then use one inline send loop until
-; Y wraps. This preserves JD's inter-byte timing (no JSR/RTS or per-byte CPY).
+; transform pointer/Y for the final sector, then one inline send loop until
+; Y wraps. Host receives via SJL_jd_transfer (no private fast1541iec loop).
 ; Data buffer 1 @ $0400; host seeds first T/S in $20/$21 before M-E.
 
 fast1541iec_drivecode:

@@ -1,6 +1,6 @@
 ; Stock 1541 serial IEC fastloader wrapper (Parobek).
 ; M-R $18/$19 before CLOSE (header T/S), upload drivecode, M-W T/S into
-; drive $20/$21, M-E, then SJL264-compatible JD receiver.
+; drive $20/$21, M-E, then SJL_jd_transfer (shared SJL264 JD receive).
 
 fast1541iec_load:
 	!zone fast1541iec_Loader {
@@ -162,7 +162,7 @@ fast1541iec_load:
 		beq +
 		jmp .fail
 +
-		jmp fast1541iec_highcode
+		jmp SJL_jd_transfer
 
 .send_m_command:
 		pha
@@ -192,5 +192,4 @@ fast1541iec_txt:
 		!text "1541 SERIAL",13,0
 	}
 
-!source "fast1541iec-loader-highcode.asm"
 !source "fast1541iec-drivecode.asm"

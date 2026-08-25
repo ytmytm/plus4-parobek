@@ -564,15 +564,15 @@ iecburst_load:
 !source "par1541-detect.asm"
 !source "par1541-loader.asm"
 
+!source "sjl-detect.asm"
+!source "sjl-loader.asm"
+
 !source "fast1541iec-detect.asm"
 !source "fast1541iec-loader.asm"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 !source "speeddos-loader.asm"
-
-!source "sjl-detect.asm"
-!source "sjl-loader.asm"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
