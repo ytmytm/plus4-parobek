@@ -340,6 +340,17 @@ sjl_pair6510:
 		rol
 		rts
 
+; Type-1 $01 → 8501 sample layout: DATA in bit 7, CLK in bit 6 (other bits 0).
+sjl_to8501:
+		jsr sjl_pair6510
+		asl
+		asl
+		asl
+		asl
+		asl
+		asl
+		rts
+
 sjl_restore:
 		lda RAM_SA_BACKUP
 		sta RAM_SA
@@ -593,6 +604,10 @@ sjl_busin:
 		clc
 		rts
 
+; Port of .busin8501, not JD .transferbyte. Sample gaps 9/9/11 (pha+nop /
+; pha+nop / pha+nop+nop with lda $01 vs 8501 lsr/lsr/nop + ora/eor $01).
+; Mix is lsr/lsr / ora / lsr/lsr / eor / lsr/lsr / eor last; no eor #$0A
+; (remapped samples have no 8501 motor/CLK-out debris).
 sjl_busin_6510:
 .bwait:
 		lda $01
@@ -606,7 +621,7 @@ sjl_busin_6510:
 		nop
 		nop
 		nop
-		lda #0
+		lda #%00001000		; DAT lo (no motor bit 0)
 		nop
 		nop
 		sta $01
@@ -615,19 +630,44 @@ sjl_busin_6510:
 		nop
 		nop
 		nop
-		lda $01
-		pha
-		bit $00
-		lda $01
+		lda $01			; S0
 		pha
 		nop
+		lda $01			; S1
+		pha
 		nop
-		lda $01
+		lda $01			; S2
 		pha
 		nop
 		nop
-		lda $01
-		jsr sjl_fold4_6510
+		lda $01			; S3
+		jsr sjl_to8501
+		tay			; remapped S3
+		pla
+		jsr sjl_to8501
+		sta $95			; remapped S2
+		pla
+		jsr sjl_to8501
+		pha			; remapped S1 (under: S0)
+		tsx
+		lda $0102,x		; S0
+		jsr sjl_to8501
+		lsr
+		lsr
+		tsx
+		ora $0101,x		; S1
+		lsr
+		lsr
+		eor $95			; S2
+		lsr
+		lsr
+		nop
+		sty $95
+		eor $95			; S3
+		tax
+		pla			; drop remapped S1
+		pla			; drop S0
+		txa
 		pha
 		lda #%00001000
 		sta $01
