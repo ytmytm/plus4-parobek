@@ -65,42 +65,93 @@ shift/EOR sequence. Bits are therefore received least-significant pair first.
 ## Chosen transfer (drive send one byte)
 
 The new 1541 sender uses VIA 1 port B at `$1800`: bit 3 drives CLK out and bit
-1 drives DATA out. ATN input (bit 7) and ATN acknowledge output (bit 4) are
-not written by the transfer loop.
+1 drives DATA out. The 7406 drivers invert these outputs: a one in PB3/PB1
+asserts the corresponding IEC line low, and a zero releases it high.
 
-| Output phase | CLK sends | DATA sends | Byte bits |
-|--------------|-----------|------------|-----------|
-| 1 | bit 0 | bit 1 | least-significant pair |
-| 2 | bit 2 | bit 3 | next pair |
-| 3 | bit 4 | bit 5 | next pair |
-| 4 | bit 6 | bit 7 | most-significant pair |
+The sender configures DDRB `$1802=$1a`: PB1 (DATA out), PB3 (CLK out), and PB4
+(ATNA) are outputs; PB0, PB2, PB5, PB6, and PB7 remain inputs. ATN is inactive
+during the fast transfer, so ATNA must remain zero. Every whole-port write to
+`$1800` therefore has bit 4 clear and writes zero to the latches behind all
+input-configured, unrelated bits. The transfer must use only the complete
+safe port images `$00`, `$02`, `$08`, and `$0a`; it must not construct an
+output by reading `$1800`, because that read includes live input bits.
 
-For each phase the drive maps the two payload bits to the active-low VIA
-output representation, writes `$1800`, and holds the state for the cycle
-window expected by `SJL_highcode`. There is no per-pair acknowledgement; the
-four phases are cycle-timed after the byte-start handshake.
+For a logical pair `CLK,DATA`, where one means released/high and zero means
+asserted/low, the complete `$1800` images are:
+
+| Logical CLK,DATA | `$1800` image | PB3 CLK out | PB1 DATA out |
+|------------------|---------------|-------------|--------------|
+| `0,0` | `$0a` | 1 (assert) | 1 (assert) |
+| `0,1` | `$08` | 1 (assert) | 0 (release) |
+| `1,0` | `$02` | 0 (release) | 1 (assert) |
+| `1,1` | `$00` | 0 (release) | 0 (release) |
+
+Each payload phase selects one of those four complete images. Phase 1 uses
+byte bits 0 and 1 as logical CLK and DATA; phase 2 uses bits 2 and 3; phase 3
+uses bits 4 and 5; and phase 4 uses bits 6 and 7. Equivalently, after
+extracting the named pair as `c,d`, write `((c ^ 1) << 3) |
+((d ^ 1) << 1)`. Thus the fixed masks are:
+
+| Output phase | CLK source | DATA source | Complete `$1800` expression |
+|--------------|------------|-------------|------------------------------|
+| 1 | bit 0 | bit 1 | `((~byte & $01) << 3) | (~byte & $02)` |
+| 2 | bit 2 | bit 3 | `((~byte & $04) << 1) | ((~byte & $08) >> 2)` |
+| 3 | bit 4 | bit 5 | `((~byte & $10) >> 1) | ((~byte & $20) >> 4)` |
+| 4 | bit 6 | bit 7 | `((~byte & $40) >> 3) | ((~byte & $80) >> 6)` |
+
+All expressions are byte-masked and produce only `$00/$02/$08/$0a`, so PB4
+and every unrelated latch stay at their fixed safe zero value. There is no
+per-pair acknowledgement; the four phases are cycle-timed after the
+byte-start handshake.
 
 ## Handshake / EOI
 
-Before a data byte, the drive holds DATA low and releases CLK. The host waits
-for CLK high; DATA low means a byte follows. The drive then releases DATA, the
-host waits for DATA high, asserts its ready state, and the four timed samples
-begin.
+The complete non-payload images are:
 
-At the byte boundary, the host returns to the ready loop. The drive waits for
-that state before presenting the next byte, preventing accumulated timing
-drift between bytes. The final-byte condition is sampled by the existing SJL
-post-byte CLK test.
+| State | Drive action | `$1800` |
+|-------|--------------|---------|
+| idle / released | release CLK and DATA, ATNA inactive | `$00` |
+| data-byte announce | release CLK, assert DATA | `$02` |
+| data-byte ready | release CLK and DATA | `$00` |
+| EOI arm | assert CLK, release DATA | `$08` |
+| EOI present | release CLK and DATA | `$00` |
+| EOI confirm / handoff | assert CLK, release DATA | `$08` |
 
-End of file is signalled at the ready boundary by the drive releasing both
-CLK and DATA instead of holding DATA low. The host sees CLK high and DATA high,
-enters `loadendover`, verifies that CLK drops within the bounded end check,
-then performs normal IEC UNTALK/close cleanup. Timeouts or malformed end
-states are transfer errors, not ROM fall-through after a partial load.
+For a data byte, the drive writes `$02`. In `.loadloop` the host writes
+`$01=$08`, polls CPU-port input bit 6 until CLK is high, and tests input bit 7;
+DATA low selects the data path. The drive then writes `$00`; the host waits
+for DATA high, pulses its DATA output low with `$01=$09`, and checks CLK. The
+drive keeps CLK released through that check and then emits the four timed
+payload images. The next byte follows the same ready/probe timing; if the
+drive is not ready at the host's probe, asserting CLK makes the host branch
+back to `.loadloop`.
+
+EOI uses that probe branch explicitly; releasing both lines without first
+forcing the branch is not sufficient:
+
+1. After the fourth phase of the final byte, write EOI-arm `$08` (CLK low,
+   DATA released). At the next host `$01=$09` probe, CPU-port bit 6 is clear,
+   so `bvc .loadloop` is taken.
+2. Wait until the host has released its DATA output (`$01=$08`; drive PB0
+   reads DATA high), then write EOI-present `$00`.
+3. The host's `.wait_clk_drive` sees CPU-port bit 6 set (CLK high), and its
+   immediately following `bmi .loadendover` sees bit 7 set (DATA high).
+4. Hold `$00` for 16 drive CPU cycles. This covers the host polling/branch
+   path, then write EOI-confirm `$08`. The host's bounded `.end_check` polls
+   CPU-port bit 6 and accepts EOI only when CLK has become low.
+5. Keep DATA released and CLK asserted while leaving the fast sender. Normal
+   DOS IEC handling then owns the port and handles the host's UNTALK/close,
+   including any later ATNA change required by normal ATN arbitration.
+
+If CLK does not fall during `.end_check`, the host reports serial-end error.
+DATA must stay released throughout EOI; `$02` would be interpreted as another
+data-byte announce instead of end of file.
 
 ATN is used only by normal IEC TALK/secondary-address/UNTALK arbitration
 before and after the fast transfer. Neither timed payload pairs nor ready/EOI
-states use ATN as a data bit.
+states use ATN as a data bit. PB4 is nevertheless part of every `$1800`
+whole-port write and is explicitly held at its inactive zero value for the
+entire fast-transfer interval.
 
 ## Why not the alternatives
 
