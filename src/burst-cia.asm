@@ -73,8 +73,6 @@ CIAFound:
         lda #$81
 	sta ciabase+14		; start timer A, serial IN, TOD 50Hz
 
-	jsr eF160		;print "SEARCHING" ; XXX too early - will show "SEARCHING" twice if device is not burst capable
-
 	lda RAM_FNLEN		; preserve the filename length
 	pha
 	lda RAM_SA		; same with secondary address
@@ -126,6 +124,7 @@ CIAFound:
 	lda #<iec_type_txt
 	ldy #>iec_type_txt
 	jsr print_msg
+	jsr eF160		; print "SEARCHING" (after type banner, like VIA)
 	jsr eF189		; print LOADING, uses CHROUT will CLI again
 	sei			; loader starts here
 	jsr eE2B8		; serial clock on == clk line low
