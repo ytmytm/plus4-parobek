@@ -29,6 +29,8 @@ SJL_highcode:
 .motor_ok_6510:
 		lda #0
 		sta $01			; IEC released; no cass. motor bit
+		lda #$0e
+		sta $00			; DDR: CLK/ATN/DATA out (Hackjunk; never $1F)
 		; type 1: never $00=$1F (would make DATA in an output)
 .port_ready:
 		lda #0
@@ -133,6 +135,8 @@ SJL_jd_transfer:
 .jd_port_6510:
 		lda #0
 		sta $01
+		lda #$0e
+		sta $00
 .wait_busy_6510:
 		lda $01
 		and #%00100000
@@ -217,10 +221,12 @@ sjl_jd_receive_loop:
 		jsr ROM_SET_STATUS_HELPER
 		rts
 
-; Type-1 (Hackjunk 6510) JD receive. 8501 .transferbyte above is unchanged.
-; Sample instants: pha/bit/nop padding matches 8501 lda/eor $01 spacing
-; (S0→S1 = 9, S1→S2 = 10, S2→S3 = 10). Pair fold is after S3; drive waits
-; on $1800 between bytes. stx→S0 is 18 vs 8501 17 (lda/and/beq vs bit/bvc).
+; Type-1 (Hackjunk 6510) JD receive. Four $01 samples (bits 0/5) are packed
+; and looked up (see tests/check_sjl6510_decode.py); IEC waits use bit 0
+; (DATA in) and bit 5 (CLK in).
+SJL_SMP1	= $02		; ZP scratch for samples 1/2 (3-cycle sta in xfer)
+SJL_SMP2	= $03
+
 sjl_jd_receive_loop_6510:
 !zone SJL_Receive6510 {
 		ldy #$00
@@ -234,10 +240,9 @@ sjl_jd_receive_loop_6510:
 		sta $01
 .wait_clk_drive:
 		lda $01
-		tax
 		and #%00100000
 		beq .wait_clk_drive
-		txa
+		lda $01
 		lsr
 		bcs .loadendover
 .wait_data_drive:
@@ -251,51 +256,28 @@ sjl_jd_receive_loop_6510:
 		nop
 		nop
 		lda #0
-		ldx #%00001000
+		ldx #%00001000		; DATA out low (bit 3), CLK released
 		stx $01
 		lda $01
 		and #%00100000
 		beq .loadloop
-		lda #0
-		sta $01
+		sta $01			; release DATA (A still 0)
 		lda $01			; S0
-		pha
-		bit $00
+		and #%00100001
+		sta sjl_m0
 		lda $01			; S1
-		pha
-		nop
+		and #%00100001
+		sta SJL_SMP1
 		nop
 		lda $01			; S2
-		pha
+		and #%00100001
+		sta SJL_SMP2
 		nop
-		nop
-		lda $01			; S3 in A; S2/S1/S0 on stack (no JSR frame)
-		jsr sjl_pair6510
-		asl
-		asl
-		asl
-		asl
-		asl
-		asl
-		sta $95
-		pla
-		jsr sjl_pair6510
-		asl
-		asl
-		asl
-		asl
-		ora $95
-		sta $95
-		pla
-		jsr sjl_pair6510
-		asl
-		asl
-		ora $95
-		sta $95
-		pla
-		jsr sjl_pair6510
-		ora $95
-		eor #$00		; idle debris none (type-1 $01 outputs 0)
+		lda $01			; S3
+		and #%00100001
+		sta sjl_m3
+		jsr sjl_pack_to_x
+		lda sjl_byte256,x
 
 		ldx $9e
 		beq .skip_store
@@ -323,29 +305,50 @@ sjl_jd_receive_loop_6510:
 		lda #%01000000
 		jsr ROM_SET_STATUS_HELPER
 		rts
+
+; Build 8-bit pack index in X from sjl_m0, SJL_SMP1/2, sjl_m3.
+sjl_pack_to_x:
+		lda sjl_m0
+		tax
+		lda sjl_nib256,x
+		sta sjl_pack
+		lda SJL_SMP1
+		tax
+		lda sjl_nib256,x
+		asl
+		asl
+		ora sjl_pack
+		sta sjl_pack
+		lda SJL_SMP2
+		tax
+		lda sjl_nib256,x
+		asl
+		asl
+		asl
+		asl
+		ora sjl_pack
+		sta sjl_pack
+		lda sjl_m3
+		tax
+		lda sjl_nib256,x
+		asl
+		asl
+		asl
+		asl
+		asl
+		asl
+		ora sjl_pack
+		tax
+		rts
+
+sjl_pack_decode_busin:
+		jsr sjl_pack_to_x
+		lda sjl_busin_byte256,x
+		rts
+
 }
 
-; Pair fold lives inlined in sjl_jd_receive_loop_6510 .transferbyte (PLA is
-; samples S2/S1/S0). Do not JSR a PLA-based fold — that would pop the return.
-sjl_pair6510:
-		tax
-		and #%00100000
-		cmp #%00100000
-		txa
-		and #%00000001
-		rol
-		rts
-
-; Type-1 $01 → 8501 sample layout: DATA in bit 7, CLK in bit 6 (other bits 0).
-sjl_to8501:
-		jsr sjl_pair6510
-		asl
-		asl
-		asl
-		asl
-		asl
-		asl
-		rts
+!source "../tests/gen_sjl6510_luts.asm"
 
 sjl_restore:
 		lda RAM_SA_BACKUP
@@ -600,10 +603,7 @@ sjl_busin:
 		clc
 		rts
 
-; Port of .busin8501, not JD .transferbyte. Sample gaps 9/9/11 (pha+nop /
-; pha+nop / pha+nop+nop with lda $01 vs 8501 lsr/lsr/nop + ora/eor $01).
-; Mix is lsr/lsr / ora / lsr/lsr / eor / lsr/lsr / eor last; no eor #$0A
-; (remapped samples have no 8501 motor/CLK-out debris).
+; Type-1 address byte: four lda $01 samples, pack + LUT (see busin cycle test).
 sjl_busin_6510:
 .bwait:
 		lda $01
@@ -617,7 +617,7 @@ sjl_busin_6510:
 		nop
 		nop
 		nop
-		lda #%00001000		; DAT lo (no motor bit 0)
+		lda #%00001000		; DAT lo (bit 3)
 		nop
 		nop
 		sta $01
@@ -627,43 +627,19 @@ sjl_busin_6510:
 		nop
 		nop
 		lda $01			; S0
-		pha
-		nop
+		and #%00100001
+		sta sjl_m0
 		lda $01			; S1
-		pha
-		nop
+		and #%00100001
+		sta SJL_SMP1
 		lda $01			; S2
-		pha
-		nop
+		and #%00100001
+		sta SJL_SMP2
 		nop
 		lda $01			; S3
-		jsr sjl_to8501
-		tay			; remapped S3
-		pla
-		jsr sjl_to8501
-		sta $95			; remapped S2
-		pla
-		jsr sjl_to8501
-		pha			; remapped S1 (under: S0)
-		tsx
-		lda $0102,x		; S0
-		jsr sjl_to8501
-		lsr
-		lsr
-		tsx
-		ora $0101,x		; S1
-		lsr
-		lsr
-		eor $95			; S2
-		lsr
-		lsr
-		nop
-		sty $95
-		eor $95			; S3
-		tax
-		pla			; drop remapped S1
-		pla			; drop S0
-		txa
+		and #%00100001
+		sta sjl_m3
+		jsr sjl_pack_decode_busin
 		pha
 		lda #%00001000
 		sta $01
@@ -684,4 +660,5 @@ sjl_busin_6510:
 		pla
 		clc
 		rts
+
 }
