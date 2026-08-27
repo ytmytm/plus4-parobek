@@ -45,8 +45,17 @@ SpeedDOS_load:  !zone SpeedDOS_Loader {
         ldx     #>SpeedDOS_drivecode_PPI
         sta     $03
         stx     $04
+        lda     cpu_port_type
+        cmp     #1
+        beq     .select_SpeedDOS_PPI_6510
         lda     #<SpeedDOS_loader_PPI
         ldx     #>SpeedDOS_loader_PPI
+        sta     $07
+        stx     $08
+        jmp     .SpeedDOS_SendCode
+.select_SpeedDOS_PPI_6510:
+        lda     #<SpeedDOS_loader_PPI_6510
+        ldx     #>SpeedDOS_loader_PPI_6510
         sta     $07
         stx     $08
         jmp     .SpeedDOS_SendCode
@@ -58,8 +67,17 @@ SpeedDOS_load:  !zone SpeedDOS_Loader {
         ldx     #>SpeedDOS_drivecode_PIO
         sta     $03
         stx     $04
+        lda     cpu_port_type
+        cmp     #1
+        beq     .select_SpeedDOS_PIO_6510
         lda     #<SpeedDOS_loader_PIO
         ldx     #>SpeedDOS_loader_PIO
+        sta     $07
+        stx     $08
+        jmp     .SpeedDOS_SendCode
+.select_SpeedDOS_PIO_6510:
+        lda     #<SpeedDOS_loader_PIO_6510
+        ldx     #>SpeedDOS_loader_PIO_6510
         sta     $07
         stx     $08
         jmp     .SpeedDOS_SendCode
@@ -150,6 +168,11 @@ SpeedDOS_drivecode_PPI:
 }
 SpeedDOS_drivecode_PPI_END:
 SpeedDOS_loader_PPI:
+!set cpu_port_6510 = 0
+!source "speeddos-loader-highcode.asm"
+SpeedDOS_loader_PPI_6510:
+!set par1541_interface = 1
+!set cpu_port_6510 = 1
 !source "speeddos-loader-highcode.asm"
 
 ; PIO version
@@ -160,6 +183,11 @@ SpeedDOS_drivecode_PIO:
 }
 SpeedDOS_drivecode_PIO_END:
 SpeedDOS_loader_PIO:
+!set cpu_port_6510 = 0
+!source "speeddos-loader-highcode.asm"
+SpeedDOS_loader_PIO_6510:
+!set par1541_interface = 2
+!set cpu_port_6510 = 1
 !source "speeddos-loader-highcode.asm"
 
 ; CIA version
@@ -170,6 +198,7 @@ SpeedDOS_drivecode_CIA:
 }
 SpeedDOS_drivecode_CIA_END:
 SpeedDOS_loader_CIA:
+!set cpu_port_6510 = 0
 !source "speeddos-loader-highcode.asm"
 
 ; VIA version
@@ -180,4 +209,5 @@ SpeedDOS_drivecode_VIA:
 }
 SpeedDOS_drivecode_VIA_END:
 SpeedDOS_loader_VIA:
+!set cpu_port_6510 = 0
 !source "speeddos-loader-highcode.asm"

@@ -81,12 +81,30 @@
 inc TED_BORDER
         lda     #$02            ; ready
         sta     $01
--       bit     $01             ; remote ready
+!if cpu_port_6510 = 0 {
+-       bit     $01
         bpl     -
+}
+!if cpu_port_6510 = 1 {
+-       lda     $01
+        lsr
+        bcc     -
+}
         lda     parallel_port
+!if cpu_port_6510 = 1 {
+        tax
+}
         sty     $01             ; always 0, data received
--       bit     $01             ; remote confirms
+!if cpu_port_6510 = 0 {
+-       bit     $01
         bmi     -
+}
+!if cpu_port_6510 = 1 {
+-       lda     $01
+        lsr
+        bcs     -
+        txa
+}
 }
 !if (par1541_interface = 4) { ; VIA
 inc TED_BORDER
@@ -135,13 +153,27 @@ inc TED_BORDER
 !if (par1541_interface = 1) or (par1541_interface = 2) { ; PPI or PIO
 	lda     #$02
         sta     $01
+!if cpu_port_6510 = 0 {
 -       bit     $01
         bpl     -
+}
+!if cpu_port_6510 = 1 {
+-       lda     $01
+        lsr
+        bcc     -
+}
         ldx     parallel_port
         lda     #$00
         sta     $01
+!if cpu_port_6510 = 0 {
 -       bit     $01
         bmi     -
+}
+!if cpu_port_6510 = 1 {
+-       lda     $01
+        lsr
+        bcs     -
+}
         txa
         rts
 }

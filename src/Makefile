@@ -4,6 +4,7 @@ SRCS = burstcart.asm burst-cpld.asm burst-via.asm \
 	t2s-detect.asm host-jd-detect.asm cpu-port-detect.asm \
 	sjl-detect.asm sjl-loader.asm sjl-loader-highcode.asm \
 	iec-memcmd.asm fast1541iec-loader.asm fast1541iec-drivecode.asm \
+	par1541-loader-highcode.asm speeddos-loader-highcode.asm \
 	ram1551-hyparam-loader.asm ram1551-hyparam-loader-highcode.asm \
 	hypa1551-drivecode.asm ram1551-detect.asm \
 	../tests/gen_sjl6510_luts.asm

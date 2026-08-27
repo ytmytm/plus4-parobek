@@ -13,6 +13,16 @@ detect_cpu_port_type:
 	sta cpu_port_type
 	lda $01
 	pha
+	; The HackJunk KERNAL signature is unambiguous and does not depend on
+	; transient IEC levels during drive reset.
+	lda KERNAL_CPU_DIR_INIT
+	cmp #%00001111
+	beq .probe_port
+	lda #1
+	sta cpu_port_type
+	jmp .restore
+.probe_port:
+	lda $01
 	; Release DATA-out (clear bit 0): line high → DATA-in bit7 must be 1
 	and #%11111110
 	sta $01
