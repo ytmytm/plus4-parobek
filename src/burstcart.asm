@@ -379,9 +379,6 @@ iec_drive_flags: !byte 0	; sticky across loads (cleared only when trampoline
 				; After a successful load the channel is often
 				;  "00, OK" without those strings — do not clear.
 cpu_port_type:	!byte 0		; 0=8501, 1=6510+patched KERNAL, 2=6510+stock, 3=unknown
-sjl_m0:		!byte 0		; type-1 SJL samples 0/3; samples 1/2 at $02/$03
-sjl_m3:		!byte 0
-sjl_pack:	!byte 0		; pack-decode scratch (type-1 SJL)
 sjl_receive_vec:
 		jmp sjl_jd_receive_loop	; install may retarget to sjl_jd_receive_loop_6510
 
@@ -791,4 +788,3 @@ dirbrowser:
 dirbrowserend:
 
 !fill ($10000-*), $ff
-

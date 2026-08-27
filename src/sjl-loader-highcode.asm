@@ -224,8 +224,32 @@ sjl_jd_receive_loop:
 ; Type-1 (Hackjunk 6510) JD receive. Four $01 samples (bits 0/5) are packed
 ; and looked up (see tests/check_sjl6510_decode.py); IEC waits use bit 0
 ; (DATA in) and bit 5 (CLK in).
-SJL_SMP1	= $02		; ZP scratch for samples 1/2 (3-cycle sta in xfer)
+SJL_SMP0	= $04		; S0/S3 use forced absolute stores for exact timing
+SJL_SMP1	= $02		; S1/S2 use 3-cycle ZP stores
 SJL_SMP2	= $03
+SJL_SMP3	= $05
+SJL_PACK	= SJL_SMP0	; S0 is dead when partial decode starts
+
+!macro SJL_PACK_SAMPLES {
+		lda SJL_SMP0
+		tax
+		lda sjl_pair0_256,x
+		sta SJL_PACK
+		lda SJL_SMP1
+		tax
+		lda sjl_pair1_256,x
+		ora SJL_PACK
+		sta SJL_PACK
+		lda SJL_SMP2
+		tax
+		lda sjl_pair2_256,x
+		ora SJL_PACK
+		sta SJL_PACK
+		lda SJL_SMP3
+		tax
+		lda sjl_pair3_256,x
+		ora SJL_PACK
+}
 
 sjl_jd_receive_loop_6510:
 !zone SJL_Receive6510 {
@@ -264,7 +288,7 @@ sjl_jd_receive_loop_6510:
 		sta $01			; release DATA (A still 0)
 		lda $01			; S0
 		and #%00100001
-		sta sjl_m0
+		sta+2 SJL_SMP0		; force 4-cycle store; keeps S0/S1 gap at 9
 		lda $01			; S1
 		and #%00100001
 		sta SJL_SMP1
@@ -275,9 +299,8 @@ sjl_jd_receive_loop_6510:
 		nop
 		lda $01			; S3
 		and #%00100001
-		sta sjl_m3
-		jsr sjl_pack_to_x
-		lda sjl_byte256,x
+		sta+2 SJL_SMP3		; force 4-cycle store; timing ends at S3
+		+SJL_PACK_SAMPLES
 
 		ldx $9e
 		beq .skip_store
@@ -304,46 +327,6 @@ sjl_jd_receive_loop_6510:
 .end_ok:
 		lda #%01000000
 		jsr ROM_SET_STATUS_HELPER
-		rts
-
-; Build 8-bit pack index in X from sjl_m0, SJL_SMP1/2, sjl_m3.
-sjl_pack_to_x:
-		lda sjl_m0
-		tax
-		lda sjl_nib256,x
-		sta sjl_pack
-		lda SJL_SMP1
-		tax
-		lda sjl_nib256,x
-		asl
-		asl
-		ora sjl_pack
-		sta sjl_pack
-		lda SJL_SMP2
-		tax
-		lda sjl_nib256,x
-		asl
-		asl
-		asl
-		asl
-		ora sjl_pack
-		sta sjl_pack
-		lda sjl_m3
-		tax
-		lda sjl_nib256,x
-		asl
-		asl
-		asl
-		asl
-		asl
-		asl
-		ora sjl_pack
-		tax
-		rts
-
-sjl_pack_decode_busin:
-		jsr sjl_pack_to_x
-		lda sjl_busin_byte256,x
 		rts
 
 }
@@ -584,7 +567,6 @@ sjl_busin:
 		lsr
 		lsr
 		eor #%00001010
-		nop
 		eor $01
 		pha
 		lda #%00001001
@@ -617,7 +599,7 @@ sjl_busin_6510:
 		nop
 		nop
 		nop
-		lda #%00001000		; DAT lo (bit 3)
+		lda #0			; release DATA (Hackjunk DATA-out is bit 3)
 		nop
 		nop
 		sta $01
@@ -628,18 +610,17 @@ sjl_busin_6510:
 		nop
 		lda $01			; S0
 		and #%00100001
-		sta sjl_m0
+		sta+2 SJL_SMP0		; force 4-cycle absolute store for timing
 		lda $01			; S1
 		and #%00100001
-		sta SJL_SMP1
+		sta+2 SJL_SMP1		; force 4-cycle absolute store for timing
 		lda $01			; S2
 		and #%00100001
-		sta SJL_SMP2
-		nop
+		sta+2 SJL_SMP2		; force 4-cycle absolute store for timing
 		lda $01			; S3
 		and #%00100001
-		sta sjl_m3
-		jsr sjl_pack_decode_busin
+		sta+2 SJL_SMP3		; force 4-cycle absolute store for timing
+		+SJL_PACK_SAMPLES
 		pha
 		lda #%00001000
 		sta $01
