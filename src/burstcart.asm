@@ -780,8 +780,11 @@ delay:
 ; so we must fit executable code within 16k, below $C000
 !if * > $C000 { !error "EXECUTABLE CODE ABOVE $C000 *=", * }
 
-;!fill ($C000-*), $ff
-		;* = $C000
+!fill ($C000-*), $ff
+		* = $C000
+
+!source "par1541-loader-highcode-images.asm"
+
 		; TCBM2SD directory browser (2024-11-30)
 dirbrowser:
 !bin "db12b.prg",,2

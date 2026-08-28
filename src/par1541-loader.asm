@@ -129,6 +129,9 @@ par1541_load:
         tay
         and #%01000000
         beq +
+        lda cpu_port_type
+        cmp #1
+        beq .select_PPI_6510
         lda #<FASTLOAD_PPI
         ldx #>FASTLOAD_PPI
         sta $d0
@@ -138,9 +141,22 @@ par1541_load:
         sta $d2
         stx $d3
         jmp .fastload_copy
+.select_PPI_6510:
+        lda #<FASTLOAD_PPI_6510
+        ldx #>FASTLOAD_PPI_6510
+        sta $d0
+        stx $d1
+        lda #<FASTLOAD_PPI_6510_END
+        ldx #>FASTLOAD_PPI_6510_END
+        sta $d2
+        stx $d3
+        jmp .fastload_copy
 +       tya
         and #%00100000
         beq +
+        lda cpu_port_type
+        cmp #1
+        beq .select_PIO_6510
         lda #<FASTLOAD_PIO
         ldx #>FASTLOAD_PIO
         sta $d0
@@ -150,9 +166,22 @@ par1541_load:
         sta $d2
         stx $d3
         jmp .fastload_copy
+.select_PIO_6510:
+        lda #<FASTLOAD_PIO_6510
+        ldx #>FASTLOAD_PIO_6510
+        sta $d0
+        stx $d1
+        lda #<FASTLOAD_PIO_6510_END
+        ldx #>FASTLOAD_PIO_6510_END
+        sta $d2
+        stx $d3
+        jmp .fastload_copy
 +       tya
         and #%00010000
         beq +
+        lda cpu_port_type
+        cmp #1
+        beq .select_CIA_6510
         lda #<FASTLOAD_CIA
         ldx #>FASTLOAD_CIA
         sta $d0
@@ -162,9 +191,22 @@ par1541_load:
         sta $d2
         stx $d3
         jmp .fastload_copy
+.select_CIA_6510:
+        lda #<FASTLOAD_CIA_6510
+        ldx #>FASTLOAD_CIA_6510
+        sta $d0
+        stx $d1
+        lda #<FASTLOAD_CIA_6510_END
+        ldx #>FASTLOAD_CIA_6510_END
+        sta $d2
+        stx $d3
+        jmp .fastload_copy
 +       tya
         and #%00001000
         beq +
+        lda cpu_port_type
+        cmp #1
+        beq .select_VIA_6510
         lda #<FASTLOAD_VIA
         ldx #>FASTLOAD_VIA
         sta $d0
@@ -173,8 +215,25 @@ par1541_load:
         ldx #>FASTLOAD_VIA_END
         sta $d2
         stx $d3
+        jmp .fastload_copy
+.select_VIA_6510:
+        lda #<FASTLOAD_VIA_6510
+        ldx #>FASTLOAD_VIA_6510
+        sta $d0
+        stx $d1
+        lda #<FASTLOAD_VIA_6510_END
+        ldx #>FASTLOAD_VIA_6510_END
+        sta $d2
+        stx $d3
 
 .fastload_copy:
+        php
+        sei
+        ldx buf_ourbank
+        lda ROM_PAGING,x       ; $05/$0a/$0f: selected bank in both ROM halves
+        tax
+        lda #$00
+        sta $fdd0,x            ; highcode images live above $c000
 
         lda #<EPAR41_HIGHCODE_TGT
         ldx #>EPAR41_HIGHCODE_TGT
@@ -196,6 +255,11 @@ par1541_load:
         lda $d1
         cmp $d3
         bne -
+
+        ldx buf_ourbank
+        lda #$00
+        sta $fdd0,x            ; restore our low ROM + KERNAL high
+        plp
 
         ldy #0
 -       lda .trampoline,y
@@ -232,37 +296,7 @@ par1541_load:
 
 ;-------------------------------
 
-; there would be a lot of code duplication here, but we have space in ROM
-
 EPAR41_HIGHCODE_TGT = $f9be
-
-FASTLOAD_PIO:
-!set par1541_interface = 1
-	!pseudopc EPAR41_HIGHCODE_TGT {
-	!source "par1541-loader-highcode.asm"
-	}
-FASTLOAD_PIO_END:
-
-FASTLOAD_PPI:
-!set par1541_interface = 2
-	!pseudopc EPAR41_HIGHCODE_TGT {
-	!source "par1541-loader-highcode.asm"
-	}
-FASTLOAD_PPI_END:
-
-FASTLOAD_CIA:
-!set par1541_interface = 3
-	!pseudopc EPAR41_HIGHCODE_TGT {
-	!source "par1541-loader-highcode.asm"
-	}
-FASTLOAD_CIA_END:
-
-FASTLOAD_VIA:
-!set par1541_interface = 4
-	!pseudopc EPAR41_HIGHCODE_TGT {
-	!source "par1541-loader-highcode.asm"
-	}
-FASTLOAD_VIA_END:
 
 ;-------------------------------
 

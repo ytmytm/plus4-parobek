@@ -4,7 +4,8 @@ SRCS = burstcart.asm burst-cpld.asm burst-via.asm \
 	t2s-detect.asm host-jd-detect.asm cpu-port-detect.asm \
 	sjl-detect.asm sjl-loader.asm sjl-loader-highcode.asm \
 	iec-memcmd.asm fast1541iec-loader.asm fast1541iec-drivecode.asm \
-	par1541-loader-highcode.asm speeddos-loader-highcode.asm \
+	par1541-loader-highcode.asm par1541-loader-highcode-images.asm \
+	speeddos-loader-highcode.asm \
 	ram1551-hyparam-loader.asm ram1551-hyparam-loader-highcode.asm \
 	hypa1551-drivecode.asm ram1551-detect.asm \
 	../tests/gen_sjl6510_luts.asm
@@ -23,10 +24,10 @@ bin/parobek-cpld.bin: $(SRCS)
 run: run-via
 
 run-via: bin/parobek-via.bin
-	xplus4 -c1lo bin/parobek-via.bin
+	xplus4 -c1 bin/parobek-via.bin
 
 run-cpld: bin/parobek-cpld.bin
-	xplus4 -c1lo bin/parobek-cpld.bin
+	xplus4 -c1 bin/parobek-cpld.bin
 
 clean:
 	rm -f bin/*.bin labels-*.txt

@@ -15,22 +15,6 @@
         !zone PAR1541_Loader_Highcode {
 
 ;FASTLOAD:
-        lda     cpu_port_type
-        cmp     #1
-        bne     +
-        lda     #<.GetByteParport6510
-        sta     .GetByteParport+1
-        lda     #>.GetByteParport6510
-        sta     .GetByteParport+2
-        lda     #<.SendByteParport6510
-        sta     .SendByteParport+1
-        lda     #>.SendByteParport6510
-        sta     .SendByteParport+2
-        lda     #<.ReceiveTrack6510
-        sta     .ReceiveTrack+1
-        lda     #>.ReceiveTrack6510
-        sta     .ReceiveTrack+2
-+
         lda     #$00		; initial strobe
         sta     $01
         !if par1541_interface = 1 { ; PPI
@@ -133,42 +117,35 @@
 ;------------------------------------------------
 
 .GetByteParport:
-        jmp     .GetByteParport8501
-
-.GetByteParport8501:
         lda     #$02
         sta     $01
+!if cpu_port_6510 = 0 {
 -       bit     $01
         bpl     -
-        ldx     parallel_port
-        lda     #$00
-        sta     $01
--       bit     $01
-        bmi     -
-        txa
-        rts
-
-.GetByteParport6510:
-        lda     #$02
-        sta     $01
+}
+!if cpu_port_6510 = 1 {
 -       lda     $01
         lsr
         bcc     -
+}
         ldx     parallel_port
         lda     #$00
         sta     $01
+!if cpu_port_6510 = 0 {
+-       bit     $01
+        bmi     -
+}
+!if cpu_port_6510 = 1 {
 -       lda     $01
         lsr
         bcs     -
+}
         txa
         rts
 
 ;------------------------------------------------
 
 .SendByteParport:
-        jmp     .SendByteParport8501
-
-.SendByteParport8501:
         !if par1541_interface = 1 { ; PPI
                 ldx #$80
                 stx ppibase+3
@@ -186,56 +163,26 @@
         sta     parallel_port
         lda     #$02
         sta     $01
+!if cpu_port_6510 = 0 {
 -       bit     $01
         bpl     -
-        lda     #$00
-        sta     $01
--       bit     $01
-        bmi     -
-        !if par1541_interface = 1 { ; PPI
-                lda #$90
-                sta ppibase+3
-        }
-        !if par1541_interface = 2 { ; PIO
-                lda #$ff
-                sta piobase
-        }
-        !if par1541_interface = 3 { ; CIA
-                lda #$00
-                sta ciabase+3
-        }
-        !if par1541_interface = 4 { ; VIA
-                lda #$00
-                sta viabase+3
-        }
-        rts
-
-.SendByteParport6510:
-        !if par1541_interface = 1 { ; PPI
-                ldx #$80
-                stx ppibase+3
-        }
-        !if par1541_interface = 2 { ; PIO
-        }
-        !if par1541_interface = 3 { ; CIA
-                ldx #$ff
-                stx ciabase+3
-        }
-        !if par1541_interface = 4 { ; VIA
-                ldx #$ff
-                stx viabase+3
-        }
-        sta     parallel_port
-        lda     #$02
-        sta     $01
+}
+!if cpu_port_6510 = 1 {
 -       lda     $01
         lsr
         bcc     -
+}
         lda     #$00
         sta     $01
+!if cpu_port_6510 = 0 {
+-       bit     $01
+        bmi     -
+}
+!if cpu_port_6510 = 1 {
 -       lda     $01
         lsr
         bcs     -
+}
         !if par1541_interface = 1 { ; PPI
                 lda #$90
                 sta ppibase+3
@@ -274,35 +221,56 @@
         lda     $D0
         jsr     .GetNumberOfSectors
         sta     $D6			; number of sectors that will follow (seems the drive will always start with sector 0)
-        jsr     .ReceiveTrack
-	rts
-
-.ReceiveTrack:
-        jmp     .ReceiveTrack8501
-
-.ReceiveTrack8501:
 .LFAC4: ldy     #$00
 .LFAC6:       
+!if cpu_port_6510 = 0 {
 -       bit     $01
         bpl     -
+}
+!if cpu_port_6510 = 1 {
+-       lda     $01
+        lsr
+        bcc     -
+}
         lda     parallel_port
         sta     ($D7),y
         iny
+!if cpu_port_6510 = 0 {
 -       bit     $01
         bmi     -
+}
+!if cpu_port_6510 = 1 {
+-       lda     $01
+        lsr
+        bcs     -
+}
         lda     parallel_port
         sta     ($D7),y
         iny
         bne     .LFAC6
         inc     $D8
 .LFADE:
+!if cpu_port_6510 = 0 {
 -       bit     $01
         bpl     -
+}
+!if cpu_port_6510 = 1 {
+-       lda     $01
+        lsr
+        bcc     -
+}
         lda     parallel_port
         sta     ($D7),y
         iny
+!if cpu_port_6510 = 0 {
 -       bit     $01
         bmi     -
+}
+!if cpu_port_6510 = 1 {
+-       lda     $01
+        lsr
+        bcs     -
+}
         lda     parallel_port
         sta     ($D7),y
         iny
@@ -320,52 +288,6 @@
         dec     $D6			; all sectors in buffer?
         bne     .LFAC4			; not yet
 	rts
-
-.ReceiveTrack6510:
-.receive_track_sector_6510:
-        ldy     #$00
-.receive_track_page_6510:
--       lda     $01
-        lsr
-        bcc     -
-        lda     parallel_port
-        sta     ($D7),y
-        iny
--       lda     $01
-        lsr
-        bcs     -
-        lda     parallel_port
-        sta     ($D7),y
-        iny
-        bne     .receive_track_page_6510
-        inc     $D8
-.receive_track_tail_6510:
--       lda     $01
-        lsr
-        bcc     -
-        lda     parallel_port
-        sta     ($D7),y
-        iny
--       lda     $01
-        lsr
-        bcs     -
-        lda     parallel_port
-        sta     ($D7),y
-        iny
-        cpy     #$46
-        bne     .receive_track_tail_6510
-        tya
-        clc
-        adc     $D7
-        sta     $D7
-        bcc     +
-        inc     $D8
-+       lda     TED_BORDER
-        eor     #$F0
-        sta     TED_BORDER
-        dec     $D6
-        bne     .receive_track_sector_6510
-        rts
 
 ;------------------------------------------------
 
