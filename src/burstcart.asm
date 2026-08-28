@@ -484,6 +484,13 @@ load_rom:
 	rts
 
 iec_load:
+	jsr iec_note_wedge
+	bcc +
+	lda #5			; KERNAL error: DEVICE NOT PRESENT
+	sta load_status
+	sec
+	rts
++
 	lda #<iec_load_txt
 	ldy #>iec_load_txt
 	jsr print_msg
