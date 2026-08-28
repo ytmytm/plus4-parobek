@@ -809,6 +809,12 @@ delay:
 
 !source "par1541-loader-highcode-images.asm"
 
+		; SJL 6510 decode tables are read only while our high ROM is mapped.
+		; The timed code stays below $c000; it restores KERNAL before ROM calls.
+sjl_luts_start:
+!source "../tests/gen_sjl6510_luts.asm"
+sjl_luts_end:
+
 		; TCBM2SD directory browser (2024-11-30)
 dirbrowser:
 !bin "db12b.prg",,2

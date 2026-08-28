@@ -230,6 +230,24 @@ SJL_SMP2	= $03
 SJL_SMP3	= $05
 SJL_PACK	= SJL_SMP0	; S0 is dead when partial decode starts
 
+; The 1 KiB decode tables live in the cartridge's upper ROM half. The low
+; half remains at the same addresses while these selectors replace KERNAL
+; with our high half. Call only while KERNAL is visible; restore it before
+; invoking any $c000-$ffff ROM routine.
+sjl_luts_map:
+		ldx buf_ourbank
+		lda ROM_PAGING,x	; selected bank in both ROM halves
+		tax
+		lda #0
+		sta $fdd0,x
+		rts
+
+sjl_luts_restore_kernal:
+		ldx buf_ourbank
+		lda #0
+		sta $fdd0,x		; our low ROM + KERNAL high
+		rts
+
 !macro SJL_PACK_SAMPLES {
 		ldx SJL_SMP0
 		lda sjl_pair0_256,x
@@ -249,6 +267,7 @@ SJL_PACK	= SJL_SMP0	; S0 is dead when partial decode starts
 
 sjl_jd_receive_loop_6510:
 !zone SJL_Receive6510 {
+		jsr sjl_luts_map
 		ldy #$00
 		ldx #231
 .wait1:
@@ -318,16 +337,17 @@ sjl_jd_receive_loop_6510:
 		beq .end_ok
 		dex
 		bne .end_check
+		jsr sjl_luts_restore_kernal
 		lda #%01000010
-		!by $2c
+		jmp .set_status
 .end_ok:
+		jsr sjl_luts_restore_kernal
 		lda #%01000000
+.set_status:
 		jsr ROM_SET_STATUS_HELPER
 		rts
 
 }
-
-!source "../tests/gen_sjl6510_luts.asm"
 
 sjl_restore:
 		lda RAM_SA_BACKUP
@@ -583,6 +603,7 @@ sjl_busin:
 
 ; Type-1 address byte: four lda $01 samples, pack + LUT (see busin cycle test).
 sjl_busin_6510:
+		jsr sjl_luts_map
 .bwait:
 		lda $01
 		and #%00100000
@@ -618,6 +639,7 @@ sjl_busin_6510:
 		sta+2 SJL_SMP3		; force 4-cycle absolute store for timing
 		+SJL_PACK_SAMPLES
 		pha
+		jsr sjl_luts_restore_kernal
 		lda #%00001000
 		sta $01
 		; Keep the raw port byte in X while A tests CLK and DATA separately.
