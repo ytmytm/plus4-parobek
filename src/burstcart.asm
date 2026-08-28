@@ -717,28 +717,51 @@ print_msg_done:
 ;--------------------------------------------------
 
 shared_rom_check:
-	!zone shared_rom_check {
+		!zone shared_rom_check {
 ; copy of ROM code between F06B (load from serial) and F0A5 (where JSR FFE1 is called - test for STOP)
 ; will setup load address in $9D/$9E according to RAM_SA
-        LDX   RAM_SA
+		LDA   RAM_FA
+		JSR   eEDA9                    ; select the bus before TALK/TKSA
+		PHP                            ; C=0 TCBM, C=1 IEC
+	        LDX   RAM_SA
         JSR   eF160                    ; print 'SEARCHING'
 		LDA   RAM_SA
 		STA   RAM_SA_BACKUP
-        LDA   #$60
-        STA   RAM_SA
-        JSR   $F005                    ; ROM routine for load setup
-        LDA   RAM_FA
-        JSR   ROM_TALK                 ; ROM_TALK - TALK routine
-        LDA   RAM_SA
-        JSR   ROM_TKSA                 ; ROM_TKSA - TKSA routine
-        JSR   iec_acptr                ; local cycle-safe ACPTR on Hackjunk 6510
-        STA   $9D                      ; load address low byte
-        LDA   RAM_STATUS
-        LSR
-        LSR
-        BCS   .file_not_found
-        JSR   iec_acptr                ; local cycle-safe ACPTR on Hackjunk 6510
-        STA   $9E                      ; load address high byte
+	        LDA   #$60
+	        STA   RAM_SA
+	        JSR   $F005                    ; ROM routine for load setup
+		PLP
+		BCC   .tcbm_header
+
+	; Do not insert a bus probe between TKSA and ACPTR: JiffyDOS timing starts
+	; there. Keep separate IEC and TCBM copies so each receiver is direct.
+	        LDA   RAM_FA
+	        JSR   ROM_TALK                 ; ROM_TALK - TALK routine
+	        LDA   RAM_SA
+	        JSR   ROM_TKSA                 ; ROM_TKSA - TKSA routine
+	        JSR   iec_acptr
+	        STA   $9D                      ; load address low byte
+	        LDA   RAM_STATUS
+	        LSR
+	        LSR
+	        BCS   .file_not_found
+	        JSR   iec_acptr
+	        JMP   .header_high
+
+.tcbm_header:
+	        LDA   RAM_FA
+	        JSR   ROM_TALK
+	        LDA   RAM_SA
+	        JSR   ROM_TKSA
+	        JSR   ROM_ACPTR
+	        STA   $9D
+	        LDA   RAM_STATUS
+	        LSR
+	        LSR
+	        BCS   .file_not_found
+	        JSR   ROM_ACPTR
+.header_high:
+	        STA   $9E                      ; load address high byte
         TXA
         BNE   .use_file_addr
         LDA   RAM_MEMUSS               ; use caller's load address

@@ -16,18 +16,6 @@ iec_acptr:
 .iec_rom:
 	jmp ROM_ACPTR
 
-; DOS @ can address either IEC or TCBM.  Keep the KERNAL ACPTR for a device
-; found on the parallel bus; use the local receiver only for serial IEC.
-device_acptr:
-	lda cpu_port_type
-	cmp #1
-	bne .device_rom
-	jsr eEDA9		; C=0: device 8/9 is on the TCBM bus
-	bcc .device_rom
-	jmp acptr_6510
-.device_rom:
-	jmp ROM_ACPTR
-
 acptr_6510:
 	sei
 	lda #0

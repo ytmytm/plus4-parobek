@@ -207,7 +207,9 @@ dos_fastload_off_txt:
         ; send command to drive
 dos_send_command:
         lda RAM_FA
-        beq dos_status_end
+	bne +
+	jmp dos_status_end
++
         jsr ROM_LISTEN
         jsr ROM_READST
         and #%10000000          ; device not present?
@@ -227,6 +229,10 @@ dos_send_command_end:
 dos_display_status:
         lda RAM_FA
         beq dos_status_end
+	jsr eEDA9               ; choose the bus before TALK/TKSA
+	bcc dos_display_status_tcbm
+
+	; IEC status path. Keep the first receiver call adjacent to TKSA.
         jsr ROM_TALK
         jsr ROM_READST
         and #%11000000          ; device not present?
@@ -236,13 +242,32 @@ dos_display_status:
         jsr ROM_READST
         and #%11000000          ; device not present?
         bne dos_display_status_end
--       jsr device_acptr
+-       jsr iec_acptr
         bcs dos_display_status_end
         cmp #$0D
         beq +
         jsr ROM_CHROUT
         jmp -
 +       jsr ROM_CHROUT
+	jmp dos_display_status_end
+
+dos_display_status_tcbm:
+	jsr ROM_TALK
+	jsr ROM_READST
+	and #%11000000
+	bne dos_display_status_end
+	lda #$6F
+	jsr ROM_TKSA
+	jsr ROM_READST
+	and #%11000000
+	bne dos_display_status_end
+-	jsr ROM_ACPTR
+	bcs dos_display_status_end
+	cmp #$0D
+	beq +
+	jsr ROM_CHROUT
+	jmp -
++	jsr ROM_CHROUT
 dos_display_status_end:
         jsr ROM_UNTLK
 
