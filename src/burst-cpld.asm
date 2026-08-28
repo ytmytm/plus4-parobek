@@ -58,6 +58,12 @@ CPLDFound:
 	lda #0
 	sta cpldbase+1		; serial IN; clear flag
 
+	; Keep screen output outside the fast-serial response/ACK window, as in
+	; the last hardware-tested 1.2 ordering.
+	lda #<iec_type_txt
+	ldy #>iec_type_txt
+	jsr print_msg
+
 	lda RAM_FNLEN		; preserve the filename length
 	pha
 	lda RAM_SA		; same with secondary address
@@ -101,14 +107,18 @@ CPLDFound:
 	bne -
 	jsr ROM_CLRCHN		; clear channels	
 
-	lda #8			; how C128 detects burst?
-	bit cpldbase+1		; we should receive something by now
-	bne +
+	lda #8			; receive-complete flag mask
+	ldx #8
+	ldy #0
+.wait_burst_detect:
+	bit cpldbase+1
+	bne .burst_detected
+	iny
+	bne .wait_burst_detect
+	dex
+	bne .wait_burst_detect
 	jmp NotFast		; device doesn't handle burst
-+
-	lda #<iec_type_txt
-	ldy #>iec_type_txt
-	jsr print_msg
+.burst_detected:
 	jsr eF160		; print "SEARCHING" (after type banner, like VIA)
 	jsr eF189		; print LOADING, uses CHROUT will CLI again
 	sei			; loader starts here

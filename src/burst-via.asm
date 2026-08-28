@@ -91,6 +91,13 @@ VIAFound:
 	lda #%00001100		; shift in under CB2
 	sta via_acr
 
+	; Keep the additional type banner before the drive's fast-serial response.
+	; This restores the ordering used by Parobek 1.2 on real hardware; after
+	; detection only the pre-existing SEARCHING/LOADING messages remain.
+	lda #<iec_type_txt
+	ldy #>iec_type_txt
+	jsr print_msg
+
 	lda RAM_FNLEN		; preserve the filename length
 	pha
 	lda RAM_SA		; same with secondary address
@@ -134,14 +141,20 @@ VIAFound:
 	bne -
 	jsr ROM_CLRCHN		; clear channels	
 
-	lda #%00000100			; how C128 detects burst?
-	bit via_ifr		; we should receive something by now
-	bne +
+	; The real drive response is not atomic.  Allow it a bounded interval;
+	; VICE currently writes the complete byte directly into the emulated SR.
+	lda #%00000100			; SR-complete flag mask
+	ldx #8
+	ldy #0
+.wait_burst_detect:
+	bit via_ifr
+	bne .burst_detected
+	iny
+	bne .wait_burst_detect
+	dex
+	bne .wait_burst_detect
 	jmp NotFast		; device doesn't handle burst
-+
-	lda #<iec_type_txt	; chosen loader: append to "IEC DEVICE, "
-	ldy #>iec_type_txt
-	jsr print_msg
+.burst_detected:
 	jsr eF160		; print "SEARCHING"
 	jsr eF189		; print "LOADING", uses CHROUT will CLI again
 	sei			; loader starts here
