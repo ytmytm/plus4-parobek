@@ -231,22 +231,18 @@ SJL_SMP3	= $05
 SJL_PACK	= SJL_SMP0	; S0 is dead when partial decode starts
 
 !macro SJL_PACK_SAMPLES {
-		lda SJL_SMP0
-		tax
+		ldx SJL_SMP0
 		lda sjl_pair0_256,x
 		sta SJL_PACK
-		lda SJL_SMP1
-		tax
+		ldx SJL_SMP1
 		lda sjl_pair1_256,x
 		ora SJL_PACK
 		sta SJL_PACK
-		lda SJL_SMP2
-		tax
+		ldx SJL_SMP2
 		lda sjl_pair2_256,x
 		ora SJL_PACK
 		sta SJL_PACK
-		lda SJL_SMP3
-		tax
+		ldx SJL_SMP3
 		lda sjl_pair3_256,x
 		ora SJL_PACK
 }
@@ -624,6 +620,9 @@ sjl_busin_6510:
 		pha
 		lda #%00001000
 		sta $01
+		; Keep the raw port byte in X while A tests CLK and DATA separately.
+		; LDX $01 cannot replace this pair: the following AND needs the same
+		; sample in A, and TXA here would cost the same two cycles as TAX.
 		lda $01
 		tax
 		and #%00100000
