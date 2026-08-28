@@ -1,4 +1,7 @@
-.PHONY: all via cpld clean run run-via run-cpld
+.PHONY: all via cpld luts clean run run-via run-cpld
+
+LUT_GENERATOR = gen_sjl6510_luts.py
+LUT_ASM = gen_sjl6510_luts.asm
 
 SRCS = burstcart.asm burst-cpld.asm burst-via.asm \
 	t2s-detect.asm host-jd-detect.asm cpu-port-detect.asm \
@@ -9,12 +12,16 @@ SRCS = burstcart.asm burst-cpld.asm burst-via.asm \
 	speeddos-loader-highcode.asm \
 	ram1551-hyparam-loader.asm ram1551-hyparam-loader-highcode.asm \
 	hypa1551-drivecode.asm ram1551-detect.asm \
-	../tests/gen_sjl6510_luts.asm
+	$(LUT_ASM)
 
 all: via cpld
 
 via: bin/parobek-via.bin
 cpld: bin/parobek-cpld.bin
+luts: $(LUT_ASM)
+
+$(LUT_ASM): $(LUT_GENERATOR)
+	python3 $(LUT_GENERATOR)
 
 bin/parobek-via.bin: $(SRCS)
 	acme -Dburst=2 -l labels-via.txt burstcart.asm
