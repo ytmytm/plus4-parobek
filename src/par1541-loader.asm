@@ -176,6 +176,7 @@ par1541_load:
         sta $d2
         stx $d3
         jmp .fastload_copy
+!if support_cia_parallel = 1 {
 +       tya
         and #%00010000
         beq +
@@ -201,6 +202,7 @@ par1541_load:
         sta $d2
         stx $d3
         jmp .fastload_copy
+}
 +       tya
         and #%00001000
         beq +

@@ -33,6 +33,7 @@ FASTLOAD_PPI_6510:
 }
 FASTLOAD_PPI_6510_END:
 
+!if support_cia_parallel = 1 {
 FASTLOAD_CIA:
 !set par1541_interface = 3
 !set cpu_port_6510 = 0
@@ -48,6 +49,7 @@ FASTLOAD_CIA_6510:
 !source "par1541-loader-highcode.asm"
 }
 FASTLOAD_CIA_6510_END:
+}
 
 FASTLOAD_VIA:
 !set par1541_interface = 4

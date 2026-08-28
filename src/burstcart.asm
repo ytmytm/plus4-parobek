@@ -1,13 +1,13 @@
 
-; 1=CIA, 2=VIA, 3=CPLD  (override from Makefile: acme -Dburst=N)
+; 2=VIA, 3=CPLD  (override from Makefile: acme -Dburst=N)
+; CIA BurstCart and the CIA-based 1541 parallel cable are unsupported.
+!set support_cia_parallel = 0
 !ifndef burst {
 !set burst=2
 }
 
 !if burst=1 {
-	!to "bin/parobek-cia.bin",plain
-	ciabase		= $FD90
-	!source "burst-cia.asm"
+	!error "CIA BurstCart support is disabled"
 }
 !if burst=2 {
 	!to "bin/parobek-via.bin",plain

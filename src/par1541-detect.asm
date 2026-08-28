@@ -83,6 +83,7 @@ par1541_detect:
                 jsr print_msg
             }
 
+!if support_cia_parallel = 1 {
 +           ; check if CIA is connected
             lda ciabase+3
             cmp ciabase+3
@@ -95,6 +96,7 @@ par1541_detect:
                 ldy #>.cia_present
                 jsr print_msg
             }
+}
 
 +           ; check if VIA is connected
             lda viabase
@@ -163,10 +165,12 @@ par1541_detect:
             cmp #$55
             bne +
             inc $d4
+!if support_cia_parallel = 1 {
 +           lda ciabase+1
             cmp #$55
             bne +
             inc $d5
+}
 +           lda viabase+1
             cmp #$55
             bne +
@@ -197,10 +201,12 @@ par1541_detect:
             cmp #$aa
             bne +
             inc $d4
+!if support_cia_parallel = 1 {
 +           lda ciabase+1
             cmp #$aa
             bne +
             inc $d5
+}
 +           lda viabase+1
             cmp #$aa
             bne +
@@ -241,9 +247,11 @@ par1541_detect:
 +           cpx $d4
             bne +
             ora #%00100000  ; PIO connected
+!if support_cia_parallel = 1 {
 +           cpx $d5
             bne +
             ora #%00010000  ; CIA connected
+}
 +           cpx $d6
             bne +
             ora #%00001000  ; VIA connected

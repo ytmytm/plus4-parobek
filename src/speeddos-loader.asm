@@ -82,6 +82,7 @@ SpeedDOS_load:  !zone SpeedDOS_Loader {
         stx     $08
         jmp     .SpeedDOS_SendCode
 
+!if support_cia_parallel = 1 {
 +       tya
         and #%00010000
         beq +
@@ -94,6 +95,7 @@ SpeedDOS_load:  !zone SpeedDOS_Loader {
         sta     $07
         stx     $08
         jmp     .SpeedDOS_SendCode
+}
 
 +       tya
         and #%00001000
@@ -190,6 +192,7 @@ SpeedDOS_loader_PIO_6510:
 !set cpu_port_6510 = 1
 !source "speeddos-loader-highcode.asm"
 
+!if support_cia_parallel = 1 {
 ; CIA version
 !set par1541_interface = 3
 SpeedDOS_drivecode_CIA:
@@ -200,6 +203,7 @@ SpeedDOS_drivecode_CIA_END:
 SpeedDOS_loader_CIA:
 !set cpu_port_6510 = 0
 !source "speeddos-loader-highcode.asm"
+}
 
 ; VIA version
 !set par1541_interface = 4
