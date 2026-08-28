@@ -32,9 +32,9 @@ par1541_detect:
             jsr ROM_TALK
             lda #$6F
             jsr ROM_TKSA
-            jsr ROM_ACPTR
+            jsr iec_acptr
             pha
-            jsr ROM_ACPTR
+            jsr iec_acptr
             pha
             jsr ROM_UNTLK
 
@@ -266,11 +266,11 @@ par1541_detect:
             jsr ROM_TALK
             lda #$6F
             jsr ROM_TKSA
-            jsr ROM_ACPTR
+            jsr iec_acptr
             pha             ; 'R'
-            jsr ROM_ACPTR
+            jsr iec_acptr
             pha             ; 'A'
-            jsr ROM_ACPTR
+            jsr iec_acptr
             pha             ; 'M'
             jsr ROM_UNTLK
             pla

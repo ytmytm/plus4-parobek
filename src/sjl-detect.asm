@@ -33,7 +33,7 @@ iec_fill_status:
 		and #%11000000
 		bne .fail_untalk
 		ldy #0
--		jsr ROM_ACPTR
+-		jsr iec_acptr
 		sta (iec_st_ptr),y
 		jsr ROM_READST
 		and #%01000000

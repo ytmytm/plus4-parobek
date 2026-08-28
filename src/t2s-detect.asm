@@ -110,4 +110,3 @@ detect_t2sd_signature:
 detect_1551_signature:
         !text "TDISK", 0
 }
-

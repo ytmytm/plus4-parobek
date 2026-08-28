@@ -32,9 +32,9 @@ fast1541iec_load:
 		jsr ROM_TALK
 		lda #$6f
 		jsr ROM_TKSA
-		jsr ROM_ACPTR
+		jsr iec_acptr
 		sta $07				; track
-		jsr ROM_ACPTR
+		jsr iec_acptr
 		sta $08				; sector
 		jsr ROM_UNTLK
 

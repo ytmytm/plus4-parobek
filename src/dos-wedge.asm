@@ -236,7 +236,7 @@ dos_display_status:
         jsr ROM_READST
         and #%11000000          ; device not present?
         bne dos_display_status_end
--       jsr ROM_ACPTR
+-       jsr device_acptr
         bcs dos_display_status_end
         cmp #$0D
         beq +
@@ -253,4 +253,3 @@ dos_wedge_end:
         lda #0
         clc
         rts
-

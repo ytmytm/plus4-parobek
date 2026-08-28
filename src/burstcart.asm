@@ -445,6 +445,7 @@ lowmem_trampoline_end:
 
 !source "host-jd-detect.asm"
 !source "cpu-port-detect.asm"
+!source "iec-acptr.asm"
 
 ; OUT:
 ; load_status = 0 - loaded, then:
@@ -730,13 +731,13 @@ shared_rom_check:
         JSR   ROM_TALK                 ; ROM_TALK - TALK routine
         LDA   RAM_SA
         JSR   ROM_TKSA                 ; ROM_TKSA - TKSA routine
-        JSR   ROM_ACPTR                ; ROM_ACPTR - ACPTR routine
+        JSR   iec_acptr                ; local cycle-safe ACPTR on Hackjunk 6510
         STA   $9D                      ; load address low byte
         LDA   RAM_STATUS
         LSR
         LSR
         BCS   .file_not_found
-        JSR   ROM_ACPTR                ; ROM_ACPTR - ACPTR routine
+        JSR   iec_acptr                ; local cycle-safe ACPTR on Hackjunk 6510
         STA   $9E                      ; load address high byte
         TXA
         BNE   .use_file_addr

@@ -2,6 +2,7 @@
 
 SRCS = burstcart.asm burst-cpld.asm burst-via.asm \
 	t2s-detect.asm host-jd-detect.asm cpu-port-detect.asm \
+	iec-acptr.asm \
 	sjl-detect.asm sjl-loader.asm sjl-loader-highcode.asm \
 	iec-memcmd.asm fast1541iec-loader.asm fast1541iec-drivecode.asm \
 	par1541-loader-highcode.asm par1541-loader-highcode-images.asm \
