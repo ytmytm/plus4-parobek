@@ -1,28 +1,44 @@
 #!/usr/bin/env bash
-# Rebuild smoke-test.d64 / smoke-test.d81 from hello.bas (BASIC 3.5 / Plus4).
+# Rebuild smoke-test.d64 / .d81 for Parobek matrix (HELLO + optional AMAUROTE).
 set -euo pipefail
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+AMA_SRC="${AMAUROTE_SRC:-${AMAUPROTE_SRC:-$HOME/Maciejdev/plus4/amaurote/amaurote/output/amaurote-cr.prg}}"
+OUT_D64="$SCRIPT_DIR/smoke-test.d64"
+OUT_D81="$SCRIPT_DIR/smoke-test.d81"
+TMP_D64="$(mktemp /tmp/parobek-smoke.XXXXXX.d64)"
+TMP_D81="$(mktemp /tmp/parobek-smoke.XXXXXX.d81)"
 
-petcat -w3 -f -o hello.prg -- hello.bas
+cleanup() { rm -f "$TMP_D64" "$TMP_D81"; }
+trap cleanup EXIT
 
-AMAUROTE_PRG="${AMAUROTE_PRG:-$HOME/Maciejdev/plus4/amaurote/amaurote/output/amaurote-intro-plain.prg}"
-
-write_image() {
+build_image() {
 	local type="$1"
 	local image="$2"
-	rm -f "$image"
-	c1541 -format "parobek,sj" "$type" "$image" \
-		-attach "$image" \
-		-write hello.prg hello
-	if [[ -f "$AMAUROTE_PRG" ]]; then
-		c1541 -attach "$image" -write "$AMAUROTE_PRG" amaurote
+	c1541 -format "parobek,01" "$type" "$image"
+	c1541 "$image" -write "$SCRIPT_DIR/hello.prg" hello
+	if [[ -f "$AMA_SRC" ]]; then
+		echo "Adding AMAUROTE to $type from $AMA_SRC"
+		c1541 "$image" -write "$AMA_SRC" amaurote
 	else
-		echo "Warning: missing $AMAUROTE_PRG — disk has HELLO only" >&2
+		echo "Skip AMAUROTE - set AMAUROTE_SRC or place amaurote-cr.prg at default path" >&2
 	fi
-	c1541 -attach "$image" -dir
-	echo "Wrote $SCRIPT_DIR/$image"
 }
 
-write_image d64 smoke-test.d64
-write_image d81 smoke-test.d81
+build_image d64 "$TMP_D64"
+build_image d81 "$TMP_D81"
+cp -f "$TMP_D64" "$OUT_D64"
+cp -f "$TMP_D81" "$OUT_D81"
+c1541 "$OUT_D64" -list
+c1541 "$OUT_D81" -list
+
+STAGE="${STAGE_DIR:-/mnt/d/tmp/parobek}"
+if [[ -d "$STAGE" ]]; then
+	if cp -f "$OUT_D64" "$STAGE/smoke-test.d64" \
+		&& cp -f "$OUT_D81" "$STAGE/smoke-test.d81"; then
+		echo "Staged $STAGE/smoke-test.d64"
+		echo "Staged $STAGE/smoke-test.d81"
+	else
+		echo "Could not stage images in $STAGE (continuing)" >&2
+	fi
+fi

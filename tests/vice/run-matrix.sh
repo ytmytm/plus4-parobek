@@ -9,7 +9,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
-ROM_ENV="$SCRIPT_DIR/roms.env"
+ROM_ENV="${ROM_ENV:-$SCRIPT_DIR/roms.env}"
 
 if [[ ! -f "$ROM_ENV" ]]; then
 	echo "Missing $ROM_ENV — copy roms.env.example to roms.env and edit paths." >&2
@@ -19,7 +19,11 @@ fi
 # shellcheck source=/dev/null
 source "$ROM_ENV"
 
-XPLUS4="${XPLUS4:-/usr/local/bin/xplus4}"
+XPLUS4_DEFAULT="$REPO_ROOT/vice/build-gtk/src/xplus4"
+if [[ ! -x "$XPLUS4_DEFAULT" ]]; then
+	XPLUS4_DEFAULT=/usr/local/bin/xplus4
+fi
+XPLUS4="${XPLUS4:-$XPLUS4_DEFAULT}"
 EMPTY_TAP="${EMPTY_TAP:-$SCRIPT_DIR/empty.tap}"
 DISK_IMAGE="${DISK_IMAGE:-$SCRIPT_DIR/smoke-test.d64}"
 DISK_IMAGE_1581="${DISK_IMAGE_1581:-$SCRIPT_DIR/smoke-test.d81}"
@@ -45,58 +49,72 @@ require_disk() {
 	fi
 }
 
-make -C "$REPO_ROOT/src" via
+if [[ "${SKIP_PAROBEK_BUILD:-0}" != 1 ]]; then
+	make -C "$REPO_ROOT/src" via
+fi
 
 cmd_stock_jd1541() {
-	printf '%s -default %s -kernal %q -basic %q -dos1541II %q %s -c1lo %q -8 %q' \
+	printf '%s -default %s -kernal %q -basic %q -dos1541II %q %s -c1 %q -8 %q' \
 		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1541_JD" \
 		"${DRIVE8_1541_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE"
 }
 
 cmd_stock_stock1541() {
-	printf '%s -default %s -kernal %q -basic %q -dos1541II %q %s -c1lo %q -8 %q' \
+	printf '%s -default %s -kernal %q -basic %q -dos1541II %q %s -c1 %q -8 %q' \
 		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1541_STOCK" \
 		"${DRIVE8_1541_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE"
 }
 
 cmd_stock_stock1551() {
-	printf '%s -default %s -kernal %q -basic %q -dos1551 %q %s -c1lo %q -8 %q' \
+	printf '%s -default %s -kernal %q -basic %q -dos1551 %q %s -c1 %q -8 %q' \
 		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1551_STOCK" \
 		"${DRIVE8_1551_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE"
 }
 
+cmd_stock_ram1551() {
+	printf '%s -default %s -kernal %q -basic %q -dos1551 %q %s -drive8ram8000 -c1 %q -8 %q' \
+		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1551_STOCK" \
+		"${DRIVE8_1551_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE"
+}
+
+cmd_stock_ramboard1551() {
+	printf '%s -default %s -kernal %q -basic %q -dos1551 %q %s -drive8ram8000 -c1 %q -8 %q' \
+		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1551_RAMBOARD" \
+		"${DRIVE8_1551_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE"
+}
+
 cmd_stock_jd_tape() {
-	printf '%s -default %s -kernal %q -basic %q -dos1541II %q %s -c1lo %q -8 %q -1 %q' \
+	printf '%s -default %s -kernal %q -basic %q -dos1541II %q %s -c1 %q -8 %q -1 %q' \
 		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1541_JD" \
 		"${DRIVE8_1541_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE" "$EMPTY_TAP"
 }
 
 cmd_hostjd_jd1541() {
-	printf '%s -default %s -kernal %q -basic %q -dos1541II %q %s -c1lo %q -8 %q' \
+	printf '%s -default %s -kernal %q -basic %q -dos1541II %q %s -c1 %q -8 %q' \
 		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_JD" "$HOST_BASIC_STOCK" "$DRIVE_1541_JD" \
 		"${DRIVE8_1541_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE"
 }
 
 cmd_stock_jd1581() {
-	printf '%s -default %s -kernal %q -basic %q -dos1581 %q %s -c1lo %q -8 %q' \
+	printf '%s -default %s -kernal %q -basic %q -dos1581 %q %s -c1 %q -8 %q' \
 		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1581_JD" \
 		"${DRIVE8_1581_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE_1581"
 }
 
 cmd_stock_stock1581() {
-	printf '%s -default %s -kernal %q -basic %q -dos1581 %q %s -c1lo %q -8 %q' \
+	printf '%s -default %s -kernal %q -basic %q -dos1581 %q %s -c1 %q -8 %q' \
 		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1581_STOCK" \
 		"${DRIVE8_1581_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE_1581"
 }
 
 cmd_stock_jd1581_tape() {
-	printf '%s -default %s -kernal %q -basic %q -dos1581 %q %s -c1lo %q -8 %q -1 %q' \
+	printf '%s -default %s -kernal %q -basic %q -dos1581 %q %s -c1 %q -8 %q -1 %q' \
 		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_STOCK" "$HOST_BASIC_STOCK" "$DRIVE_1581_JD" \
 		"${DRIVE8_1581_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE_1581" "$EMPTY_TAP"
 }
 
 cmd_hostjd_jd1581() {
-	printf '%s -default %s -kernal %q -basic %q -dos1581 %q %s -c1lo %q -8 %q' \
+	printf '%s -default %s -kernal %q -basic %q -dos1581 %q %s -c1 %q -8 %q' \
 		"$XPLUS4" "${VICE_COMMON_ARGS[*]}" "$HOST_KERNAL_JD" "$HOST_BASIC_STOCK" "$DRIVE_1581_JD" \
 		"${DRIVE8_1581_ARGS[*]}" "$PAROBEK_BIN" "$DISK_IMAGE_1581"
 }
@@ -104,6 +122,8 @@ cmd_hostjd_jd1581() {
 expect_stock_jd1541='Menu "3", then LOAD"HELLO",8 — expect SJL264'
 expect_stock_stock1541='Menu "3", LOAD"HELLO",8 — expect 1541 SERIAL then HELLO'
 expect_stock_stock1551='Menu "3", LOAD"HELLO",8 — expect TCBM DEVICE, 1551 HYPALOAD then HELLO'
+expect_stock_ram1551='Menu "3", LOAD"HELLO",8 — expect 1551 HYPALOAD (RAM present, stock ROM)'
+expect_stock_ramboard1551='Menu "3", LOAD"HELLO",8 — expect 1551 RAMBOARD (RAM + patched ROM)'
 expect_stock_jd_tape='LOAD"HELLO",8 — DATASETTE, SKIP SJL then ROM/parallel'
 expect_hostjd_jd1541='LOAD"HELLO",8 — HOST JIFFYDOS then ROM LOAD; no SJL264'
 expect_stock_jd1581='Menu "3", then LOAD"HELLO",8 — expect SJL264 (1581 JD)'
@@ -127,6 +147,8 @@ list_cases() {
 	print_case stock+jd1541 "$expect_stock_jd1541" "$(cmd_stock_jd1541)"
 	print_case stock+stock1541 "$expect_stock_stock1541" "$(cmd_stock_stock1541)"
 	print_case stock+stock1551 "$expect_stock_stock1551" "$(cmd_stock_stock1551)"
+	print_case stock+ram1551 "$expect_stock_ram1551" "$(cmd_stock_ram1551)"
+	print_case stock+ramboard1551 "$expect_stock_ramboard1551" "$(cmd_stock_ramboard1551)"
 	print_case stock+jd+tape "$expect_stock_jd_tape" "$(cmd_stock_jd_tape)"
 	print_case hostjd+jd1541 "$expect_hostjd_jd1541" "$(cmd_hostjd_jd1541)"
 	print_case stock+jd1581 "$expect_stock_jd1581" "$(cmd_stock_jd1581)"
@@ -153,6 +175,16 @@ run_case() {
 		require_disk "$DISK_IMAGE"
 		expect="$expect_stock_stock1551"
 		cmd="$(cmd_stock_stock1551)"
+		;;
+	stock+ram1551)
+		require_disk "$DISK_IMAGE"
+		expect="$expect_stock_ram1551"
+		cmd="$(cmd_stock_ram1551)"
+		;;
+	stock+ramboard1551)
+		require_disk "$DISK_IMAGE"
+		expect="$expect_stock_ramboard1551"
+		cmd="$(cmd_stock_ramboard1551)"
 		;;
 	stock+jd+tape)
 		require_disk "$DISK_IMAGE"
@@ -186,7 +218,7 @@ run_case() {
 		;;
 	*)
 		echo "Unknown case: $name" >&2
-		echo "Valid cases: stock+jd1541 stock+stock1541 stock+stock1551 stock+jd+tape hostjd+jd1541 stock+jd1581 stock+stock1581 stock+jd1581+tape hostjd+jd1581" >&2
+		echo "Valid cases: stock+jd1541 stock+stock1541 stock+stock1551 stock+ram1551 stock+ramboard1551 stock+jd+tape hostjd+jd1541 stock+jd1581 stock+stock1581 stock+jd1581+tape hostjd+jd1581" >&2
 		exit 1
 		;;
 	esac
@@ -210,7 +242,9 @@ Cases (1541-II / .d64):
   hostjd+jd1541    JiffyDOS host kernal + JiffyDOS 1541 drive
 
 Cases (1551 TCBM / .d64):
-  stock+stock1551  stock host kernal + stock 1551 ROM
+  stock+stock1551     stock host + stock 1551 ROM, no RAMBOard
+  stock+ram1551       stock host + stock 1551 ROM + RAMBOard RAM
+  stock+ramboard1551  stock host + RAMBOard RAM and patched ROM
 
 Cases (1581 / .d81):
   stock+jd1581       stock host kernal + JiffyDOS 1581 drive

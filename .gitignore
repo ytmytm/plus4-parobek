@@ -1,10 +1,12 @@
 src/bin/*.bin
 src/labels-*.txt
-tests/vice/roms.env
+tests/vice/roms*.env
 tests/vice/out/
 __pycache__/
-tests/yape/roms.env
+*.py[cod]
+tests/yape/roms*.env
 tests/yape/roms/
+tests/.source.txt
 .superpowers/sdd/
 SJL264-*.tar.bz2
 
