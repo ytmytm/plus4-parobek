@@ -261,7 +261,7 @@ dos_display_status_tcbm:
 	jsr ROM_READST
 	and #%11000000
 	bne dos_display_status_end
--	jsr ROM_ACPTR
+-	jsr iec_acptr
 	bcs dos_display_status_end
 	cmp #$0D
 	beq +

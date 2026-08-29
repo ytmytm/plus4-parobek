@@ -2,7 +2,7 @@
 ; IEC error-channel classify for SD2IEC / JiffyDOS (same idea as
 ; pi1551_detect / t2sd_detect: TALK ch15, optional UI, scan the buffer).
 ;
-; @ uses cmd_text ($0343), never $0200 (BASIC BUF). $ / LOAD"$" is ROM
+; @ uses cmd_text ($0344), never $0200 (BASIC BUF). $ / LOAD"$" is ROM
 ; directory only and does not classify. File LOAD uses status_buffer
 ; ($0200): current status, then UI if sticky flags are still empty.
 
@@ -171,11 +171,6 @@ iec_note_drive_class:
 	clc
 	rts
 .fill_status:
-	lda cpu_port_type
-	cmp #1
-	bne .fill_now
-	jsr iec_send_ui
-.fill_now:
 	jsr iec_fill_status
 	bcs .try_ui
 	jsr iec_or_drive_flags

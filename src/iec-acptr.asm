@@ -3,15 +3,20 @@
 ; The supplied 6510 KERNAL samples CLK through JSR $CFF7 in its pre-byte
 ; loop.  That makes the polling interval long enough to miss a complete
 ; JiffyDOS clock pulse.  Keep the KERNAL ROM unchanged and use this local
-; copy for Parobek's IEC reads.  TCBM devices and non-6510 hosts continue
-; through the KERNAL entry point.
+; copy for Parobek's IEC reads.  TCBM devices (1551/tcbm2sd) and non-6510
+; hosts continue through the KERNAL entry point.
 
-; Known IEC path: select only by CPU type.  No TCBM probe is needed between
-; TALK/TKSA and the first byte handshake.
+; TCBM (eEDA9 C=0) -> ROM_ACPTR.  6510 + IEC -> acptr_6510.  Else -> ROM.
+; eEDA9 selects the bus and must run only once before TALK/TKSA, not between
+; consecutive ACPTR bytes.  Call it here only for 6510 IEC routing.
 iec_acptr:
 	lda cpu_port_type
 	cmp #1
-	bne .iec_rom
+	bcc .iec_rom
+	cmp #3
+	bcs .iec_rom
+	jsr eEDA9
+	bcc .iec_rom
 	jmp acptr_6510
 .iec_rom:
 	jmp ROM_ACPTR
