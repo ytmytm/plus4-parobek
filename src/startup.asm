@@ -161,7 +161,7 @@ startup_screen_txt:
 		!byte 147
 		!byte 5 ; white
 		;      1234567890123456789012345678901234567890
-		!text "              PAROBEK V1.3",13,13
+		!text "              PAROBEK V2.0 PRV",13,13
 		!text "        (C) BY YTM/ELYSIUM 2026",13,13
 		!fill 40, 163
 		!byte 13,13,13
