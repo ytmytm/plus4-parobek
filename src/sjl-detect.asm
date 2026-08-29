@@ -159,8 +159,23 @@ iec_print_drive_status:
 +	rts
 
 ; File LOAD: scan current status; UI + rescan if flags still empty.
+; When the host KERNAL is JiffyDOS, skip the fragile IEC status-channel
+; read during classification.  Motor wobble can make ROM ACPTR miss the
+; JiffyDOS handshake; the load path is HOST JIFFYDOS anyway.
 iec_note_drive_class:
 	jsr iec_point_0200
+	lda host_jd
+	beq .fill_status
+	lda #%00000010
+	sta iec_drive_flags
+	clc
+	rts
+.fill_status:
+	lda cpu_port_type
+	cmp #1
+	bne .fill_now
+	jsr iec_send_ui
+.fill_now:
 	jsr iec_fill_status
 	bcs .try_ui
 	jsr iec_or_drive_flags
