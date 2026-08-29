@@ -503,32 +503,32 @@ iec_load:
 	rts
 
 +	; Classify drive (status, then UI if flags still empty). Do not
-	;  clear sticky bits on a later "00, OK".
-	jsr iec_note_drive_class
-	bcs .try_parallel		; no device -> parallel attempt then ROM
-	; SD2IEC -> SJL (unless host_jd)
-	lda host_jd
-	bne .try_parallel
-	lda iec_drive_flags
-	and #%00000001
-	beq .try_parallel
-	lda cpu_port_type
-	cmp #2
-	bcs .try_parallel
-	jsr datasette_blocks_sjl	; C=1 datasette conflict → skip SJL
-	bcs .try_parallel
-	lda #<iec_sd2iec_txt
-	ldy #>iec_sd2iec_txt
-	jsr print_msg
-	jmp SJL_load
++	;  clear sticky bits on a later "00, OK".
++	jsr iec_note_drive_class
++	bcs .try_parallel		; no device -> parallel attempt then ROM
++	; SD2IEC -> SJL (unless host_jd)
++	lda host_jd
++	bne .try_parallel
++	lda iec_drive_flags
++	and #%00000001
++	beq .try_parallel
++	lda cpu_port_type
++	cmp #2
++	bcs .try_parallel
++	jsr datasette_blocks_sjl	; C=1 datasette conflict → skip SJL
++	bcs .try_parallel
++	lda #<iec_sd2iec_txt
++	ldy #>iec_sd2iec_txt
++	jsr print_msg
++	jmp SJL_load
 
 .try_parallel:
-	lda #0
-	sta fast1541iec_candidate
-	jsr par1541_detect
-	sta $d0			; keep flags in A and $d0
-	cmp #$80
-	bne .par1541_check_cable
++	lda #0
++	sta fast1541iec_candidate
++	jsr par1541_detect
++	sta $d0			; keep flags in A and $d0
++	cmp #$80
++	bne .par1541_check_cable
 	; A must stay $80: lda #1 here made and #$7f → 1 and
 	; falsely selected 1541/PARALLEL / SpeedDOS.
 	inc fast1541iec_candidate	; 1541, no parallel bits
