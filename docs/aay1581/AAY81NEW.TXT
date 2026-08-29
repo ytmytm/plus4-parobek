@@ -1,0 +1,35 @@
+ What's new in AAY1581?
+--------------------------------------------------------------------------
+Version 0.13:  (December 2005)
+               - Full Cross-Reference for RAM-Area and IO-Chips
+               - ROM Differences
+               - CIA and WD registers now in English
+               - fixed CIA8520A-TOD description (which is way different
+                 from the CIA6526-TOD)
+               - added more hyperlinks
+               - now full 7-bit ASCII
+               - removed tons of glitches
+
+Version 0.12:  - CIA8520A and WD177X-registers added
+               - Jobcodes (in English)
+               - now whole RAM-Area is covered
+               - bugfixes & little improvements
+
+Version 0.11:  - KERNAL jump-reference added
+               - fixed a bunch of glitches
+
+Version 0.10:  - initial release
+                 (Big thanx to Peter Steiner who shared his commented
+                  1581-ROM-Listing! Great work!)
+
+--------------------------------------------------------------------------
+ What might be new in AAY1581 somewhen?
+
+  - more info about the WD177X (has somebody docs?)
+  - bugfixes
+  - your suggestions
+
+--------------------------------------------------------------------------
+
+If you find a bug, have an idea how to improve AAY1581 or simply want to
+encourage me, please send a mail to:  ninja@the-dreams.de
