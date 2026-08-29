@@ -7,7 +7,33 @@ post-load state, and performance for 1541-II, 1551, and 1581 configurations.
 
 ## Setup
 
-1. Install VICE with `xplus4` (expected at `/usr/local/bin/xplus4`).
+The tests use our own patched VICE build. A stock distribution of VICE does
+not provide the Hackjunk 6510 mapping, BurstCart VIA/CPLD emulation, complete
+32 KiB C1/C2 images, or the headless monitor behavior required by the runner.
+Keep the VICE source tree at `vice/vice` and the corresponding standalone
+patches at `vice/patches`:
+
+- `plus4-hackjunk-6510-runtime.patch`
+- `plus4-burstcart-via-cpld.patch`
+- `plus4-32k-c1-c2-rom.patch`
+- `headless-safe-signals-monitor.patch`
+- `plus4-6529-pio-parallel-cable-description.patch` (the separate PIO naming
+  patch; its description changes are already present in the BurstCart patch)
+
+`build-hackjunk-vice.sh` does not download or patch VICE. It compiles the
+already patched `vice/vice` tree into `vice/build-hackjunk` with the headless
+UI. Build it with:
+
+```bash
+./tests/vice/build-hackjunk-vice.sh
+```
+
+The interactive build used for manual testing is kept separately in
+`vice/build-gtk`. Both builds must come from the same patched source tree; the
+system `/usr/local/bin/xplus4` fallback is useful only for cases which do not
+depend on these extensions.
+
+1. Prepare and patch the VICE source tree as described above.
 2. Copy the example env and edit ROM paths if needed:
 
 ```bash
@@ -15,7 +41,16 @@ cp tests/vice/roms.env.example tests/vice/roms.env
 ```
 
 3. Ensure host kernal, BASIC, and drive ROM files exist at the paths in `roms.env`.
-4. Build Parobek (the matrix script runs `make -C src via` automatically).
+4. Build both Parobek cartridge variants used by the headless matrix:
+
+```bash
+make -C src via
+make -C src cpld
+```
+
+   The interactive `run-matrix.sh` rebuilds the VIA variant. The Python
+   headless runner uses the existing files from `src/bin`; its `--no-build`
+   option controls rebuilding VICE, not Parobek.
 5. Build disk images (`.d64` and `.d81`):
 
 ```bash
