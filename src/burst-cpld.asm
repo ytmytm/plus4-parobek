@@ -102,7 +102,7 @@ CPLDFound:
 	jsr ROM_CLRCHN		; clear channels	
 
 	lda #8			; receive-complete flag mask
-	ldx #0			; 256 * 256 polls: allow motor/head settling
+	ldx #8
 	ldy #0
 .wait_burst_detect:
 	bit cpldbase+1

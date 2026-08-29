@@ -137,7 +137,7 @@ VIAFound:
 	; The real drive response is not atomic.  Allow it a bounded interval;
 	; VICE currently writes the complete byte directly into the emulated SR.
 	lda #%00000100			; SR-complete flag mask
-	ldx #0			; 256 * 256 polls: allow motor/head settling
+	ldx #8
 	ldy #0
 .wait_burst_detect:
 	bit via_ifr

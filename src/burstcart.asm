@@ -484,13 +484,6 @@ load_rom:
 	rts
 
 iec_load:
-	jsr iec_note_wedge
-	bcc +
-	lda #5			; KERNAL error: DEVICE NOT PRESENT
-	sta load_status
-	sec
-	rts
-+
 	lda #<iec_load_txt
 	ldy #>iec_load_txt
 	jsr print_msg
@@ -498,9 +491,11 @@ iec_load:
 	lda #$80
 	sta load_status
 	jsr iecburst_load
-	bit load_status
-	bmi +
+	lda load_status
+	bne +
 	rts
++	; Burst not used ($80) or spurious error from a false detect: try the
+	; other IEC loaders (SJL, parallel, ROM) instead of returning early.
 
 +	; Classify drive (status, then UI if flags still empty). Do not
 +	;  clear sticky bits on a later "00, OK".
