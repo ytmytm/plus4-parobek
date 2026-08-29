@@ -97,6 +97,27 @@ Loosely based on **[HypaLoad v4.7](https://plus4world.powweb.com/software/Hypalo
 
 Same protocol as the 1551 fastloader; needs a RAMBOard-patched drive ROM (`RAM` at `$a000`, jumptable at `$a003`). Devices #8 and #9.
 
+#### Load performance
+
+Baseline **1×** = stock KERNAL **ROM LOAD** (~470 B/s) — the slowest path in the matrix (stock 1581, no fastloader). That matches the ~440 B/s class of a plain serial load; on a 1541 the `.d64` interleave matters (smoke disk uses the default **9**; interleave **6** would be optimal for JiffyDOS, but the test image is not tuned for that).
+
+| Configuration | B/s | vs ROM load |
+|---------------|----:|------------:|
+| 1581 stock (KERNAL ROM load) | 474 | 1× |
+| 1541 stock (1541 SERIAL) | 873 | 1.8× |
+| 1541 + parallel PIO | 1858 | 3.9× |
+| 1541 + parallel PIO + RAMBOard | 1885 | 4× |
+| 1551 + RAMBOard RAM | 1919 | 4× |
+| 1551 HypaLoad | 1925 | 4.1× |
+| 1541 + parallel VIA | 1933 | 4.1× |
+| 1541 JiffyDOS (SJL264) | 2191 | 4.6× |
+| 1581 JiffyDOS (SJL264) | 3279 | 6.9× |
+| 1541 + parallel VIA + RAMBOard | 3851 | 8.1× |
+| 1581 JiffyDOS + BurstCart VIA | 4652 | 9.8× |
+| 1581 + BurstCart CPLD | 4663 | 9.8× |
+| 1581 + BurstCart VIA | 4695 | 9.9× |
+| 1551 HypaRAM | 5424 | 11× |
+
 #### TCBM2SD
 
 The **[TCBM2SD fastloader](https://github.com/ytmytm/plus4-tcbm2sd)** works on devices #8 and #9 for ultimate speed on the TCBM bus.

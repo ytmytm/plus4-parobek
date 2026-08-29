@@ -91,13 +91,6 @@ VIAFound:
 	lda #%00001100		; shift in under CB2
 	sta via_acr
 
-	; Keep the additional type banner before the drive's fast-serial response.
-	; This restores the ordering used by Parobek 1.2 on real hardware; after
-	; detection only the pre-existing SEARCHING/LOADING messages remain.
-	lda #<iec_type_txt
-	ldy #>iec_type_txt
-	jsr print_msg
-
 	lda RAM_FNLEN		; preserve the filename length
 	pha
 	lda RAM_SA		; same with secondary address
@@ -144,7 +137,7 @@ VIAFound:
 	; The real drive response is not atomic.  Allow it a bounded interval;
 	; VICE currently writes the complete byte directly into the emulated SR.
 	lda #%00000100			; SR-complete flag mask
-	ldx #8
+	ldx #0			; 256 * 256 polls: allow motor/head settling
 	ldy #0
 .wait_burst_detect:
 	bit via_ifr
@@ -155,9 +148,9 @@ VIAFound:
 	bne .wait_burst_detect
 	jmp NotFast		; device doesn't handle burst
 .burst_detected:
-	jsr eF160		; print "SEARCHING"
-	jsr eF189		; print "LOADING", uses CHROUT will CLI again
-	sei			; loader starts here
+	; Acknowledge the sync byte immediately.  KERNAL screen output can touch
+	; $01 on a 6510 host, so defer it until the burst transfer is complete.
+	sei
 	jsr eE2B8		; serial clock on == clk line low
 	bit via_ifr		; clear interrupt register
 	jsr ToggleClk		; toggle clock
@@ -187,6 +180,9 @@ Last:	tax			; Otherwise it is bytes left. Do the last..
 	jsr eE2B8		; Serial clock on (the normal value)
 	lda #CMD_CHANNEL
 	jsr ROM_CLOSE		; Close the command channel
+	lda #<iec_type_txt
+	ldy #>iec_type_txt
+	jsr print_msg		; confirmed path; no burst handshake remains active
 	lda #0
 	sta load_status
 	clc			; carry clear -> no error indicator

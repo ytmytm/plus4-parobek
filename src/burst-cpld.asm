@@ -58,12 +58,6 @@ CPLDFound:
 	lda #0
 	sta cpldbase+1		; serial IN; clear flag
 
-	; Keep screen output outside the fast-serial response/ACK window, as in
-	; the last hardware-tested 1.2 ordering.
-	lda #<iec_type_txt
-	ldy #>iec_type_txt
-	jsr print_msg
-
 	lda RAM_FNLEN		; preserve the filename length
 	pha
 	lda RAM_SA		; same with secondary address
@@ -108,7 +102,7 @@ CPLDFound:
 	jsr ROM_CLRCHN		; clear channels	
 
 	lda #8			; receive-complete flag mask
-	ldx #8
+	ldx #0			; 256 * 256 polls: allow motor/head settling
 	ldy #0
 .wait_burst_detect:
 	bit cpldbase+1
@@ -119,14 +113,13 @@ CPLDFound:
 	bne .wait_burst_detect
 	jmp NotFast		; device doesn't handle burst
 .burst_detected:
-	jsr eF160		; print "SEARCHING" (after type banner, like VIA)
-	jsr eF189		; print LOADING, uses CHROUT will CLI again
-	sei			; loader starts here
-	jsr eE2B8		; serial clock on == clk line low
-	lda cpldbase		; clear flag
-	jsr ToggleClk		; toggle clock
-
-	jsr HandleStat		; get initial status
+	; Acknowledge the first status byte immediately.  Do not call KERNAL screen
+	; output until the complete transfer is over: CHROUT can touch $01 and
+	; corrupt the following burst handshake on a 6510 host.
+	sei
+	jsr eE2B8		; establish the normal serial-clock level
+	jsr ToggleClk
+	jsr HandleStat		; sync byte was acknowledged; receive real status
 	pha			; keep it
 
 	jsr GetByte		; Get the load address (low) - We assume
@@ -151,6 +144,9 @@ Last:	tax			; Otherwise it is bytes left. Do the last..
 	jsr eE2B8		; Serial clock on (the normal value)
 	lda #CMD_CHANNEL
 	jsr ROM_CLOSE		; Close the command channel
+	lda #<iec_type_txt
+	ldy #>iec_type_txt
+	jsr print_msg		; confirmed path; no burst handshake remains active
 	lda #0
 	sta load_status		; loaded OK - tell iec_load we handled it
 	clc			; carry clear -> no error indicator
@@ -205,6 +201,7 @@ NotFast:			; device doesn't handle burst
 HandleStat:
 	jsr GetByte		; Get a byte (and toggle clk to start the
 				;  transfer for next byte)
+HandleStatValue:
 	cmp #$1f		; EOI ?
 	bne +
 	jmp GetByte		; Get the number of bytes to follow and RTS
