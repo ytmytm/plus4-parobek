@@ -168,13 +168,26 @@ The resulting binaries are written to `src/bin/`.
 Correct fastloader is autodetected, except for fast serial one. This is configured at ROM assembly step by setting the `burst` variable on top of the `burstcart.asm` file to one of possible values (VIA=2 is default):
 
 ```
-; 1=CIA, 2=VIA, 3=CPLD
+; 2=VIA, 3=CPLD
 !set burst=2
 ```
 
 ---
 
-## 3  Startup Menu
+## 3  Testing
+
+Smoke matrices and contract checks live under [`tests/`](tests/). Start with:
+
+| Harness | Doc | Covers |
+|---------|-----|--------|
+| **VICE** | [`tests/vice/README.md`](tests/vice/README.md) | Patched `xplus4` (Hackjunk 6510, BurstCart VIA/CPLD, 32 KiB C1/C2 ROMs). Interactive matrix (`run-matrix.sh`) and headless runner (`run-headless-matrix.py`) for IEC, TCBM, parallel, burst, loader selection, and load performance. |
+| **YaPe** | [`tests/yape/README.md`](tests/yape/README.md) | Windows YaPe from WSL — PPI/PIO parallel 1541 (8255 / 6529). No BurstCart VIA/CPLD or 157x burst; use VICE for those. |
+
+Python scripts in `tests/` (e.g. `check_iec_helpers_6510.py`, `check_sjl6510_*.py`) verify assembler contracts without launching an emulator.
+
+---
+
+## 4  Startup Menu
 
 1. **Normal reset** – boots straight to BASIC without any cartridge hooks.
 2. **Directory browser** – starts the browser **without** installing fastloaders.
@@ -182,8 +195,22 @@ Correct fastloader is autodetected, except for fast serial one. This is configur
 
 ---
 
-## 4  Credits & Acknowledgements
+## 5  Credits & Acknowledgements
 
-Full development notes can be found in [`docs/burstc64.txt`](docs/burstc64.txt).
+Reference material, disassemblies, and development notes are collected in [`docs/`](docs/), including:
+
+- [`docs/burstc64.txt`](docs/burstc64.txt) — burst loader notes
+- [`docs/aay1541/`](docs/aay1541/), [`docs/aay1581/`](docs/aay1581/) — [AAY](https://www.the-dreams.de/aay.html) 1541 / 1581 references
+- [`docs/1541EJD.a65`](docs/1541EJD.a65) — disassembled 1541 JiffyDOS LOAD routines
+
+**BSZ** — [SJL264 Light](https://bsz.amigaspirit.hu/sjl264/index_en.html); the SJL264-derived serial fastloader in Parobek.
+
+**Ninja/Dreams** ([All about your 1541/1581](https://www.the-dreams.de/aay.html)) — 1541 and 1581 drive documentation used for IEC and burst work (`docs/aay1541/`, `docs/aay1581/`).
+
+**Pasi Ojala** — [original C64 burst loader](https://a1bert.kapsi.fi/Dev/burst/); basis for the 157x BurstCart fastloader.
+
+**Ruud Baltissen** — JiffyDOS 1541 source and analysis ([source codes](http://www.baltissen.org/newhtm/sourcecodes.htm), [`docs/1541EJD.a65`](docs/1541EJD.a65)); used for `1541 SERIAL` drive-side timing.
+
+**Hackjunk** — [8501→6510 CPU conversion](https://hackjunk.com/2017/06/23/commodore-16-plus-4-8501-to-6510-cpu-conversion/) and patched KERNAL port map; basis for `cpu_port_type` detection and 6510 receive / parallel paths.
 
 Hardware insights provided by the Plus/4 World community ([plus4world.powweb.com](https://plus4world.powweb.com)).
