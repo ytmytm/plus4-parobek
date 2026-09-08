@@ -35,8 +35,11 @@ iec_fill_status:
 		ldy #0
 -		jsr iec_acptr
 		sta (iec_st_ptr),y
+		beq .ok			; accept EOI-terminated NUL status
+		cmp #$0d
+		beq .ok			; textual status is complete at CR
 		jsr ROM_READST
-		and #%01000000
+		and #%11000010		; EOI, timeout, or device absent
 		bne .ok
 		iny
 		cpy #40
@@ -70,8 +73,83 @@ iec_send_ui:
 	jsr ROM_CIOUT
 +	jmp ROM_UNLISTEN
 
+; Confirm that the selected IEC device responds without reading its status
+; channel or sending a loader command.
+iec_probe_device:
+	lda #0
+	sta RAM_STATUS
+	lda RAM_FA
+	jsr ROM_LISTEN
+	jsr ROM_UNLISTEN
+	lda RAM_STATUS
+	and #%10000000
+	beq +
+	sec
+	rts
++	clc
+	rts
+
+; UI can make Pi1541 browse mode temporarily disappear from IEC while it
+; applies a directory change/reset. Probe command channel readiness before
+; attempting to TALK. Keep this bounded so an unplugged drive falls back.
+iec_wait_ready:
+	lda #16
+	sta iec_st_off
+iec_wait_ready_retry:
+	ldx #0
+iec_wait_ready_delay_outer:
+	ldy #0
+iec_wait_ready_delay_inner:
+	dey
+	bne iec_wait_ready_delay_inner
+	dex
+	bne iec_wait_ready_delay_outer
+	lda #0
+	sta RAM_STATUS
+	lda RAM_FA
+	jsr ROM_LISTEN
+	lda #$6f
+	jsr ROM_SECOND
+	jsr ROM_UNLISTEN
+	lda RAM_STATUS
+	beq iec_wait_ready_ready
+	dec iec_st_off
+	bne iec_wait_ready_retry
+	sec
+	rts
+iec_wait_ready_ready:
+	clc
+	rts
+
 ; Scan $d0/$d1 for JIFFYDOS / SD2IEC (t2sd_detect loop). OR sticky flags.
 iec_or_drive_flags:
+	; Browser mode cannot execute drive code. Recheck this bit on each
+	; scan so mounting a disk image can enable the normal loaders again.
+	lda iec_drive_flags
+	and #%11111011
+	sta iec_drive_flags
+	lda #0
+	sta iec_st_off
+.pi_outer:
+	ldy iec_st_off
+	ldx #0
+-	lda iec_sig_pi,x
+	beq .pi_hit
+	cmp (iec_st_ptr),y
+	bne .pi_next
+	iny
+	inx
+	bne -
+.pi_hit:
+	; Discard stale JiffyDOS/SD2IEC flags from a previous drive mode.
+	lda #%00000100
+	sta iec_drive_flags
+	rts
+.pi_next:
+	inc iec_st_off
+	lda iec_st_off
+	cmp #35			; six-byte signature must fit in 40 bytes
+	bne .pi_outer
 	lda #0
 	sta iec_st_off
 .jd_outer:
@@ -121,6 +199,7 @@ iec_or_drive_flags:
 
 iec_sig_jd:	!text "JIFFYDOS", 0
 iec_sig_sd:	!text "SD2IEC", 0
+iec_sig_pi:	!text "PI1541", 0
 
 iec_point_cmd:
 	lda #<cmd_text
@@ -175,10 +254,12 @@ iec_note_drive_class:
 	bcs .try_ui
 	jsr iec_or_drive_flags
 	lda iec_drive_flags
-	and #%00000011
+	and #%00000111
 	bne .ok
 .try_ui:
 	jsr iec_send_ui
+	jsr iec_wait_ready
+	bcs .fail
 	jsr iec_point_0200
 	jsr iec_fill_status
 	bcs .fail

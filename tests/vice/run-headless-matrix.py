@@ -21,6 +21,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--load-timeout", type=float, default=120.0)
     parser.add_argument("--realtime", action="store_true", help="run the matrix at real speed")
     parser.add_argument("--retries", type=int, default=1, help="retries after a failed case (default: 1)")
+    parser.add_argument("--seed", type=int, default=1, help="VICE PRNG seed (default: 1)")
     return parser.parse_args()
 
 
@@ -94,6 +95,7 @@ def main() -> int:
             "--cart-bank", cart_bank,
             "--filename", filename,
             "--device-number", str(device_number),
+            "--seed", str(args.seed),
             "--boot-wait", str(args.boot_wait),
             "--load-timeout", str(args.load_timeout),
         ]

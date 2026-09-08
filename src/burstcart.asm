@@ -372,10 +372,11 @@ load_iftype:	!byte 0		; parallel interface type (PPI/PIO/CIA/VIA bitmask)
 				;  and the use wiped them out
 host_jd:	!byte 0		; <>0 = host kernal is JiffyDOS (set at install)
 fast1541iec_candidate:	!byte 0	; ≠0 = 1541 without parallel (from par1541_detect=$80)
-iec_drive_flags: !byte 0	; sticky across loads (cleared only when trampoline
-				;  is (re)installed). OR'd from error-channel scans:
+iec_drive_flags: !byte 0	; JiffyDOS/SD2IEC sticky across loads, except when
+				;  a browser signature replaces them:
 				;  %xxxxxxx1 = saw "SD2IEC"
 				;  %xxxxxx1x = saw "JIFFYDOS"
+				;  %xxxxx1xx = "PI1541" browser, refreshed on each scan
 				; After a successful load the channel is often
 				;  "00, OK" without those strings — do not clear.
 cpu_port_type:	!byte 0		; 0=8501, 1=6510+patched KERNAL, 2=6510+stock, 3=unknown
@@ -484,6 +485,13 @@ load_rom:
 	rts
 
 iec_load:
+	jsr iec_probe_device
+	bcc +
+	lda #5			; KERNAL error: DEVICE NOT PRESENT
+	sta load_status
+	sec
+	rts
++
 	lda #<iec_load_txt
 	ldy #>iec_load_txt
 	jsr print_msg
@@ -501,6 +509,10 @@ iec_load:
 +	;  clear sticky bits on a later "00, OK".
 +	jsr iec_note_drive_class
 +	bcs .try_parallel		; no device -> parallel attempt then ROM
++	lda iec_drive_flags
++	and #%00000100
++	beq +
+	jmp load_rom		; Pi1541 browser has no drive-memory commands
 +	; SD2IEC -> SJL (unless host_jd)
 +	lda host_jd
 +	bne .try_parallel

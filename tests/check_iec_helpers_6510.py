@@ -44,6 +44,14 @@ assert wedge_status.count("jsr eEDA9") == 1
 assert wedge_status.count("jsr iec_acptr") == 1
 assert wedge_status.count("jsr ROM_ACPTR") == 1
 assert wedge_status.index("jsr eEDA9") < wedge_status.index("jsr ROM_TALK")
+assert "and #%01000000" in wedge_status
+assert "sta cmd_len" in wedge_status
+assert "dec cmd_len" in wedge_status
+assert "Pi1541 may terminate status with EOI + NUL" in wedge_status
+assert "beq dos_status_append_cr ; Pi1541 may terminate status with EOI + NUL" in wedge_status
+assert wedge_status.count("dos_status_append_cr:") == 1
+append_cr = wedge_status.split("dos_status_append_cr:")[1]
+assert "lda #$0D\n\tjsr ROM_CHROUT" in append_cr
 shared = burst.split("shared_rom_check:")[1].split("}")[0]
 assert shared.count("JSR   iec_acptr") == 2
 assert shared.count("JSR   ROM_ACPTR") == 2
@@ -56,6 +64,18 @@ assert "jsr ted_sjl_enter" in fast
 assert "jsr iec_mw_one_chunk" in fast
 assert "jsr ted_sjl_enter" in (ROOT / "src/sjl-loader.asm").read_text()
 assert sjl_det.count("jsr iec_send_ui") == 1
+assert "iec_wait_ready:" in sjl_det
+assert "jsr iec_send_ui\n\tjsr iec_wait_ready\n\tbcs .fail" in sjl_det
+assert "iec_probe_device:" in sjl_det
+assert "jsr iec_probe_device\n\tbcc +" in burst
+fill_status = sjl_det.split("iec_fill_status:")[1].split("iec_send_ui:")[0]
+assert "cmp #$0d" in fill_status
+assert "and #%11000010" in fill_status
+via_burst = (ROOT / "src/burst-via.asm").read_text()
+assert "sta load_status\t\t; force open bus away from the expected SR value" in via_burst
+assert "lda via_sr\n\tcmp #%00000100" in via_burst
+assert "php\n\tsei\t\t\t; keep IRQ activity from changing the open-bus value" in via_burst
+assert via_burst.index("force open bus away") < via_burst.index("jsr ROM_OPEN")
 assert [
     p.name
     for p in (ROOT / "src").glob("*.asm")

@@ -228,7 +228,9 @@ dos_send_command_end:
 
 dos_display_status:
         lda RAM_FA
-        beq dos_status_end
+	bne +
+	jmp dos_status_end
++
 	jsr eEDA9               ; choose the bus before TALK/TKSA
 	bcc dos_display_status_tcbm
 
@@ -236,19 +238,48 @@ dos_display_status:
         jsr ROM_TALK
         jsr ROM_READST
         and #%11000000          ; device not present?
-        bne dos_display_status_end
+	beq +
+	jmp dos_display_status_end
++
         lda #$6F
         jsr ROM_TKSA
-        jsr ROM_READST
-        and #%11000000          ; device not present?
-        bne dos_display_status_end
+	jsr ROM_READST
+	and #%11000000          ; device not present?
+	beq +
+	jmp dos_display_status_end
++
+	lda #40
+	sta cmd_len
 -       jsr iec_acptr
-        bcs dos_display_status_end
-        cmp #$0D
-        beq +
-        jsr ROM_CHROUT
-        jmp -
-+       jsr ROM_CHROUT
+	pha
+	jsr ROM_READST
+	and #%10000010          ; device absent / receive timeout
+	bne .iec_abort
+	lda RAM_STATUS
+	and #%01000000          ; EOI belongs to the byte on the stack
+	bne .iec_eoi
+	pla
+	cmp #$0D
+	beq .iec_print_end
+	jsr ROM_CHROUT
+	dec cmd_len
+	bne -
+	jmp dos_status_append_cr
+.iec_eoi:
+	pla
+	beq dos_status_append_cr ; Pi1541 may terminate status with EOI + NUL
+	cmp #$0D
+	beq .iec_print_end
+	jsr ROM_CHROUT
+	jmp dos_status_append_cr
+.iec_print_end:
+	jsr ROM_CHROUT
+	jmp dos_display_status_end
+.iec_abort:
+	pla
+	lda cmd_len
+	cmp #40
+	bne dos_status_append_cr
 	jmp dos_display_status_end
 
 dos_display_status_tcbm:
@@ -258,16 +289,44 @@ dos_display_status_tcbm:
 	bne dos_display_status_end
 	lda #$6F
 	jsr ROM_TKSA
+        jsr ROM_READST
+        and #%11000000
+        bne dos_display_status_end
+	lda #40
+	sta cmd_len
+-	jsr ROM_ACPTR
+	pha
 	jsr ROM_READST
-	and #%11000000
-	bne dos_display_status_end
--	jsr iec_acptr
-	bcs dos_display_status_end
+	and #%10000010
+	bne .tcbm_abort
+	lda RAM_STATUS
+	and #%01000000
+	bne .tcbm_eoi
+	pla
 	cmp #$0D
-	beq +
+	beq .tcbm_print_end
 	jsr ROM_CHROUT
-	jmp -
-+	jsr ROM_CHROUT
+	dec cmd_len
+	bne -
+	jmp dos_status_append_cr
+.tcbm_eoi:
+	pla
+	beq dos_status_append_cr
+	cmp #$0D
+	beq .tcbm_print_end
+	jsr ROM_CHROUT
+	jmp dos_status_append_cr
+.tcbm_print_end:
+	jsr ROM_CHROUT
+	jmp dos_display_status_end
+.tcbm_abort:
+	pla
+	lda cmd_len
+	cmp #40
+	beq dos_display_status_end
+dos_status_append_cr:
+	lda #$0D
+	jsr ROM_CHROUT
 dos_display_status_end:
         jsr ROM_UNTLK
 

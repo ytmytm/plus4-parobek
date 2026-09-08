@@ -85,6 +85,16 @@ NotVIA:
 	rts
 
 VIAFound:
+	php
+	sei			; keep IRQ activity from changing the open-bus value
+	lda #$a5
+	sta load_status		; force open bus away from the expected SR value
+	lda via_sr
+	cmp #%00000100		; completed local shift must retain the test byte
+	beq +
+	plp
+	jmp NotVIA		; rejects a floating/open bus before drive commands
++	plp
 	lda #%00000001
 	sta via_portb		; PB0=1 -> SR input
 	lda via_sr			; reset sr

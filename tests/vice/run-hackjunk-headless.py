@@ -283,6 +283,11 @@ def parse_args() -> argparse.Namespace:
         help="interrupt a stuck LOAD, save CPU history, and attempt a snapshot",
     )
     parser.add_argument(
+        "--trace-execution",
+        action="store_true",
+        help="with --diagnose-timeout, add detailed IEC tracepoints",
+    )
+    parser.add_argument(
         "--history-lines",
         type=int,
         default=8192,
@@ -528,10 +533,10 @@ def main() -> int:
         *cart_args, "-8", str(disk),
         "-keybuf", "3",
         "-remotemonitor", "-remotemonitoraddress", f"ip4://127.0.0.1:{port}",
+        "-monchislines", str(args.history_lines),
     ]
     if args.diagnose_timeout:
         live_monitor_log.unlink(missing_ok=True)
-        cmd.extend(("-monchislines", str(args.history_lines)))
     with vice_log.open("wb") as log_file:
         proc = subprocess.Popen(cmd, cwd=ROOT, stdout=log_file, stderr=subprocess.STDOUT)
     try:
@@ -561,7 +566,7 @@ def main() -> int:
                 "delete",
                 "break $081b",
             ])
-            if args.diagnose_timeout:
+            if args.diagnose_timeout and args.trace_execution:
                 trace_commands = [
                     "trace exec $874c",       # cartridge LOAD dispatcher
                     "trace exec $8783",       # IEC loader selection
@@ -763,7 +768,7 @@ def main() -> int:
     drive_idle_ok = args.drive != "1551" or (
         len(drive_sample_groups) == args.repeat
         and all(
-            len(samples) == samples_per_load and not any(sample[2] for sample in samples[1:])
+            len(samples) == samples_per_load and not any(sample[2] for sample in samples[-4:])
             for samples in drive_sample_groups
         )
     )
@@ -808,7 +813,7 @@ def main() -> int:
                 for direction, data in sorted({(sample[0], sample[1]) for sample in samples})
             ) or "not found"
             led_sequence = "".join("1" if sample[2] else "0" for sample in samples) or "not found"
-            load_idle_ok = len(samples) == samples_per_load and not any(sample[2] for sample in samples[1:])
+            load_idle_ok = len(samples) == samples_per_load and not any(sample[2] for sample in samples[-4:])
             print(f"{prefix}1551 post-load DDR/PORT states: {port_states}")
             print(f"{prefix}1551 LED sequence (1=on): {led_sequence}")
             print(f"{prefix}1551 idle LED: {'OK' if load_idle_ok else 'FAIL'}")

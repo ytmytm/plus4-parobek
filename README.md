@@ -32,6 +32,7 @@ Parobek picks a path per load from what is attached. On **IEC**, the order is **
 | Step | Condition | Path (message) |
 |------|-----------|----------------|
 | 1 | 1570/1571/1581 + Burstcart SRQ hardware | Burst (`VIA` / `CPLD BURST`, …) |
+| 1a | Status contains `PI1541` (browser mode) | KERNAL (`ROM LOAD`); skip drive-memory probes and uploads |
 | 2 | Status contains `SD2IEC`, stock host kernal, datasette not blocking SJL | SJL264 (`SD2IEC, SJL264`) |
 | 3 | 1541 with parallel cable | Parallel SpeedDOS (`1541/PARALLEL`) |
 | 4a | Status contains `JIFFYDOS`, stock host, datasette not blocking | SJL264 (`SJL264`) |

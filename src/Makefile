@@ -4,6 +4,8 @@ LUT_GENERATOR = gen_sjl6510_luts.py
 LUT_ASM = gen_sjl6510_luts.asm
 
 SRCS = burstcart.asm burst-cpld.asm burst-via.asm \
+	db12b.prg \
+	dos-wedge.asm \
 	t2s-detect.asm host-jd-detect.asm cpu-port-detect.asm \
 	iec-acptr.asm \
 	sjl-detect.asm sjl-loader.asm sjl-loader-highcode.asm \
